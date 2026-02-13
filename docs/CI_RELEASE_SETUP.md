@@ -30,6 +30,9 @@ Triggers:
 - `ANDROID_SIGNING_KEY_ALIAS`
 - `ANDROID_SIGNING_KEY_PASSWORD`
 
+If these four secrets are all configured, release artifacts are signed.
+If they are missing, the workflow still builds unsigned release artifacts and publishes a GitHub Release for the tag.
+
 ## Create `ANDROID_KEYSTORE_BASE64`
 
 PowerShell:
@@ -54,3 +57,11 @@ Gradle now accepts version values from:
 - environment variables `VERSION_NAME`, `VERSION_CODE`.
 
 Release signing is enabled when all signing env vars are present.
+
+## Publish behavior
+
+On `v*` tags, the release workflow:
+
+1. Builds APK/AAB (signed when secrets exist, unsigned otherwise)
+2. Publishes a GitHub Release for the tag
+3. Uploads artifacts to both the Release page and workflow artifacts
