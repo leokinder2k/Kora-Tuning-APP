@@ -1,0 +1,93 @@
+name: Android Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: Release version name (e.g. 1.2.0)
+        required: true
+        type: string
+      version_code:
+        description: Release version code (integer)
+        required: true
+        type: number
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-release:
+    name: Build Signed Release Artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Resolve release version
+        id: version
+        shell: bash
+        run: |
+          VERSION_NAME="${{ github.event.inputs.version_name }}"
+          VERSION_CODE="${{ github.event.inputs.version_code }}"
+
+          if [ -z "$VERSION_NAME" ]; then
+            VERSION_NAME="${GITHUB_REF_NAME#v}"
+          fi
+
+          if [ -z "$VERSION_CODE" ]; then
+            VERSION_CODE="${GITHUB_RUN_NUMBER}"
+          fi
+
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Validate signing secrets
+        shell: bash
+        run: |
+          test -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" || (echo "Missing secret: ANDROID_KEYSTORE_BASE64" && exit 1)
+          test -n "${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}" || (echo "Missing secret: ANDROID_SIGNING_STORE_PASSWORD" && exit 1)
+          test -n "${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}" || (echo "Missing secret: ANDROID_SIGNING_KEY_ALIAS" && exit 1)
+          test -n "${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}" || (echo "Missing secret: ANDROID_SIGNING_KEY_PASSWORD" && exit 1)
+
+      - name: Decode keystore
+        shell: bash
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "${RUNNER_TEMP}/release.keystore"
+
+      - name: Build release
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
+          VERSION_CODE: ${{ steps.version.outputs.version_code }}
+          ANDROID_SIGNING_STORE_FILE: ${{ runner.temp }}/release.keystore
+          ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+        run: |
+          ./gradlew :app:clean :app:bundleRelease :app:assembleRelease \
+            --no-daemon \
+            -PVERSION_NAME="$VERSION_NAME" \
+            -PVERSION_CODE="$VERSION_CODE"
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-${{ steps.version.outputs.version_name }}-${{ steps.version.outputs.version_code }}
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
+            app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: warn
