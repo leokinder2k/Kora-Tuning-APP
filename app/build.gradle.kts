@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.gradle.play.publisher)
 }
 
 val configuredVersionCode = providers.gradleProperty("VERSION_CODE")
@@ -101,4 +102,15 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+play {
+    // Put the Play service account JSON here (DO NOT commit it).
+    serviceAccountCredentials.set(rootProject.file(".local-signing/play-service-account.json"))
+
+    // Safe default: internal testing track.
+    track.set("internal")
+
+    // Prefer AAB upload.
+    defaultToAppBundles.set(true)
 }
