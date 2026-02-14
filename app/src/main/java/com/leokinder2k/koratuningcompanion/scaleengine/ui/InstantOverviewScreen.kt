@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -515,16 +516,23 @@ fun InstantOverviewScreen(
                     label = { Text(stringResource(R.string.overview_view_exercise)) }
                 )
             }
-            if (playingStringNumbers.isNotEmpty()) {
-                OutlinedButton(
-                    onClick = {
-                        tonePlayer.stopAll()
-                        playingStringNumbers = emptySet()
-                        playGenerationByString.clear()
-                        lastTapAtByString.clear()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (playingStringNumbers.isNotEmpty()) {
+                    OutlinedButton(
+                        onClick = {
+                            tonePlayer.stopAll()
+                            playingStringNumbers = emptySet()
+                            playGenerationByString.clear()
+                            lastTapAtByString.clear()
+                        }
+                    ) {
+                        Text(stringResource(R.string.overview_action_stop_all_tones))
                     }
-                ) {
-                    Text(stringResource(R.string.overview_action_stop_all_tones))
                 }
             }
 
