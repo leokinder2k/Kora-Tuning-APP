@@ -19,3 +19,8 @@
 local.properties
 *.keystore
 *.jks
+
+# Local signing and build homes used by CI/Codex scripts.
+.local-signing/
+.android-home/
+.gradle-user/
