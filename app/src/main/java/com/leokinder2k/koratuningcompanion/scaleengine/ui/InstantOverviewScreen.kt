@@ -340,6 +340,12 @@ fun InstantOverviewScreen(
             }
         }
     }
+    val stopAllPlayback: () -> Unit = {
+        tonePlayer.stopAll()
+        playingStringNumbers = emptySet()
+        playGenerationByString.clear()
+        lastTapAtByString.clear()
+    }
     val runCircleExerciseStep: () -> Unit = {
         val startIndex = circleOfFifthsIndexFor(circleExerciseStartRoot)
         val root = CIRCLE_OF_FIFTHS_ORDER[(startIndex + circleExerciseStepOffset) % CIRCLE_OF_FIFTHS_ORDER.size]
@@ -522,18 +528,20 @@ fun InstantOverviewScreen(
                     .height(56.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
-                if (playingStringNumbers.isNotEmpty()) {
-                    OutlinedButton(
-                        onClick = {
-                            tonePlayer.stopAll()
-                            playingStringNumbers = emptySet()
-                            playGenerationByString.clear()
-                            lastTapAtByString.clear()
-                        }
-                    ) {
+            val showTopStopButton =
+                playingStringNumbers.isNotEmpty() && viewMode != OverviewViewMode.DIAGRAM
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(if (showTopStopButton) 56.dp else 0.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (showTopStopButton) {
+                    OutlinedButton(onClick = stopAllPlayback) {
                         Text(stringResource(R.string.overview_action_stop_all_tones))
                     }
                 }
+            }
             }
 
             when (viewMode) {
@@ -544,6 +552,7 @@ fun InstantOverviewScreen(
                     onPlayAllStrings = {
                         rows.forEach { row -> playStringPluck(row) }
                     },
+                    onStopAllStrings = stopAllPlayback,
                     showLeverInfo = showLeverInfo,
                     diagramZoom = diagramZoom,
                     onDiagramZoomChanged = { value -> diagramZoom = value }
@@ -743,6 +752,7 @@ private fun DiagramOverview(
     playingStringNumbers: Set<Int>,
     onStringTouched: (PegCorrectStringResult) -> Unit,
     onPlayAllStrings: () -> Unit,
+    onStopAllStrings: () -> Unit,
     showLeverInfo: Boolean,
     diagramZoom: Float,
     onDiagramZoomChanged: (Float) -> Unit
@@ -758,127 +768,139 @@ private fun DiagramOverview(
     val maxTapDistancePx = with(density) { 20.dp.toPx() }
     var diagramSize by remember { mutableStateOf(IntSize.Zero) }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.overview_diagram_title),
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(
-                        R.string.overview_diagram_zoom_label,
-                        "%.0f".format(diagramZoom * 100f)
-                    ),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                OutlinedButton(
-                    onClick = {
-                        onDiagramZoomChanged((diagramZoom - 0.2f).coerceAtLeast(1f))
-                    },
-                    enabled = diagramZoom > 1f
-                ) {
-                    Text("-")
-                }
-                OutlinedButton(
-                    onClick = {
-                        onDiagramZoomChanged((diagramZoom + 0.2f).coerceAtMost(3f))
-                    },
-                    enabled = diagramZoom < 3f
-                ) {
-                    Text("+")
-                }
-                OutlinedButton(
-                    onClick = { onDiagramZoomChanged(1f) },
-                    enabled = diagramZoom != 1f
-                ) {
-                    Text(stringResource(R.string.action_reset))
-                }
-            }
-            OutlinedButton(
-                onClick = onPlayAllStrings,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(R.string.overview_action_play_all_strings))
-            }
-
-            Box(
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(0.86f)
-                    .clipToBounds()
-                    .onSizeChanged { size -> diagramSize = size }
-                    .pointerInput(left, right, diagramZoom, diagramSize) {
-                        detectMultiTouchStringPresses(
-                            resolveHitRow = { tapOffset ->
-                                if (diagramSize.width == 0 || diagramSize.height == 0) {
-                                    return@detectMultiTouchStringPresses null
-                                }
-                                val size = Size(
-                                    width = diagramSize.width.toFloat(),
-                                    height = diagramSize.height.toFloat()
-                                )
-                                val unscaledTap = unscaleTapOffset(
-                                    tapOffset = tapOffset,
-                                    size = size,
-                                    zoom = diagramZoom
-                                )
-                                findTappedString(
-                                    tapOffset = unscaledTap,
-                                    segments = buildDiagramStringSegments(
-                                        leftRows = left,
-                                        rightRows = right,
-                                        size = size
-                                    ),
-                                    maxDistancePx = maxTapDistancePx
-                                )
-                            },
-                            onStringTouched = onStringTouched
-                        )
-                    }
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                Text(
+                    text = stringResource(R.string.overview_diagram_title),
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(
+                            R.string.overview_diagram_zoom_label,
+                            "%.0f".format(diagramZoom * 100f)
+                        ),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            onDiagramZoomChanged((diagramZoom - 0.2f).coerceAtLeast(1f))
+                        },
+                        enabled = diagramZoom > 1f
+                    ) {
+                        Text("-")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            onDiagramZoomChanged((diagramZoom + 0.2f).coerceAtMost(3f))
+                        },
+                        enabled = diagramZoom < 3f
+                    ) {
+                        Text("+")
+                    }
+                    OutlinedButton(
+                        onClick = { onDiagramZoomChanged(1f) },
+                        enabled = diagramZoom != 1f
+                    ) {
+                        Text(stringResource(R.string.action_reset))
+                    }
+                }
+                OutlinedButton(
+                    onClick = onPlayAllStrings,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.overview_action_play_all_strings))
+                }
+
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer(
-                            scaleX = diagramZoom,
-                            scaleY = diagramZoom
-                        )
+                        .fillMaxWidth()
+                        .aspectRatio(0.86f)
+                        .clipToBounds()
+                        .onSizeChanged { size -> diagramSize = size }
+                        .pointerInput(left, right, diagramZoom, diagramSize) {
+                            detectMultiTouchStringPresses(
+                                resolveHitRow = { tapOffset ->
+                                    if (diagramSize.width == 0 || diagramSize.height == 0) {
+                                        return@detectMultiTouchStringPresses null
+                                    }
+                                    val size = Size(
+                                        width = diagramSize.width.toFloat(),
+                                        height = diagramSize.height.toFloat()
+                                    )
+                                    val unscaledTap = unscaleTapOffset(
+                                        tapOffset = tapOffset,
+                                        size = size,
+                                        zoom = diagramZoom
+                                    )
+                                    findTappedString(
+                                        tapOffset = unscaledTap,
+                                        segments = buildDiagramStringSegments(
+                                            leftRows = left,
+                                            rightRows = right,
+                                            size = size
+                                        ),
+                                        maxDistancePx = maxTapDistancePx
+                                    )
+                                },
+                                onStringTouched = onStringTouched
+                            )
+                        }
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_kora_diagram_base),
-                        contentDescription = stringResource(R.string.content_desc_kora_diagram),
-                        modifier = Modifier.fillMaxSize()
-                    )
-                     Canvas(modifier = Modifier.fillMaxSize()) {
-                         drawKoraDiagram(
-                             leftRows = left,
-                             rightRows = right,
-                             colors = colors,
-                             activeStringNumbers = playingStringNumbers,
-                             showLeverInfo = showLeverInfo
-                         )
-                     }
-                 }
-             }
- 
-             DiagramLegend(showLeverInfo = showLeverInfo)
-             TouchStringRows(
-                 leftRows = left,
-                 rightRows = right,
-                 playingStringNumbers = playingStringNumbers,
-                 onStringTouched = onStringTouched
-            )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer(
+                                scaleX = diagramZoom,
+                                scaleY = diagramZoom
+                            )
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_kora_diagram_base),
+                            contentDescription = stringResource(R.string.content_desc_kora_diagram),
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            drawKoraDiagram(
+                                leftRows = left,
+                                rightRows = right,
+                                colors = colors,
+                                activeStringNumbers = playingStringNumbers,
+                                showLeverInfo = showLeverInfo
+                            )
+                        }
+                    }
+                }
+
+                DiagramLegend(showLeverInfo = showLeverInfo)
+                TouchStringRows(
+                    leftRows = left,
+                    rightRows = right,
+                    playingStringNumbers = playingStringNumbers,
+                    onStringTouched = onStringTouched
+                )
+            }
+        }
+        if (playingStringNumbers.isNotEmpty()) {
+            OutlinedButton(
+                onClick = onStopAllStrings,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp)
+            ) {
+                Text(stringResource(R.string.overview_action_stop_all_tones))
+            }
         }
     }
 }

@@ -114,7 +114,7 @@ class PluckedStringPlayer(
             val fundamentalAngle = (2.0 * PI * frequencyHz * index) / sampleRateHz
             val overtoneAngle = (2.0 * PI * frequencyHz * 2.0 * index) / sampleRateHz
             val tone = (sin(fundamentalAngle) + (0.35 * sin(overtoneAngle))) * 0.74
-            val value = tone * amplitude * attackEnvelope * decayEnvelope * 7.0
+            val value = tone * amplitude * attackEnvelope * decayEnvelope * 5.0
             val clampedValue = value.coerceIn(-1.0, 1.0)
             samples[index] = (clampedValue * Short.MAX_VALUE).toInt().toShort()
         }
