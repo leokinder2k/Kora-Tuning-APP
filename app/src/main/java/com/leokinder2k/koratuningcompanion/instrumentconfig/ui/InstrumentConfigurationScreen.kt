@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
@@ -49,7 +50,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.leokinder2k.koratuningcompanion.R
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringLayout
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
 import com.leokinder2k.koratuningcompanion.livetuner.model.TunerTargetMatcher
 import com.leokinder2k.koratuningcompanion.livetuner.model.TuningFeedbackClassifier
@@ -79,6 +82,7 @@ fun InstrumentConfigurationRoute(modifier: Modifier = Modifier) {
         uiState = uiState,
         tunerUiState = tunerUiState,
         onStringCountSelected = configViewModel::onStringCountSelected,
+        onTuningModeSelected = configViewModel::onTuningModeSelected,
         onOpenPitchChanged = configViewModel::onOpenPitchChanged,
         onOpenIntonationChanged = configViewModel::onOpenIntonationChanged,
         onClosedIntonationChanged = configViewModel::onClosedIntonationChanged,
@@ -98,6 +102,7 @@ fun InstrumentConfigurationScreen(
     uiState: InstrumentConfigurationUiState,
     tunerUiState: LiveTunerUiState,
     onStringCountSelected: (Int) -> Unit,
+    onTuningModeSelected: (KoraTuningMode) -> Unit,
     onOpenPitchChanged: (rowIndex: Int, value: String) -> Unit,
     onOpenIntonationChanged: (rowIndex: Int, value: String) -> Unit,
     onClosedIntonationChanged: (rowIndex: Int, value: String) -> Unit,
@@ -147,13 +152,22 @@ fun InstrumentConfigurationScreen(
     } else {
         null
     }
-    val tuningState = selectedCentsDeviation?.let(TuningFeedbackClassifier::classify)
+    val inTuneThresholdCents = when (uiState.tuningMode) {
+        KoraTuningMode.LEVERED -> TuningFeedbackClassifier.DEFAULT_IN_TUNE_THRESHOLD_CENTS
+        KoraTuningMode.PEG_TUNING -> PEG_TUNING_IN_TUNE_THRESHOLD_CENTS
+    }
+    val tuningState = selectedCentsDeviation?.let { deviation ->
+        TuningFeedbackClassifier.classify(
+            centsDeviation = deviation,
+            inTuneThresholdCents = inTuneThresholdCents
+        )
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Instrument Configuration") }
+                title = { Text(stringResource(R.string.title_instrument_configuration)) }
             )
         }
     ) { innerPadding ->
@@ -166,7 +180,7 @@ fun InstrumentConfigurationScreen(
         ) {
             item {
                 Text(
-                    text = "Strings",
+                    text = stringResource(R.string.instrument_config_section_strings),
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -178,21 +192,46 @@ fun InstrumentConfigurationScreen(
                     FilterChip(
                         selected = uiState.stringCount == 21,
                         onClick = { onStringCountSelected(21) },
-                        label = { Text("21 strings") }
+                        label = { Text(stringResource(R.string.strings_count, 21)) }
                     )
                     FilterChip(
                         selected = uiState.stringCount == 22,
                         onClick = { onStringCountSelected(22) },
-                        label = { Text("22 strings") }
+                        label = { Text(stringResource(R.string.strings_count, 22)) }
                     )
                 }
             }
 
             item {
                 Text(
-                    text = "Set open tuning for each string. Closed pitch is calculated automatically (+1 semitone). You can also enter open/closed intonation offsets in cents.",
+                    text = when (uiState.tuningMode) {
+                        KoraTuningMode.LEVERED -> stringResource(R.string.instrument_config_description_levered)
+                        KoraTuningMode.PEG_TUNING -> stringResource(R.string.instrument_config_description_peg_tuning)
+                    },
                     style = MaterialTheme.typography.bodyMedium
                 )
+            }
+
+            item {
+                Text(
+                    text = stringResource(R.string.instrument_config_section_instrument_type),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = uiState.tuningMode == KoraTuningMode.LEVERED,
+                        onClick = { onTuningModeSelected(KoraTuningMode.LEVERED) },
+                        label = { Text(stringResource(R.string.instrument_type_levers)) }
+                    )
+                    FilterChip(
+                        selected = uiState.tuningMode == KoraTuningMode.PEG_TUNING,
+                        onClick = { onTuningModeSelected(KoraTuningMode.PEG_TUNING) },
+                        label = { Text(stringResource(R.string.instrument_type_pegs)) }
+                    )
+                }
             }
 
             item {
@@ -204,19 +243,19 @@ fun InstrumentConfigurationScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = "Quick Start",
+                            text = stringResource(R.string.quick_start_title),
                             style = MaterialTheme.typography.titleSmall
                         )
                         Text(
-                            text = "1. Choose 21 or 22 strings.",
+                            text = stringResource(R.string.instrument_config_quick_start_step_1),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
-                            text = "2. Enter open pitch and optional cents offsets per string.",
+                            text = stringResource(R.string.instrument_config_quick_start_step_2),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
-                            text = "3. Save profile, then use Scale/Guided/Overview/Tuner tabs.",
+                            text = stringResource(R.string.instrument_config_quick_start_step_3),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -253,7 +292,7 @@ fun InstrumentConfigurationScreen(
 
             item {
                 Text(
-                    text = "String notes and cents are auto-saved when entries are valid.",
+                    text = stringResource(R.string.instrument_config_auto_save_note),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -261,6 +300,7 @@ fun InstrumentConfigurationScreen(
             itemsIndexed(uiState.rows, key = { _, row -> row.stringNumber }) { index, row ->
                 StringConfigurationCard(
                     row = row,
+                    showLeverFields = uiState.tuningMode == KoraTuningMode.LEVERED,
                     onOpenPitchChanged = { value -> onOpenPitchChanged(index, value) },
                     onOpenIntonationChanged = { value -> onOpenIntonationChanged(index, value) },
                     onClosedIntonationChanged = { value -> onClosedIntonationChanged(index, value) }
@@ -272,7 +312,7 @@ fun InstrumentConfigurationScreen(
                     onClick = onLoadStarterProfile,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Load Starter Profile")
+                    Text(stringResource(R.string.instrument_config_action_load_starter_profile))
                 }
             }
 
@@ -282,7 +322,7 @@ fun InstrumentConfigurationScreen(
                     enabled = uiState.canSave,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Save Instrument Profile")
+                    Text(stringResource(R.string.instrument_config_action_save_profile))
                 }
             }
 
@@ -343,11 +383,11 @@ private fun InstrumentTuningAssistantCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "Instrument Tuning Assistant",
+                        text = stringResource(R.string.instrument_tuning_assistant_title),
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = "Select a string and tune its open pitch using target note/cents and status lights.",
+                        text = stringResource(R.string.instrument_tuning_assistant_subtitle),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -357,7 +397,7 @@ private fun InstrumentTuningAssistantCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "Tuner Controls",
+                        text = stringResource(R.string.instrument_tuning_assistant_controls_title),
                         style = MaterialTheme.typography.labelSmall
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -365,7 +405,7 @@ private fun InstrumentTuningAssistantCard(
                             FilterChip(
                                 selected = mode == tunerUiState.performanceMode,
                                 onClick = { onPerformanceModeSelected(mode) },
-                                label = { Text(mode.label) }
+                                label = { Text(liveTunerPerformanceModeLabel(mode)) }
                             )
                         }
                     }
@@ -374,21 +414,21 @@ private fun InstrumentTuningAssistantCard(
                             onClick = onRequestPermission,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Grant Mic")
+                            Text(stringResource(R.string.action_grant_mic_short))
                         }
                     } else if (!tunerUiState.isListening) {
                         Button(
                             onClick = onStartListening,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Start")
+                            Text(stringResource(R.string.action_start))
                         }
                     } else {
                         OutlinedButton(
                             onClick = onStopListening,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Stop")
+                            Text(stringResource(R.string.action_stop))
                         }
                     }
                 }
@@ -402,11 +442,18 @@ private fun InstrumentTuningAssistantCard(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = "Target: ${selectedPitchLabel ?: "--"} (${selectedOpenCents?.let(::signed) ?: "--"}c)",
+                        text = stringResource(
+                            R.string.instrument_tuning_assistant_target_line,
+                            selectedPitchLabel ?: "--",
+                            selectedOpenCents?.let(::signed) ?: "--"
+                        ),
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = "Target Hz: ${formatFrequency(selectedTargetFrequencyHz)}",
+                        text = stringResource(
+                            R.string.instrument_tuning_assistant_target_hz_line,
+                            formatFrequency(selectedTargetFrequencyHz)
+                        ),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -415,19 +462,26 @@ private fun InstrumentTuningAssistantCard(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = "Detected: ${formatFrequency(detectedFrequencyHz)}",
+                        text = stringResource(
+                            R.string.instrument_tuning_assistant_detected_hz_line,
+                            formatFrequency(detectedFrequencyHz)
+                        ),
                         style = MaterialTheme.typography.bodySmall
                     )
                     if (selectedCentsDeviation != null) {
                         val color = tuningStateColor(requireNotNull(tuningState))
                         Text(
-                            text = "Deviation: ${signed(selectedCentsDeviation)}c (${tuningStateLabel(tuningState)})",
+                            text = stringResource(
+                                R.string.instrument_tuning_assistant_deviation_line,
+                                signed(selectedCentsDeviation),
+                                tuningStateLabel(tuningState)
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = color
                         )
                     } else {
                         Text(
-                            text = "Deviation: --",
+                            text = stringResource(R.string.instrument_tuning_assistant_deviation_none),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -437,7 +491,7 @@ private fun InstrumentTuningAssistantCard(
             TuningLightsRow(activeState = tuningState)
 
             Text(
-                text = "Left side (Bass -> High)",
+                text = stringResource(R.string.instrument_tuning_assistant_left_side),
                 style = MaterialTheme.typography.labelMedium
             )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -445,12 +499,20 @@ private fun InstrumentTuningAssistantCard(
                     FilterChip(
                         selected = row.stringNumber - 1 == selectedRowIndex,
                         onClick = { onSelectedRowIndexChanged(row.stringNumber - 1) },
-                        label = { Text("S${row.stringNumber} ${row.openPitchInput.ifBlank { "--" }}") }
+                        label = {
+                            Text(
+                                stringResource(
+                                    R.string.instrument_tuning_assistant_string_chip,
+                                    row.stringNumber,
+                                    row.openPitchInput.ifBlank { "--" }
+                                )
+                            )
+                        }
                     )
                 }
             }
             Text(
-                text = "Right side (Bass -> High)",
+                text = stringResource(R.string.instrument_tuning_assistant_right_side),
                 style = MaterialTheme.typography.labelMedium
             )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -458,7 +520,15 @@ private fun InstrumentTuningAssistantCard(
                     FilterChip(
                         selected = row.stringNumber - 1 == selectedRowIndex,
                         onClick = { onSelectedRowIndexChanged(row.stringNumber - 1) },
-                        label = { Text("S${row.stringNumber} ${row.openPitchInput.ifBlank { "--" }}") }
+                        label = {
+                            Text(
+                                stringResource(
+                                    R.string.instrument_tuning_assistant_string_chip,
+                                    row.stringNumber,
+                                    row.openPitchInput.ifBlank { "--" }
+                                )
+                            )
+                        }
                     )
                 }
             }
@@ -481,17 +551,17 @@ private fun TuningLightsRow(activeState: TuningFeedbackState?) {
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         TuningLight(
-            label = "Flat",
+            label = stringResource(R.string.tuning_flat),
             color = KoraFlatColor,
             isActive = activeState == TuningFeedbackState.FLAT
         )
         TuningLight(
-            label = "In Tune",
+            label = stringResource(R.string.tuning_in_tune),
             color = KoraInTuneColor,
             isActive = activeState == TuningFeedbackState.IN_TUNE
         )
         TuningLight(
-            label = "Sharp",
+            label = stringResource(R.string.tuning_sharp),
             color = KoraSharpColor,
             isActive = activeState == TuningFeedbackState.SHARP
         )
@@ -527,6 +597,7 @@ private fun TuningLight(
 @Composable
 private fun StringConfigurationCard(
     row: InstrumentStringRowUiState,
+    showLeverFields: Boolean,
     onOpenPitchChanged: (String) -> Unit,
     onOpenIntonationChanged: (String) -> Unit,
     onClosedIntonationChanged: (String) -> Unit
@@ -538,26 +609,30 @@ private fun StringConfigurationCard(
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(
-                text = "String ${row.stringNumber}",
-                style = MaterialTheme.typography.titleSmall
-            )
-            OutlinedTextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = row.openPitchInput,
-                onValueChange = onOpenPitchChanged,
-                label = { Text("Open pitch") },
-                placeholder = { Text("E3") },
-                singleLine = true,
-                isError = row.inputError != null,
-                supportingText = {
-                    when {
-                        row.inputError != null -> Text(row.inputError)
-                        row.closedPitch != null -> Text("Closed pitch: ${row.closedPitch}")
-                        else -> Text("Enter open pitch to calculate closed pitch.")
-                    }
+        Text(
+            text = stringResource(R.string.instrument_config_string_title, row.stringNumber),
+            style = MaterialTheme.typography.titleSmall
+        )
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth(),
+            value = row.openPitchInput,
+            onValueChange = onOpenPitchChanged,
+            label = { Text(stringResource(R.string.instrument_config_open_pitch_label)) },
+            placeholder = { Text(stringResource(R.string.instrument_config_open_pitch_placeholder)) },
+            singleLine = true,
+            isError = row.inputError != null,
+            supportingText = {
+                when {
+                    row.inputError != null -> Text(row.inputError)
+                    showLeverFields && row.closedPitch != null -> Text(
+                        stringResource(R.string.instrument_config_closed_pitch_supporting, row.closedPitch)
+                    )
+
+                    showLeverFields -> Text(stringResource(R.string.instrument_config_open_pitch_supporting))
+                    else -> Text(stringResource(R.string.instrument_config_open_pitch_supporting_peg))
                 }
-            )
+            }
+        )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -566,8 +641,8 @@ private fun StringConfigurationCard(
                     modifier = Modifier.weight(1f),
                     value = row.openIntonationInput,
                     onValueChange = onOpenIntonationChanged,
-                    label = { Text("Open cents") },
-                    placeholder = { Text("0.0") },
+                    label = { Text(stringResource(R.string.instrument_config_open_cents_label)) },
+                    placeholder = { Text(stringResource(R.string.instrument_config_cents_placeholder)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = row.openIntonationError != null,
@@ -577,21 +652,23 @@ private fun StringConfigurationCard(
                         }
                     }
                 )
-                OutlinedTextField(
-                    modifier = Modifier.weight(1f),
-                    value = row.closedIntonationInput,
-                    onValueChange = onClosedIntonationChanged,
-                    label = { Text("Closed cents") },
-                    placeholder = { Text("0.0") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    isError = row.closedIntonationError != null,
-                    supportingText = {
-                        row.closedIntonationError?.let { error ->
-                            Text(error)
+                if (showLeverFields) {
+                    OutlinedTextField(
+                        modifier = Modifier.weight(1f),
+                        value = row.closedIntonationInput,
+                        onValueChange = onClosedIntonationChanged,
+                        label = { Text(stringResource(R.string.instrument_config_closed_cents_label)) },
+                        placeholder = { Text(stringResource(R.string.instrument_config_cents_placeholder)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        isError = row.closedIntonationError != null,
+                        supportingText = {
+                            row.closedIntonationError?.let { error ->
+                                Text(error)
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
     }
@@ -624,13 +701,24 @@ private fun tuningStateColor(state: TuningFeedbackState): Color {
     }
 }
 
+@Composable
 private fun tuningStateLabel(state: TuningFeedbackState): String {
     return when (state) {
-        TuningFeedbackState.IN_TUNE -> "In Tune"
-        TuningFeedbackState.FLAT -> "Flat"
-        TuningFeedbackState.SHARP -> "Sharp"
+        TuningFeedbackState.IN_TUNE -> stringResource(R.string.tuning_in_tune)
+        TuningFeedbackState.FLAT -> stringResource(R.string.tuning_flat)
+        TuningFeedbackState.SHARP -> stringResource(R.string.tuning_sharp)
     }
 }
+
+@Composable
+private fun liveTunerPerformanceModeLabel(mode: LiveTunerPerformanceMode): String {
+    return when (mode) {
+        LiveTunerPerformanceMode.REALTIME -> stringResource(R.string.live_tuner_mode_realtime_label)
+        LiveTunerPerformanceMode.PRECISION -> stringResource(R.string.live_tuner_mode_precision_label)
+    }
+}
+
+private const val PEG_TUNING_IN_TUNE_THRESHOLD_CENTS = 200.0
 
 @Preview(showBackground = true)
 @Composable
@@ -639,6 +727,16 @@ private fun InstrumentConfigurationScreenPreview() {
         InstrumentConfigurationScreen(
             uiState = InstrumentConfigurationUiState(
                 stringCount = 21,
+                tuningMode = KoraTuningMode.LEVERED,
+                presetOptions = listOf(
+                    InstrumentPresetOptionUiState(
+                        id = "manual",
+                        displayName = "Manual"
+                    )
+                ),
+                selectedPresetId = "manual",
+                lowestLeftPitchInput = "F2",
+                autoCalibrateEnabled = false,
                 rows = listOf(
                     InstrumentStringRowUiState(
                         stringNumber = 1,
@@ -684,6 +782,7 @@ private fun InstrumentConfigurationScreenPreview() {
                 errorMessage = null
             ),
             onStringCountSelected = {},
+            onTuningModeSelected = {},
             onOpenPitchChanged = { _, _ -> },
             onOpenIntonationChanged = { _, _ -> },
             onClosedIntonationChanged = { _, _ -> },

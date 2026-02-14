@@ -24,9 +24,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.leokinder2k.koratuningcompanion.R
 
 @Composable
 fun TraditionalPresetsRoute(modifier: Modifier = Modifier) {
@@ -64,7 +66,7 @@ fun TraditionalPresetsScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Traditional Presets") }
+                title = { Text(stringResource(R.string.title_traditional_presets)) }
             )
         }
     ) { innerPadding ->
@@ -77,7 +79,7 @@ fun TraditionalPresetsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Select a traditional tuning preset and load it directly into the active instrument profile.",
+                text = stringResource(R.string.traditional_presets_intro),
                 style = MaterialTheme.typography.bodyMedium
             )
 
@@ -89,11 +91,11 @@ fun TraditionalPresetsScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "Preset Workflow",
+                        text = stringResource(R.string.traditional_presets_workflow_title),
                         style = MaterialTheme.typography.titleSmall
                     )
                     Text(
-                        text = "Choose string count, select a preset, review open/closed pitches + cents, then load.",
+                        text = stringResource(R.string.traditional_presets_workflow_body),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -103,12 +105,12 @@ fun TraditionalPresetsScreen(
                 FilterChip(
                     selected = uiState.stringCount == 21,
                     onClick = { onStringCountSelected(21) },
-                    label = { Text("21 strings") }
+                    label = { Text(stringResource(R.string.strings_count, 21)) }
                 )
                 FilterChip(
                     selected = uiState.stringCount == 22,
                     onClick = { onStringCountSelected(22) },
-                    label = { Text("22 strings") }
+                    label = { Text(stringResource(R.string.strings_count, 22)) }
                 )
             }
 
@@ -120,18 +122,18 @@ fun TraditionalPresetsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "Custom Presets",
+                        text = stringResource(R.string.traditional_presets_custom_title),
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = "Save your active instrument tuning as your own reusable preset.",
+                        text = stringResource(R.string.traditional_presets_custom_body),
                         style = MaterialTheme.typography.bodySmall
                     )
                     OutlinedTextField(
                         modifier = Modifier.fillMaxWidth(),
                         value = uiState.customPresetNameInput,
                         onValueChange = onCustomPresetNameChanged,
-                        label = { Text("Preset name") },
+                        label = { Text(stringResource(R.string.traditional_presets_custom_name_label)) },
                         singleLine = true
                     )
                     Row(
@@ -143,14 +145,14 @@ fun TraditionalPresetsScreen(
                             enabled = uiState.canSaveCustomPreset,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Save Custom Preset")
+                            Text(stringResource(R.string.traditional_presets_action_save_custom))
                         }
                         if (uiState.selectedPresetIsCustom) {
                             OutlinedButton(
                                 onClick = onDeleteSelectedCustomPreset,
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Text("Delete Selected")
+                                Text(stringResource(R.string.traditional_presets_action_delete_selected))
                             }
                         }
                     }
@@ -168,7 +170,10 @@ fun TraditionalPresetsScreen(
                     ) {
                         Text(
                             text = if (preset.isCustom) {
-                                "${preset.displayName} (Custom)"
+                                stringResource(
+                                    R.string.traditional_presets_custom_suffix,
+                                    preset.displayName
+                                )
                             } else {
                                 preset.displayName
                             },
@@ -179,7 +184,10 @@ fun TraditionalPresetsScreen(
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
-                            text = "Open tuning preview: ${preset.openPitchPreview}",
+                            text = stringResource(
+                                R.string.traditional_presets_open_tuning_preview,
+                                preset.openPitchPreview
+                            ),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Button(
@@ -187,7 +195,13 @@ fun TraditionalPresetsScreen(
                             enabled = !selected,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(if (selected) "Selected" else "Select Preset")
+                            Text(
+                                if (selected) {
+                                    stringResource(R.string.traditional_presets_selected)
+                                } else {
+                                    stringResource(R.string.traditional_presets_action_select_preset)
+                                }
+                            )
                         }
                     }
                 }
@@ -202,12 +216,19 @@ fun TraditionalPresetsScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = "Selected Preset Strings",
+                            text = stringResource(R.string.traditional_presets_selected_strings_title),
                             style = MaterialTheme.typography.titleMedium
                         )
                         uiState.previewRows.forEach { row ->
                             Text(
-                                text = "S${row.stringNumber} | Open ${row.openPitch} (${signed(row.openIntonationCents)}c) | Closed ${row.closedPitch} (${signed(row.closedIntonationCents)}c)",
+                                text = stringResource(
+                                    R.string.traditional_presets_selected_string_row,
+                                    row.stringNumber,
+                                    row.openPitch,
+                                    signed(row.openIntonationCents),
+                                    row.closedPitch,
+                                    signed(row.closedIntonationCents)
+                                ),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -220,7 +241,7 @@ fun TraditionalPresetsScreen(
                 enabled = uiState.canApply,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Load Selected Preset")
+                Text(stringResource(R.string.traditional_presets_action_load_selected))
             }
 
             uiState.statusMessage?.let { message ->

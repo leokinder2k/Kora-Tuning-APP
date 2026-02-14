@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.leokinder2k.koratuningcompanion.R
 import com.leokinder2k.koratuningcompanion.instrumentconfig.data.DataStoreInstrumentConfigRepository
 import com.leokinder2k.koratuningcompanion.instrumentconfig.data.InstrumentConfigRepository
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.InstrumentProfile
@@ -28,6 +29,7 @@ data class ScaleCalculationUiState(
 )
 
 class ScaleCalculationViewModel(
+    private val appContext: Context,
     private val repository: InstrumentConfigRepository,
     private val engine: ScaleCalculationEngine
 ) : ViewModel() {
@@ -41,7 +43,10 @@ class ScaleCalculationViewModel(
             profile = currentProfile,
             rootNote = currentRootNote,
             scaleType = currentScaleType,
-            profileStatus = "No saved profile found. Using starter 21-string profile."
+            profileStatus = appContext.getString(
+                R.string.scale_profile_status_no_saved,
+                DEFAULT_PROFILE_STRING_COUNT
+            )
         )
     )
     val uiState: StateFlow<ScaleCalculationUiState> = _uiState.asStateFlow()
@@ -55,7 +60,10 @@ class ScaleCalculationViewModel(
                         profile = currentProfile,
                         rootNote = currentRootNote,
                         scaleType = currentScaleType,
-                        profileStatus = "Using saved ${profile.stringCount}-string profile from Instrument Configuration."
+                        profileStatus = appContext.getString(
+                            R.string.scale_profile_status_using_saved,
+                            profile.stringCount
+                        )
                     )
                 } else {
                     currentProfile = defaultInstrumentProfile()
@@ -63,7 +71,10 @@ class ScaleCalculationViewModel(
                         profile = currentProfile,
                         rootNote = currentRootNote,
                         scaleType = currentScaleType,
-                        profileStatus = "No saved profile found. Using starter 21-string profile."
+                        profileStatus = appContext.getString(
+                            R.string.scale_profile_status_no_saved,
+                            DEFAULT_PROFILE_STRING_COUNT
+                        )
                     )
                 }
             }
@@ -118,16 +129,19 @@ class ScaleCalculationViewModel(
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 ScaleCalculationViewModel(
+                    appContext = context.applicationContext,
                     repository = DataStoreInstrumentConfigRepository.create(context),
                     engine = ScaleCalculationEngine()
                 )
             }
         }
 
+        private const val DEFAULT_PROFILE_STRING_COUNT = 21
+
         private fun defaultInstrumentProfile(): InstrumentProfile {
             return InstrumentProfile(
-                stringCount = 21,
-                openPitches = StarterInstrumentProfiles.openPitches(21)
+                stringCount = DEFAULT_PROFILE_STRING_COUNT,
+                openPitches = StarterInstrumentProfiles.openPitches(DEFAULT_PROFILE_STRING_COUNT)
             )
         }
     }

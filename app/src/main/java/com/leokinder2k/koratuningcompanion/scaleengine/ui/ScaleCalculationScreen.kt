@@ -22,9 +22,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.leokinder2k.koratuningcompanion.R
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverOnlyStringResult
 import com.leokinder2k.koratuningcompanion.scaleengine.model.PegCorrectStringResult
@@ -57,11 +60,14 @@ fun ScaleCalculationScreen(
     onScaleTypeSelected: (ScaleType) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val tuningMode = uiState.result.request.instrumentProfile.tuningMode
+    val showLeverInfo = tuningMode == KoraTuningMode.LEVERED
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Scale Calculation Engine") }
+                title = { Text(stringResource(R.string.title_scale_calculation_engine)) }
             )
         }
     ) { innerPadding ->
@@ -86,18 +92,22 @@ fun ScaleCalculationScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "Quick Start",
+                        text = stringResource(R.string.quick_start_title),
                         style = MaterialTheme.typography.titleSmall
                     )
                     Text(
-                        text = "Pick root + scale, review lever-only table, then apply peg-correct plan if required.",
+                        text = if (showLeverInfo) {
+                            stringResource(R.string.scale_engine_quick_start_levered)
+                        } else {
+                            stringResource(R.string.scale_engine_quick_start_peg_tuning)
+                        },
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
 
             SelectionSection(
-                title = "Root note",
+                title = stringResource(R.string.scale_root_note_label),
                 options = NoteName.entries,
                 selected = uiState.rootNote,
                 optionLabel = { note -> note.symbol },
@@ -119,12 +129,15 @@ fun ScaleCalculationScreen(
                     .filter { row -> row.role.side == StringSide.RIGHT }
                     .sortedBy { row -> row.role.positionFromLow }
                     .joinToString(" ") { row -> row.selectedPitch.asText() },
+                showLeverInfo = showLeverInfo,
                 leverRetuneCount = uiState.result.leverOnlyTable.count { row -> row.pegRetuneRequired },
                 pegRetuneCount = uiState.result.pegCorrectTable.count { row -> row.pegRetuneRequired }
             )
 
-            LeverOnlyTableCard(rows = uiState.result.leverOnlyTable)
-            PegCorrectTableCard(rows = uiState.result.pegCorrectTable)
+            if (showLeverInfo) {
+                LeverOnlyTableCard(rows = uiState.result.leverOnlyTable)
+            }
+            PegCorrectTableCard(rows = uiState.result.pegCorrectTable, showLeverInfo = showLeverInfo)
             ConflictCard(conflicts = uiState.result.conflicts)
             SuggestionCard(suggestions = uiState.result.suggestions)
         }
@@ -161,6 +174,7 @@ private fun SummaryCard(
     scaleNoteLabels: String,
     leftStringNoteLabels: String,
     rightStringNoteLabels: String,
+    showLeverInfo: Boolean,
     leverRetuneCount: Int,
     pegRetuneCount: Int
 ) {
@@ -172,25 +186,32 @@ private fun SummaryCard(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = "Scale Notes: $scaleNoteLabels",
+                text = stringResource(R.string.scale_engine_summary_scale_notes, scaleNoteLabels),
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "Left Strings (Bass -> High): $leftStringNoteLabels",
+                text = stringResource(R.string.scale_engine_summary_left_strings, leftStringNoteLabels),
                 style = MaterialTheme.typography.bodySmall
             )
             Text(
-                text = "Right Strings (Bass -> High): $rightStringNoteLabels",
+                text = stringResource(R.string.scale_engine_summary_right_strings, rightStringNoteLabels),
                 style = MaterialTheme.typography.bodySmall
             )
-            Text(
-                text = "Lever-only peg retunes: $leverRetuneCount",
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                text = "Peg-adjustment retunes: $pegRetuneCount",
-                style = MaterialTheme.typography.bodySmall
-            )
+            if (showLeverInfo) {
+                Text(
+                    text = stringResource(R.string.scale_engine_summary_lever_only_retunes, leverRetuneCount),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    text = stringResource(R.string.scale_engine_summary_peg_adjustment_retunes, pegRetuneCount),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.scale_engine_summary_peg_tuning_retunes, pegRetuneCount),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
     }
 }
@@ -213,11 +234,11 @@ private fun LeverOnlyTableCard(rows: List<LeverOnlyStringResult>) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Lever-only Table",
+                text = stringResource(R.string.scale_engine_lever_only_table_title),
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "Two-column kora view: Left strings on left, Right strings on right (both bass to high).",
+                text = stringResource(R.string.scale_engine_two_column_note),
                 style = MaterialTheme.typography.bodySmall
             )
             SideColumnHeader()
@@ -251,7 +272,10 @@ private fun LeverOnlyTableCard(rows: List<LeverOnlyStringResult>) {
 }
 
 @Composable
-private fun PegCorrectTableCard(rows: List<PegCorrectStringResult>) {
+private fun PegCorrectTableCard(
+    rows: List<PegCorrectStringResult>,
+    showLeverInfo: Boolean
+) {
     val leftRows = rows
         .filter { row -> row.role.side == StringSide.LEFT }
         .sortedBy { row -> row.role.positionFromLow }
@@ -268,11 +292,15 @@ private fun PegCorrectTableCard(rows: List<PegCorrectStringResult>) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Retune (Peg Adjustment) Table",
+                text = if (showLeverInfo) {
+                    stringResource(R.string.scale_engine_peg_adjustment_table_title)
+                } else {
+                    stringResource(R.string.scale_engine_peg_tuning_table_title)
+                },
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "Two-column kora view: Left strings on left, Right strings on right (both bass to high).",
+                text = stringResource(R.string.scale_engine_two_column_note),
                 style = MaterialTheme.typography.bodySmall
             )
             SideColumnHeader()
@@ -284,7 +312,7 @@ private fun PegCorrectTableCard(rows: List<PegCorrectStringResult>) {
                     val leftRow = leftRows.getOrNull(index)
                     if (leftRow != null) {
                         SideCell(
-                            text = formatPegCorrectRow(leftRow),
+                            text = formatPegCorrectRow(leftRow, showLeverInfo = showLeverInfo),
                             modifier = Modifier.weight(1f)
                         )
                     } else {
@@ -293,7 +321,7 @@ private fun PegCorrectTableCard(rows: List<PegCorrectStringResult>) {
                     val rightRow = rightRows.getOrNull(index)
                     if (rightRow != null) {
                         SideCell(
-                            text = formatPegCorrectRow(rightRow),
+                            text = formatPegCorrectRow(rightRow, showLeverInfo = showLeverInfo),
                             modifier = Modifier.weight(1f)
                         )
                     } else {
@@ -312,12 +340,12 @@ private fun SideColumnHeader() {
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "Left (Bass -> High)",
+            text = stringResource(R.string.table_left_header),
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = "Right (Bass -> High)",
+            text = stringResource(R.string.table_right_header),
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.weight(1f)
         )
@@ -338,19 +366,23 @@ private fun SideCell(
     }
 }
 
+@Composable
 private fun formatLeverOnlyRow(row: LeverOnlyStringResult): String {
-    val leverLabel = row.selectedLeverState?.name ?: "N/A"
+    val leverLabel = row.selectedLeverState?.name ?: stringResource(R.string.value_na)
     val selectedPitchLabel = row.selectedPitch?.asText() ?: "-"
-    val pegLabel = if (row.pegRetuneRequired) "YES" else "NO"
+    val pegLabel = if (row.pegRetuneRequired) stringResource(R.string.value_yes) else stringResource(R.string.value_no)
     return buildString {
         append("${row.role.asLabel()} (S${row.stringNumber})\n")
-        append("Open ${row.openPitch.asText()}  Closed ${row.closedPitch.asText()}\n")
-        append("Lever $leverLabel  Target $selectedPitchLabel\n")
-        append("Int ${signed(row.selectedIntonationCents)}c  Peg $pegLabel")
+        append(stringResource(R.string.scale_engine_lever_only_row_open_closed, row.openPitch.asText(), row.closedPitch.asText()))
+        append("\n")
+        append(stringResource(R.string.scale_engine_lever_only_row_lever_target, leverLabel, selectedPitchLabel))
+        append("\n")
+        append(stringResource(R.string.scale_engine_row_int_peg, signed(row.selectedIntonationCents), pegLabel))
     }
 }
 
-private fun formatPegCorrectRow(row: PegCorrectStringResult): String {
+@Composable
+private fun formatPegCorrectRow(row: PegCorrectStringResult, showLeverInfo: Boolean): String {
     val retuneLabel = if (row.pegRetuneSemitones >= 0) {
         "+${row.pegRetuneSemitones}"
     } else {
@@ -358,9 +390,30 @@ private fun formatPegCorrectRow(row: PegCorrectStringResult): String {
     }
     return buildString {
         append("${row.role.asLabel()} (S${row.stringNumber})\n")
-        append("Target ${row.selectedPitch.asText()}  Lever ${row.selectedLeverState.name}\n")
-        append("Open ${row.retunedOpenPitch.asText()}  Closed ${row.retunedClosedPitch.asText()}\n")
-        append("Int ${signed(row.selectedIntonationCents)}c  Peg $retuneLabel")
+        if (showLeverInfo) {
+            append(
+                stringResource(
+                    R.string.scale_engine_peg_row_target_lever,
+                    row.selectedPitch.asText(),
+                    row.selectedLeverState.name
+                )
+            )
+            append("\n")
+            append(
+                stringResource(
+                    R.string.scale_engine_lever_only_row_open_closed,
+                    row.retunedOpenPitch.asText(),
+                    row.retunedClosedPitch.asText()
+                )
+            )
+            append("\n")
+        } else {
+            append(stringResource(R.string.scale_engine_peg_tuning_row_target, row.selectedPitch.asText()))
+            append("\n")
+            append(stringResource(R.string.scale_engine_peg_tuning_row_tune_open, row.retunedOpenPitch.asText()))
+            append("\n")
+        }
+        append(stringResource(R.string.scale_engine_row_int_peg, signed(row.selectedIntonationCents), retuneLabel))
     }
 }
 
@@ -378,18 +431,25 @@ private fun ConflictCard(conflicts: List<VoicingConflict>) {
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = "Voicing Conflicts",
+                text = stringResource(R.string.scale_engine_conflicts_title),
                 style = MaterialTheme.typography.titleMedium
             )
             if (conflicts.isEmpty()) {
                 Text(
-                    text = "No conflicts detected.",
+                    text = stringResource(R.string.scale_engine_conflicts_none),
                     style = MaterialTheme.typography.bodySmall
                 )
             } else {
                 conflicts.forEach { conflict ->
                     Text(
-                        text = "${conflict.mode.name}: ${conflict.side.shortLabel}-side S${conflict.lowerStringNumber}->S${conflict.higherStringNumber} (${conflict.detail})",
+                        text = stringResource(
+                            R.string.scale_engine_conflict_line,
+                            conflict.mode.name,
+                            conflict.side.shortLabel,
+                            conflict.lowerStringNumber,
+                            conflict.higherStringNumber,
+                            conflict.detail
+                        ),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -408,18 +468,22 @@ private fun SuggestionCard(suggestions: List<VoicingSuggestion>) {
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = "Alternative Voicing Suggestions",
+                text = stringResource(R.string.scale_engine_suggestions_title),
                 style = MaterialTheme.typography.titleMedium
             )
             if (suggestions.isEmpty()) {
                 Text(
-                    text = "No suggestions required.",
+                    text = stringResource(R.string.scale_engine_suggestions_none),
                     style = MaterialTheme.typography.bodySmall
                 )
             } else {
                 suggestions.forEach { suggestion ->
                     Text(
-                        text = "${suggestion.mode.name}: ${suggestion.suggestion}",
+                        text = stringResource(
+                            R.string.scale_engine_suggestion_line,
+                            suggestion.mode.name,
+                            suggestion.suggestion
+                        ),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }

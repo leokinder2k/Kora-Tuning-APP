@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.leokinder2k.koratuningcompanion.R
 import com.leokinder2k.koratuningcompanion.instrumentconfig.data.DataStoreInstrumentConfigRepository
 import com.leokinder2k.koratuningcompanion.instrumentconfig.data.InstrumentConfigRepository
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.InstrumentProfile
@@ -46,12 +47,13 @@ data class TraditionalPresetsUiState(
 )
 
 class TraditionalPresetsViewModel(
+    private val appContext: Context,
     private val repository: InstrumentConfigRepository
 ) : ViewModel() {
 
     private var selectedStringCount: Int = DEFAULT_STRING_COUNT
     private var selectedPresetId: String? = null
-    private var customPresetNameInput: String = DEFAULT_CUSTOM_PRESET_NAME
+    private var customPresetNameInput: String = appContext.getString(R.string.traditional_presets_default_custom_name)
     private var statusMessage: String? = null
     private var latestInstrumentProfile: InstrumentProfile? = null
     private var customPresets: List<UserPreset> = emptyList()
@@ -113,14 +115,14 @@ class TraditionalPresetsViewModel(
 
     fun saveCurrentProfileAsCustomPreset() {
         val profile = latestInstrumentProfile ?: run {
-            statusMessage = "Save an instrument profile first, then create a custom preset."
+            statusMessage = appContext.getString(R.string.traditional_presets_status_save_profile_first)
             refreshUiState()
             return
         }
 
         val name = customPresetNameInput.trim()
         if (name.isBlank()) {
-            statusMessage = "Enter a preset name."
+            statusMessage = appContext.getString(R.string.traditional_presets_status_enter_name)
             refreshUiState()
             return
         }
@@ -132,19 +134,19 @@ class TraditionalPresetsViewModel(
                 profile = profile
             )
             selectedPresetId = createdId
-            statusMessage = "Saved custom preset \"$name\"."
+            statusMessage = appContext.getString(R.string.traditional_presets_status_saved_custom, name)
             refreshUiState()
         }
     }
 
     fun deleteSelectedCustomPreset() {
         val selectedId = selectedPresetId ?: run {
-            statusMessage = "Select a custom preset to delete."
+            statusMessage = appContext.getString(R.string.traditional_presets_status_select_custom_to_delete)
             refreshUiState()
             return
         }
         val preset = customPresets.firstOrNull { item -> item.id == selectedId } ?: run {
-            statusMessage = "Selected preset is not a custom preset."
+            statusMessage = appContext.getString(R.string.traditional_presets_status_not_custom_preset)
             refreshUiState()
             return
         }
@@ -154,7 +156,7 @@ class TraditionalPresetsViewModel(
             if (selectedPresetId == preset.id) {
                 selectedPresetId = null
             }
-            statusMessage = "Deleted custom preset \"${preset.displayName}\"."
+            statusMessage = appContext.getString(R.string.traditional_presets_status_deleted_custom, preset.displayName)
             refreshUiState()
         }
     }
@@ -164,7 +166,7 @@ class TraditionalPresetsViewModel(
             stringCount = selectedStringCount,
             requestedPresetId = selectedPresetId
         ) ?: run {
-            statusMessage = "Select a preset before loading."
+            statusMessage = appContext.getString(R.string.traditional_presets_status_select_preset_before_loading)
             refreshUiState()
             return
         }
@@ -173,7 +175,11 @@ class TraditionalPresetsViewModel(
             repository.saveInstrumentProfile(entry.profile)
             selectedStringCount = entry.profile.stringCount
             selectedPresetId = entry.id
-            statusMessage = "Loaded ${entry.displayName} preset for ${entry.profile.stringCount} strings."
+            statusMessage = appContext.getString(
+                R.string.traditional_presets_status_loaded_preset,
+                entry.displayName,
+                entry.profile.stringCount
+            )
             refreshUiState()
         }
     }
@@ -242,7 +248,7 @@ class TraditionalPresetsViewModel(
                 PresetEntry(
                     id = preset.id,
                     displayName = preset.displayName,
-                    description = "User preset saved from your instrument tuning.",
+                    description = appContext.getString(R.string.traditional_presets_user_preset_description),
                     profile = preset.profile,
                     isCustom = true
                 )
@@ -290,12 +296,12 @@ class TraditionalPresetsViewModel(
     companion object {
         private const val DEFAULT_STRING_COUNT = 21
         private const val PREVIEW_LIMIT = 5
-        private const val DEFAULT_CUSTOM_PRESET_NAME = "My Preset"
         private val SUPPORTED_STRING_COUNTS = setOf(21, 22)
 
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 TraditionalPresetsViewModel(
+                    appContext = context.applicationContext,
                     repository = DataStoreInstrumentConfigRepository.create(context)
                 )
             }

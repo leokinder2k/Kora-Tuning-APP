@@ -11,11 +11,9 @@ data class ChordTone(
 )
 
 enum class ChordQuality(
-    val displayName: String,
     val tones: List<ChordTone>
 ) {
     MAJOR(
-        "Major",
         listOf(
             ChordTone(semitoneOffset = 0, label = "R"),
             ChordTone(semitoneOffset = 4, label = "3"),
@@ -23,7 +21,6 @@ enum class ChordQuality(
         )
     ),
     MINOR(
-        "Minor",
         listOf(
             ChordTone(semitoneOffset = 0, label = "R"),
             ChordTone(semitoneOffset = 3, label = "b3"),
@@ -31,7 +28,6 @@ enum class ChordQuality(
         )
     ),
     DIMINISHED(
-        "Diminished",
         listOf(
             ChordTone(semitoneOffset = 0, label = "R"),
             ChordTone(semitoneOffset = 3, label = "b3"),
@@ -39,7 +35,6 @@ enum class ChordQuality(
         )
     ),
     HALF_DIMINISHED(
-        "Half-Diminished (m7b5)",
         listOf(
             ChordTone(semitoneOffset = 0, label = "R"),
             ChordTone(semitoneOffset = 3, label = "b3"),
@@ -48,7 +43,6 @@ enum class ChordQuality(
         )
     ),
     SUS2(
-        "Sus2",
         listOf(
             ChordTone(semitoneOffset = 0, label = "R"),
             ChordTone(semitoneOffset = 2, label = "2"),
@@ -56,7 +50,6 @@ enum class ChordQuality(
         )
     ),
     SUS4(
-        "Sus4",
         listOf(
             ChordTone(semitoneOffset = 0, label = "R"),
             ChordTone(semitoneOffset = 5, label = "4"),
@@ -64,7 +57,6 @@ enum class ChordQuality(
         )
     ),
     DOMINANT7(
-        "Dominant 7",
         listOf(
             ChordTone(semitoneOffset = 0, label = "R"),
             ChordTone(semitoneOffset = 4, label = "3"),
@@ -73,7 +65,6 @@ enum class ChordQuality(
         )
     ),
     MAJOR7(
-        "Major 7",
         listOf(
             ChordTone(semitoneOffset = 0, label = "R"),
             ChordTone(semitoneOffset = 4, label = "3"),
@@ -82,7 +73,6 @@ enum class ChordQuality(
         )
     ),
     MINOR7(
-        "Minor 7",
         listOf(
             ChordTone(semitoneOffset = 0, label = "R"),
             ChordTone(semitoneOffset = 3, label = "b3"),
@@ -104,7 +94,6 @@ data class ChordDefinition(
     val quality: ChordQuality
 ) {
     val chordNotes: Set<NoteName> = quality.notesForRoot(root)
-    val label: String = "${root.symbol} ${quality.displayName}"
 }
 
 data class ChordMatch(

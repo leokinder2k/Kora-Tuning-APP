@@ -64,10 +64,13 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leokinder2k.koratuningcompanion.R
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.livetuner.audio.MetronomeClickPlayer
 import com.leokinder2k.koratuningcompanion.livetuner.audio.MetronomeSoundOption
@@ -99,15 +102,15 @@ private enum class OverviewViewMode {
     EXERCISE
 }
 
-private enum class ChordPlaybackMode(val label: String) {
-    BLOCK("Block"),
-    BROKEN("Broken"),
-    SPREAD("Spread")
+private enum class ChordPlaybackMode {
+    BLOCK,
+    BROKEN,
+    SPREAD
 }
 
-private enum class ExerciseChoiceMode(val label: String) {
-    PRESET("Preset"),
-    RANDOM("Random")
+private enum class ExerciseChoiceMode {
+    PRESET,
+    RANDOM
 }
 
 private data class MetronomeTimeSignature(
@@ -131,6 +134,7 @@ fun InstantOverviewScreen(
     onScaleTypeSelected: (ScaleType) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val showLeverInfo = uiState.result.request.instrumentProfile.tuningMode == KoraTuningMode.LEVERED
     var viewMode by rememberSaveable { mutableStateOf(OverviewViewMode.DIAGRAM) }
     var diagramZoom by rememberSaveable { mutableFloatStateOf(1f) }
     var playingStringNumbers by remember(
@@ -462,7 +466,7 @@ fun InstantOverviewScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Instant Overview Mode") }
+                title = { Text(stringResource(R.string.title_instant_overview)) }
             )
         }
     ) { innerPadding ->
@@ -493,22 +497,22 @@ fun InstantOverviewScreen(
                 FilterChip(
                     selected = viewMode == OverviewViewMode.DIAGRAM,
                     onClick = { viewMode = OverviewViewMode.DIAGRAM },
-                    label = { Text("Diagram") }
+                    label = { Text(stringResource(R.string.overview_view_diagram)) }
                 )
                 FilterChip(
                     selected = viewMode == OverviewViewMode.TABLE,
                     onClick = { viewMode = OverviewViewMode.TABLE },
-                    label = { Text("Table") }
+                    label = { Text(stringResource(R.string.overview_view_table)) }
                 )
                 FilterChip(
                     selected = viewMode == OverviewViewMode.CHORDS,
                     onClick = { viewMode = OverviewViewMode.CHORDS },
-                    label = { Text("Chords") }
+                    label = { Text(stringResource(R.string.overview_view_chords)) }
                 )
                 FilterChip(
                     selected = viewMode == OverviewViewMode.EXERCISE,
                     onClick = { viewMode = OverviewViewMode.EXERCISE },
-                    label = { Text("Exercise") }
+                    label = { Text(stringResource(R.string.overview_view_exercise)) }
                 )
             }
             if (playingStringNumbers.isNotEmpty()) {
@@ -520,7 +524,7 @@ fun InstantOverviewScreen(
                         lastTapAtByString.clear()
                     }
                 ) {
-                    Text("Stop All String Tones")
+                    Text(stringResource(R.string.overview_action_stop_all_tones))
                 }
             }
 
@@ -532,13 +536,15 @@ fun InstantOverviewScreen(
                     onPlayAllStrings = {
                         rows.forEach { row -> playStringPluck(row) }
                     },
+                    showLeverInfo = showLeverInfo,
                     diagramZoom = diagramZoom,
                     onDiagramZoomChanged = { value -> diagramZoom = value }
                 )
                 OverviewViewMode.TABLE -> TableOverview(
                     rows = rows,
                     playingStringNumbers = playingStringNumbers,
-                    onStringTouched = onStringTouched
+                    onStringTouched = onStringTouched,
+                    showLeverInfo = showLeverInfo
                 )
                 OverviewViewMode.CHORDS -> ChordOverview(
                     rows = rows,
@@ -570,6 +576,7 @@ fun InstantOverviewScreen(
                     onPlaySelectedChord = {
                         playChord(selectedChordStrings, chordPlaybackMode)
                     },
+                    showLeverInfo = showLeverInfo,
                     circleExerciseStartRoot = circleExerciseStartRoot,
                     onCircleExerciseStartRootChanged = { note ->
                         circleExerciseStartRoot = note
@@ -698,7 +705,7 @@ private fun OverviewSelectionControls(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Root note",
+            text = stringResource(R.string.scale_root_note_label),
             style = MaterialTheme.typography.titleMedium
         )
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -712,7 +719,7 @@ private fun OverviewSelectionControls(
         }
 
         Text(
-            text = "Scale type",
+            text = stringResource(R.string.scale_type_label),
             style = MaterialTheme.typography.titleMedium
         )
         ScaleTypeDropdownMenus(
@@ -728,6 +735,7 @@ private fun DiagramOverview(
     playingStringNumbers: Set<Int>,
     onStringTouched: (PegCorrectStringResult) -> Unit,
     onPlayAllStrings: () -> Unit,
+    showLeverInfo: Boolean,
     diagramZoom: Float,
     onDiagramZoomChanged: (Float) -> Unit
 ) {
@@ -750,7 +758,7 @@ private fun DiagramOverview(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "Visual Kora Diagram",
+                text = stringResource(R.string.overview_diagram_title),
                 style = MaterialTheme.typography.titleMedium
             )
 
@@ -760,7 +768,10 @@ private fun DiagramOverview(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Zoom ${"%.0f".format(diagramZoom * 100f)}%",
+                    text = stringResource(
+                        R.string.overview_diagram_zoom_label,
+                        "%.0f".format(diagramZoom * 100f)
+                    ),
                     style = MaterialTheme.typography.bodySmall
                 )
                 OutlinedButton(
@@ -783,14 +794,14 @@ private fun DiagramOverview(
                     onClick = { onDiagramZoomChanged(1f) },
                     enabled = diagramZoom != 1f
                 ) {
-                    Text("Reset")
+                    Text(stringResource(R.string.action_reset))
                 }
             }
             OutlinedButton(
                 onClick = onPlayAllStrings,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Play All Strings")
+                Text(stringResource(R.string.overview_action_play_all_strings))
             }
 
             Box(
@@ -838,26 +849,27 @@ private fun DiagramOverview(
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.ic_kora_diagram_base),
-                        contentDescription = "Kora diagram",
+                        contentDescription = stringResource(R.string.content_desc_kora_diagram),
                         modifier = Modifier.fillMaxSize()
                     )
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        drawKoraDiagram(
-                            leftRows = left,
-                            rightRows = right,
-                            colors = colors,
-                            activeStringNumbers = playingStringNumbers
-                        )
-                    }
-                }
-            }
-
-            DiagramLegend()
-            TouchStringRows(
-                leftRows = left,
-                rightRows = right,
-                playingStringNumbers = playingStringNumbers,
-                onStringTouched = onStringTouched
+                     Canvas(modifier = Modifier.fillMaxSize()) {
+                         drawKoraDiagram(
+                             leftRows = left,
+                             rightRows = right,
+                             colors = colors,
+                             activeStringNumbers = playingStringNumbers,
+                             showLeverInfo = showLeverInfo
+                         )
+                     }
+                 }
+             }
+ 
+             DiagramLegend(showLeverInfo = showLeverInfo)
+             TouchStringRows(
+                 leftRows = left,
+                 rightRows = right,
+                 playingStringNumbers = playingStringNumbers,
+                 onStringTouched = onStringTouched
             )
         }
     }
@@ -867,7 +879,8 @@ private fun DrawScope.drawKoraDiagram(
     leftRows: List<PegCorrectStringResult>,
     rightRows: List<PegCorrectStringResult>,
     colors: ColorScheme,
-    activeStringNumbers: Set<Int>
+    activeStringNumbers: Set<Int>,
+    showLeverInfo: Boolean
 ) {
     val bridgeCenterY = size.height * 0.56f
     val bridgeTop = bridgeCenterY - (size.height * 0.17f)
@@ -879,7 +892,8 @@ private fun DrawScope.drawKoraDiagram(
         bridgeTop = bridgeTop,
         bridgeBottom = bridgeBottom,
         colors = colors,
-        activeStringNumbers = activeStringNumbers
+        activeStringNumbers = activeStringNumbers,
+        showLeverInfo = showLeverInfo
     )
     drawStringSet(
         rows = rightRows,
@@ -887,7 +901,8 @@ private fun DrawScope.drawKoraDiagram(
         bridgeTop = bridgeTop,
         bridgeBottom = bridgeBottom,
         colors = colors,
-        activeStringNumbers = activeStringNumbers
+        activeStringNumbers = activeStringNumbers,
+        showLeverInfo = showLeverInfo
     )
 }
 
@@ -897,7 +912,8 @@ private fun DrawScope.drawStringSet(
     bridgeTop: Float,
     bridgeBottom: Float,
     colors: ColorScheme,
-    activeStringNumbers: Set<Int>
+    activeStringNumbers: Set<Int>,
+    showLeverInfo: Boolean
 ) {
     if (rows.isEmpty()) {
         return
@@ -914,9 +930,13 @@ private fun DrawScope.drawStringSet(
         val ratio = index.toFloat() / maxIndex.toFloat()
         val pegY = lerp(start = bottomY, stop = topY, fraction = ratio)
         val bridgeY = lerp(start = bridgeBottom, stop = bridgeTop, fraction = ratio)
-        val leverColor = when (row.selectedLeverState) {
-            LeverState.OPEN -> KoraOpenLeverColor
-            LeverState.CLOSED -> KoraClosedLeverColor
+        val leverColor = if (showLeverInfo) {
+            when (row.selectedLeverState) {
+                LeverState.OPEN -> KoraOpenLeverColor
+                LeverState.CLOSED -> KoraClosedLeverColor
+            }
+        } else {
+            colors.outline
         }
         val isActive = row.stringNumber in activeStringNumbers
         val baseStrokeWidth = if (row.pegRetuneRequired) {
@@ -1097,19 +1117,21 @@ private fun lerp(start: Float, stop: Float, fraction: Float): Float {
 }
 
 @Composable
-private fun DiagramLegend() {
+private fun DiagramLegend(showLeverInfo: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        LegendItem(
-            color = KoraOpenLeverColor,
-            text = "Open lever"
-        )
-        LegendItem(
-            color = KoraClosedLeverColor,
-            text = "Closed lever"
-        )
+        if (showLeverInfo) {
+            LegendItem(
+                color = KoraOpenLeverColor,
+                text = stringResource(R.string.overview_legend_open_lever)
+            )
+            LegendItem(
+                color = KoraClosedLeverColor,
+                text = stringResource(R.string.overview_legend_closed_lever)
+            )
+        }
         LegendItem(
             color = KoraDetunedColor,
-            text = "Peg retune required (peg marker)"
+            text = stringResource(R.string.overview_legend_peg_retune_required)
         )
     }
 }
@@ -1122,11 +1144,11 @@ private fun TouchStringRows(
     onStringTouched: (PegCorrectStringResult) -> Unit
 ) {
     Text(
-        text = "Tap any string below to hear its tuned pitch.",
+        text = stringResource(R.string.overview_diagram_tap_to_hear),
         style = MaterialTheme.typography.bodySmall
     )
     Text(
-        text = "Left side (Bass -> High)",
+        text = stringResource(R.string.instrument_tuning_assistant_left_side),
         style = MaterialTheme.typography.labelMedium
     )
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1139,7 +1161,7 @@ private fun TouchStringRows(
         }
     }
     Text(
-        text = "Right side (Bass -> High)",
+        text = stringResource(R.string.instrument_tuning_assistant_right_side),
         style = MaterialTheme.typography.labelMedium
     )
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1169,6 +1191,7 @@ private fun ChordOverview(
     chordVoicingNoteCount: Int,
     onChordVoicingNoteCountChanged: (Int) -> Unit,
     onPlaySelectedChord: () -> Unit,
+    showLeverInfo: Boolean,
     circleExerciseStartRoot: NoteName,
     onCircleExerciseStartRootChanged: (NoteName) -> Unit,
     nextCircleExerciseRoot: NoteName,
@@ -1220,16 +1243,16 @@ private fun ChordOverview(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Chord Explorer",
+                text = stringResource(R.string.overview_chords_title),
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "Choose a chord and use X-marked strings to play it.",
+                text = stringResource(R.string.overview_chords_subtitle),
                 style = MaterialTheme.typography.bodySmall
             )
 
             Text(
-                text = "Chord root",
+                text = stringResource(R.string.overview_chords_root_label),
                 style = MaterialTheme.typography.labelMedium
             )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1243,7 +1266,7 @@ private fun ChordOverview(
             }
 
             Text(
-                text = "Chord quality",
+                text = stringResource(R.string.overview_chords_quality_label),
                 style = MaterialTheme.typography.labelMedium
             )
             Box(modifier = Modifier.fillMaxWidth()) {
@@ -1251,7 +1274,7 @@ private fun ChordOverview(
                     onClick = { isQualityMenuExpanded = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(selectedQuality.displayName)
+                    Text(chordQualityLabel(selectedQuality))
                 }
                 DropdownMenu(
                     expanded = isQualityMenuExpanded,
@@ -1259,7 +1282,7 @@ private fun ChordOverview(
                 ) {
                     ChordQuality.entries.forEach { quality ->
                         DropdownMenuItem(
-                            text = { Text(quality.displayName) },
+                            text = { Text(chordQualityLabel(quality)) },
                             onClick = {
                                 isQualityMenuExpanded = false
                                 onQualitySelected(quality)
@@ -1270,11 +1293,14 @@ private fun ChordOverview(
             }
 
             Text(
-                text = "Notes: ${selectedMatch.definition.chordNotes.joinToString(" ") { note -> note.symbol }}",
+                text = stringResource(
+                    R.string.overview_chords_notes_line,
+                    selectedMatch.definition.chordNotes.joinToString(" ") { note -> note.symbol }
+                ),
                 style = MaterialTheme.typography.bodySmall
             )
             Text(
-                text = "Positions",
+                text = stringResource(R.string.overview_chords_positions_label),
                 style = MaterialTheme.typography.labelMedium
             )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1291,24 +1317,36 @@ private fun ChordOverview(
             }
             Text(
                 text = if (selectedMatch.missingNotes.isEmpty()) {
-                    "Coverage: complete"
+                    stringResource(R.string.overview_chords_coverage_complete)
                 } else {
-                    "Coverage: missing ${selectedMatch.missingNotes.joinToString(" ") { note -> note.symbol }}"
+                    stringResource(
+                        R.string.overview_chords_coverage_missing,
+                        selectedMatch.missingNotes.joinToString(" ") { note -> note.symbol }
+                    )
                 },
                 style = MaterialTheme.typography.bodySmall
             )
             Text(
-                text = "Strings to play now: ${selectedChordStrings.size} (max 4)",
+                text = stringResource(
+                    R.string.overview_chords_strings_to_play_line,
+                    selectedChordStrings.size,
+                    4
+                ),
                 style = MaterialTheme.typography.bodySmall
             )
             Text(
-                text = "Chord pool: ${selectedMatch.playedStringNumbers.size} " +
-                    "(Open ${selectedMatch.openPlayCount}, Closed ${selectedMatch.closedPlayCount}, Detuned ${selectedMatch.detunedPlayCount})",
+                text = stringResource(
+                    R.string.overview_chords_pool_line,
+                    selectedMatch.playedStringNumbers.size,
+                    selectedMatch.openPlayCount,
+                    selectedMatch.closedPlayCount,
+                    selectedMatch.detunedPlayCount
+                ),
                 style = MaterialTheme.typography.bodySmall
             )
 
             Text(
-                text = "Playback",
+                text = stringResource(R.string.overview_chords_playback_label),
                 style = MaterialTheme.typography.labelMedium
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1316,7 +1354,7 @@ private fun ChordOverview(
                     FilterChip(
                         selected = mode == playbackMode,
                         onClick = { onPlaybackModeSelected(mode) },
-                        label = { Text(mode.label) }
+                        label = { Text(chordPlaybackModeLabel(mode)) }
                     )
                 }
             }
@@ -1325,7 +1363,7 @@ private fun ChordOverview(
                     FilterChip(
                         selected = count == chordVoicingNoteCount,
                         onClick = { onChordVoicingNoteCountChanged(count) },
-                        label = { Text("$count notes") }
+                        label = { Text(stringResource(R.string.overview_chords_notes_count_chip, count)) }
                     )
                 }
             }
@@ -1334,12 +1372,15 @@ private fun ChordOverview(
                 enabled = selectedChordStrings.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Sound Chord")
+                Text(stringResource(R.string.overview_chords_action_sound_chord))
             }
 
             if (selectedMatch.usesDetunedStrings) {
+                val stableChordLabel = suggestedNonDetunedChord?.definition?.let { definition ->
+                    chordDefinitionLabel(definition)
+                } ?: stringResource(R.string.value_none_found)
                 Text(
-                    text = "Selected chord uses detuned strings. Closest stable chord: ${suggestedNonDetunedChord?.definition?.label ?: "None found"}",
+                    text = stringResource(R.string.overview_chords_detuned_warning, stableChordLabel),
                     style = MaterialTheme.typography.bodySmall,
                     color = KoraDetunedColor
                 )
@@ -1348,25 +1389,26 @@ private fun ChordOverview(
                         onClick = { onChordSelected(suggestedNonDetunedChord.definition) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Use Stable Alternative")
+                        Text(stringResource(R.string.overview_chords_action_use_stable_alternative))
                     }
                 }
             }
 
             Text(
-                text = "Circle of 5ths exercise and metronome are in the separate Exercise side.",
+                text = stringResource(R.string.overview_chords_exercise_note),
                 style = MaterialTheme.typography.bodySmall
             )
 
             Text(
-                text = "Chord Diagram (X = play, tap any string to hear pitch)",
+                text = stringResource(R.string.overview_chords_diagram_label),
                 style = MaterialTheme.typography.labelMedium
             )
             ChordPictorialKoraDiagram(
                 rows = rows,
                 chordStringNumbers = selectedChordStringNumbers,
                 playingStringNumbers = playingStringNumbers,
-                onStringTouched = onStringTouched
+                onStringTouched = onStringTouched,
+                showLeverInfo = showLeverInfo
             )
             SideColumnHeader()
             repeat(rowCount) { index ->
@@ -1381,6 +1423,7 @@ private fun ChordOverview(
                             shouldPlay = leftRow.stringNumber in selectedChordStringNumbers,
                             isSounding = leftRow.stringNumber in playingStringNumbers,
                             onStringTouched = onStringTouched,
+                            showLeverInfo = showLeverInfo,
                             modifier = Modifier.weight(1f)
                         )
                     } else {
@@ -1393,6 +1436,7 @@ private fun ChordOverview(
                             shouldPlay = rightRow.stringNumber in selectedChordStringNumbers,
                             isSounding = rightRow.stringNumber in playingStringNumbers,
                             onStringTouched = onStringTouched,
+                            showLeverInfo = showLeverInfo,
                             modifier = Modifier.weight(1f)
                         )
                     } else {
@@ -1411,7 +1455,7 @@ private fun ChordOverview(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Closest Chords in Current Tuning",
+                text = stringResource(R.string.overview_chords_closest_title),
                 style = MaterialTheme.typography.titleSmall
             )
             bestMatches.forEach { match ->
@@ -1425,19 +1469,22 @@ private fun ChordOverview(
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Text(
-                            text = match.definition.label,
+                            text = chordDefinitionLabel(match.definition),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "Notes ${match.definition.chordNotes.joinToString(" ") { note -> note.symbol }}  " +
-                                "Play ${match.playedStringNumbers.size} strings",
+                            text = stringResource(
+                                R.string.overview_chords_match_notes_play_line,
+                                match.definition.chordNotes.joinToString(" ") { note -> note.symbol },
+                                match.playedStringNumbers.size
+                            ),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
                             text = if (match.usesDetunedStrings) {
-                                "Includes detuned strings"
+                                stringResource(R.string.overview_chords_match_includes_detuned)
                             } else {
-                                "No detuned strings required"
+                                stringResource(R.string.overview_chords_match_no_detuned)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = if (match.usesDetunedStrings) {
@@ -1450,7 +1497,7 @@ private fun ChordOverview(
                     OutlinedButton(
                         onClick = { onChordSelected(match.definition) }
                     ) {
-                        Text("Use")
+                        Text(stringResource(R.string.overview_chords_action_use))
                     }
                 }
             }
@@ -1503,15 +1550,15 @@ private fun ChordExerciseOverview(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Circle of 5ths Exercise",
+                text = stringResource(R.string.overview_exercise_title),
                 style = MaterialTheme.typography.titleSmall
             )
             Text(
-                text = "Order: C F Bb Eb Ab Db F# B E A D G (enharmonics supported).",
+                text = stringResource(R.string.overview_exercise_order_note),
                 style = MaterialTheme.typography.bodySmall
             )
             Text(
-                text = "Start key",
+                text = stringResource(R.string.overview_exercise_start_key_label),
                 style = MaterialTheme.typography.labelMedium
             )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1524,7 +1571,7 @@ private fun ChordExerciseOverview(
                 }
             }
             Text(
-                text = "Choice mode",
+                text = stringResource(R.string.overview_exercise_choice_mode_label),
                 style = MaterialTheme.typography.labelMedium
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1532,7 +1579,7 @@ private fun ChordExerciseOverview(
                     FilterChip(
                         selected = mode == exerciseChoiceMode,
                         onClick = { onExerciseChoiceModeSelected(mode) },
-                        label = { Text(mode.label) }
+                        label = { Text(exerciseChoiceModeLabel(mode)) }
                     )
                 }
             }
@@ -1543,8 +1590,14 @@ private fun ChordExerciseOverview(
             )
             if (timedExerciseTargetRoot != null) {
                 Text(
-                    text = "Suggested next: ${circleOfFifthsLabel(timedExerciseTargetRoot)} ${selectedQuality.displayName} " +
-                        "(in $timedExerciseBeatsUntilDue beat${if (timedExerciseBeatsUntilDue == 1) "" else "s"}, due beat $timedExerciseDueBeat)",
+                    text = pluralStringResource(
+                        R.plurals.overview_exercise_suggested_next,
+                        timedExerciseBeatsUntilDue,
+                        circleOfFifthsLabel(timedExerciseTargetRoot),
+                        chordQualityLabel(selectedQuality),
+                        timedExerciseBeatsUntilDue,
+                        timedExerciseDueBeat
+                    ),
                     style = MaterialTheme.typography.bodySmall
                 )
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1554,7 +1607,11 @@ private fun ChordExerciseOverview(
                             onClick = { onRootSelected(choiceRoot) },
                             label = {
                                 Text(
-                                    text = "${circleOfFifthsLabel(choiceRoot)} ${selectedQuality.displayName}"
+                                    text = stringResource(
+                                        R.string.overview_exercise_choice_item,
+                                        circleOfFifthsLabel(choiceRoot),
+                                        chordQualityLabel(selectedQuality)
+                                    )
                                 )
                             }
                         )
@@ -1562,17 +1619,21 @@ private fun ChordExerciseOverview(
                 }
             }
             Text(
-                text = "Next step: ${circleOfFifthsLabel(nextCircleExerciseRoot)} ${selectedQuality.displayName}",
+                text = stringResource(
+                    R.string.overview_exercise_next_step,
+                    circleOfFifthsLabel(nextCircleExerciseRoot),
+                    chordQualityLabel(selectedQuality)
+                ),
                 style = MaterialTheme.typography.bodySmall
             )
             OutlinedButton(
                 onClick = onRunCircleExerciseStep,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Exercise: Next Fifth")
+                Text(stringResource(R.string.overview_exercise_action_next_fifth))
             }
             Text(
-                text = "Timed interval",
+                text = stringResource(R.string.overview_exercise_timed_interval_label),
                 style = MaterialTheme.typography.labelMedium
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1580,7 +1641,15 @@ private fun ChordExerciseOverview(
                     FilterChip(
                         selected = beats == timedExerciseChordIntervalBeats,
                         onClick = { onTimedExerciseChordIntervalBeatsChanged(beats) },
-                        label = { Text("$beats beat${if (beats == 1) "" else "s"}") }
+                        label = {
+                            Text(
+                                pluralStringResource(
+                                    R.plurals.overview_exercise_interval_chip,
+                                    beats,
+                                    beats
+                                )
+                            )
+                        }
                     )
                 }
             }
@@ -1590,23 +1659,23 @@ private fun ChordExerciseOverview(
             ) {
                 Text(
                     if (isTimedExerciseRunning) {
-                        "Stop Timed Exercise"
+                        stringResource(R.string.overview_exercise_action_stop_timed)
                     } else {
-                        "Start Timed Exercise"
+                        stringResource(R.string.overview_exercise_action_start_timed)
                     }
                 )
             }
             Text(
-                text = "Timed exercise shows choices ahead of the due beat and plays the suggested chord on time.",
+                text = stringResource(R.string.overview_exercise_timed_note),
                 style = MaterialTheme.typography.bodySmall
             )
 
             Text(
-                text = "Metronome",
+                text = stringResource(R.string.overview_metronome_title),
                 style = MaterialTheme.typography.labelMedium
             )
             Text(
-                text = "BPM: $metronomeBpm (40-250)",
+                text = stringResource(R.string.overview_metronome_bpm_line, metronomeBpm),
                 style = MaterialTheme.typography.bodySmall
             )
             Slider(
@@ -1617,7 +1686,7 @@ private fun ChordExerciseOverview(
                 valueRange = 40f..250f
             )
             Text(
-                text = "Time signature",
+                text = stringResource(R.string.overview_metronome_time_signature_label),
                 style = MaterialTheme.typography.labelMedium
             )
             Box(modifier = Modifier.fillMaxWidth()) {
@@ -1643,7 +1712,7 @@ private fun ChordExerciseOverview(
                 }
             }
             Text(
-                text = "Beats to click",
+                text = stringResource(R.string.overview_metronome_beats_to_click_label),
                 style = MaterialTheme.typography.labelMedium
             )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1663,7 +1732,7 @@ private fun ChordExerciseOverview(
                 }
             }
             Text(
-                text = "Sound",
+                text = stringResource(R.string.overview_metronome_sound_label),
                 style = MaterialTheme.typography.labelMedium
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1671,7 +1740,7 @@ private fun ChordExerciseOverview(
                     FilterChip(
                         selected = sound == metronomeSound,
                         onClick = { onMetronomeSoundChanged(sound) },
-                        label = { Text(sound.label) }
+                        label = { Text(metronomeSoundOptionLabel(sound)) }
                     )
                 }
             }
@@ -1679,7 +1748,13 @@ private fun ChordExerciseOverview(
                 onClick = { onMetronomeRunningChanged(!isMetronomeRunning) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (isMetronomeRunning) "Stop Metronome" else "Start Metronome")
+                Text(
+                    if (isMetronomeRunning) {
+                        stringResource(R.string.overview_metronome_action_stop)
+                    } else {
+                        stringResource(R.string.overview_metronome_action_start)
+                    }
+                )
             }
         }
     }
@@ -1708,7 +1783,7 @@ private fun CircleOfFifthsExerciseDiagram(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = "Circle of 5ths Diagram",
+                text = stringResource(R.string.overview_exercise_diagram_title),
                 style = MaterialTheme.typography.bodySmall
             )
             Canvas(
@@ -1780,7 +1855,7 @@ private fun CircleOfFifthsExerciseDiagram(
             }
 
             Text(
-                text = "Green = start key, Red = suggested next chord, Purple = timed choices.",
+                text = stringResource(R.string.overview_exercise_diagram_legend),
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -1792,7 +1867,8 @@ private fun ChordPictorialKoraDiagram(
     rows: List<PegCorrectStringResult>,
     chordStringNumbers: Set<Int>,
     playingStringNumbers: Set<Int>,
-    onStringTouched: (PegCorrectStringResult) -> Unit
+    onStringTouched: (PegCorrectStringResult) -> Unit,
+    showLeverInfo: Boolean
 ) {
     val leftRows = rows
         .filter { row -> row.role.side == StringSide.LEFT }
@@ -1813,7 +1889,7 @@ private fun ChordPictorialKoraDiagram(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = "Kora Chord Diagram (X markers)",
+                text = stringResource(R.string.overview_chords_diagram_title),
                 style = MaterialTheme.typography.bodySmall
             )
             Box(
@@ -1848,7 +1924,7 @@ private fun ChordPictorialKoraDiagram(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_kora_diagram_base),
-                    contentDescription = "Chord kora diagram",
+                    contentDescription = stringResource(R.string.content_desc_chord_kora_diagram),
                     modifier = Modifier.fillMaxSize()
                 )
                 Canvas(modifier = Modifier.fillMaxSize()) {
@@ -1856,7 +1932,8 @@ private fun ChordPictorialKoraDiagram(
                         leftRows = leftRows,
                         rightRows = rightRows,
                         colors = colors,
-                        activeStringNumbers = playingStringNumbers
+                        activeStringNumbers = playingStringNumbers,
+                        showLeverInfo = showLeverInfo
                     )
                     drawChordMarkers(
                         segments = buildDiagramStringSegments(
@@ -1924,10 +2001,12 @@ private fun ChordSideCell(
     shouldPlay: Boolean,
     isSounding: Boolean,
     onStringTouched: (PegCorrectStringResult) -> Unit,
+    showLeverInfo: Boolean,
     modifier: Modifier = Modifier
 ) {
     val baseColor = when {
         row.pegRetuneRequired -> KoraDetunedColor.copy(alpha = 0.24f)
+        !showLeverInfo -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
         row.selectedLeverState == LeverState.OPEN -> KoraOpenLeverColor.copy(alpha = 0.22f)
         else -> KoraClosedLeverColor.copy(alpha = 0.22f)
     }
@@ -1951,9 +2030,12 @@ private fun ChordSideCell(
             text = buildString {
                 append(if (shouldPlay) "X " else "- ")
                 append("${row.role.asLabel()} (S${row.stringNumber})\n")
-                append("${row.selectedPitch.asText()}  ${row.selectedLeverState.name}")
+                append(row.selectedPitch.asText())
+                if (showLeverInfo) {
+                    append("  ${row.selectedLeverState.name}")
+                }
                 if (row.pegRetuneRequired) {
-                    append("  DETUNED")
+                    append("  ${stringResource(R.string.value_detuned)}")
                 }
             },
             modifier = Modifier.padding(8.dp),
@@ -1987,7 +2069,8 @@ private fun LegendItem(
 private fun TableOverview(
     rows: List<PegCorrectStringResult>,
     playingStringNumbers: Set<Int>,
-    onStringTouched: (PegCorrectStringResult) -> Unit
+    onStringTouched: (PegCorrectStringResult) -> Unit,
+    showLeverInfo: Boolean
 ) {
     val leftRows = rows
         .filter { row -> row.role.side == StringSide.LEFT }
@@ -2005,11 +2088,11 @@ private fun TableOverview(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Professional Table View",
+                text = stringResource(R.string.overview_table_title),
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "Two-column kora view: Left strings on left, Right strings on right (both bass to high).",
+                text = stringResource(R.string.scale_engine_two_column_note),
                 style = MaterialTheme.typography.bodySmall
             )
             SideColumnHeader()
@@ -2021,7 +2104,7 @@ private fun TableOverview(
                     val leftRow = leftRows.getOrNull(index)
                     if (leftRow != null) {
                         SideCell(
-                            text = formatOverviewRow(leftRow),
+                            text = formatOverviewRow(leftRow, showLeverInfo = showLeverInfo),
                             isActive = leftRow.stringNumber in playingStringNumbers,
                             onClick = { onStringTouched(leftRow) },
                             modifier = Modifier.weight(1f)
@@ -2032,7 +2115,7 @@ private fun TableOverview(
                     val rightRow = rightRows.getOrNull(index)
                     if (rightRow != null) {
                         SideCell(
-                            text = formatOverviewRow(rightRow),
+                            text = formatOverviewRow(rightRow, showLeverInfo = showLeverInfo),
                             isActive = rightRow.stringNumber in playingStringNumbers,
                             onClick = { onStringTouched(rightRow) },
                             modifier = Modifier.weight(1f)
@@ -2053,12 +2136,12 @@ private fun SideColumnHeader() {
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "Left (Bass -> High)",
+            text = stringResource(R.string.table_left_header),
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = "Right (Bass -> High)",
+            text = stringResource(R.string.table_right_header),
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.weight(1f)
         )
@@ -2090,7 +2173,11 @@ private fun SideCell(
     }
 }
 
-private fun formatOverviewRow(row: PegCorrectStringResult): String {
+@Composable
+private fun formatOverviewRow(
+    row: PegCorrectStringResult,
+    showLeverInfo: Boolean
+): String {
     val pegIndicator = if (row.pegRetuneRequired) {
         signed(row.pegRetuneSemitones)
     } else {
@@ -2098,8 +2185,19 @@ private fun formatOverviewRow(row: PegCorrectStringResult): String {
     }
     return buildString {
         append("${row.role.asLabel()} (S${row.stringNumber})\n")
-        append("Target ${row.selectedPitch.asText()}  Lever ${row.selectedLeverState.name}\n")
-        append("Int ${signed(row.selectedIntonationCents)}c  Peg $pegIndicator")
+        if (showLeverInfo) {
+            append(
+                stringResource(
+                    R.string.scale_engine_peg_row_target_lever,
+                    row.selectedPitch.asText(),
+                    row.selectedLeverState.name
+                )
+            )
+        } else {
+            append(stringResource(R.string.scale_engine_peg_tuning_row_target, row.selectedPitch.asText()))
+        }
+        append("\n")
+        append(stringResource(R.string.scale_engine_row_int_peg, signed(row.selectedIntonationCents), pegIndicator))
     }
 }
 
@@ -2185,5 +2283,51 @@ private fun buildExerciseChoices(
     return (distractors + targetRoot)
         .shuffled()
         .take(desiredSize)
+}
+
+@Composable
+private fun chordQualityLabel(quality: ChordQuality): String {
+    return when (quality) {
+        ChordQuality.MAJOR -> stringResource(R.string.chord_quality_major)
+        ChordQuality.MINOR -> stringResource(R.string.chord_quality_minor)
+        ChordQuality.DIMINISHED -> stringResource(R.string.chord_quality_diminished)
+        ChordQuality.HALF_DIMINISHED -> stringResource(R.string.chord_quality_half_diminished)
+        ChordQuality.SUS2 -> stringResource(R.string.chord_quality_sus2)
+        ChordQuality.SUS4 -> stringResource(R.string.chord_quality_sus4)
+        ChordQuality.DOMINANT7 -> stringResource(R.string.chord_quality_dominant7)
+        ChordQuality.MAJOR7 -> stringResource(R.string.chord_quality_major7)
+        ChordQuality.MINOR7 -> stringResource(R.string.chord_quality_minor7)
+    }
+}
+
+@Composable
+private fun chordDefinitionLabel(definition: ChordDefinition): String {
+    return "${definition.root.symbol} ${chordQualityLabel(definition.quality)}"
+}
+
+@Composable
+private fun metronomeSoundOptionLabel(sound: MetronomeSoundOption): String {
+    return when (sound) {
+        MetronomeSoundOption.WOOD_SOFT -> stringResource(R.string.metronome_sound_soft_wood)
+        MetronomeSoundOption.WOOD_BLOCK -> stringResource(R.string.metronome_sound_wood_block)
+        MetronomeSoundOption.WOOD_CLICK -> stringResource(R.string.metronome_sound_bright_click)
+    }
+}
+
+@Composable
+private fun chordPlaybackModeLabel(mode: ChordPlaybackMode): String {
+    return when (mode) {
+        ChordPlaybackMode.BLOCK -> stringResource(R.string.overview_chords_playback_block)
+        ChordPlaybackMode.BROKEN -> stringResource(R.string.overview_chords_playback_broken)
+        ChordPlaybackMode.SPREAD -> stringResource(R.string.overview_chords_playback_spread)
+    }
+}
+
+@Composable
+private fun exerciseChoiceModeLabel(mode: ExerciseChoiceMode): String {
+    return when (mode) {
+        ExerciseChoiceMode.PRESET -> stringResource(R.string.overview_exercise_choice_preset)
+        ExerciseChoiceMode.RANDOM -> stringResource(R.string.overview_exercise_choice_random)
+    }
 }
 

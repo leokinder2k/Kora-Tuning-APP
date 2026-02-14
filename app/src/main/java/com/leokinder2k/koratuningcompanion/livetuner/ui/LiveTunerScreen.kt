@@ -34,11 +34,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.leokinder2k.koratuningcompanion.R
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.livetuner.audio.ReferenceTonePlayer
 import com.leokinder2k.koratuningcompanion.livetuner.model.TunerTarget
 import com.leokinder2k.koratuningcompanion.livetuner.model.TunerTargetMatcher
@@ -107,6 +110,11 @@ fun LiveTunerScreen(
     }
 
     val targets = TunerTargetMatcher.buildTargets(scaleUiState.result.pegCorrectTable)
+    val tuningMode = scaleUiState.result.request.instrumentProfile.tuningMode
+    val inTuneThresholdCents = when (tuningMode) {
+        KoraTuningMode.LEVERED -> TuningFeedbackClassifier.DEFAULT_IN_TUNE_THRESHOLD_CENTS
+        KoraTuningMode.PEG_TUNING -> PEG_TUNING_IN_TUNE_THRESHOLD_CENTS
+    }
     var selectedTargetStringNumber by rememberSaveable(
         scaleUiState.rootNote,
         scaleUiState.scaleType,
@@ -152,7 +160,7 @@ fun LiveTunerScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Live Tuner") }
+                title = { Text(stringResource(R.string.title_live_tuner)) }
             )
         }
     ) { innerPadding ->
@@ -184,21 +192,27 @@ fun LiveTunerScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "Quick Start",
+                        text = stringResource(R.string.quick_start_title),
                         style = MaterialTheme.typography.titleSmall
                     )
                     Text(
-                        text = "1. Select mode: Realtime for response, Precision for cent accuracy.",
+                        text = stringResource(R.string.live_tuner_quick_start_step_1),
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = "2. Grant microphone access and start tuner.",
+                        text = stringResource(R.string.live_tuner_quick_start_step_2),
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = "3. Pluck one string cleanly and match cent deviation to 0.",
+                        text = stringResource(R.string.live_tuner_quick_start_step_3),
                         style = MaterialTheme.typography.bodySmall
                     )
+                    if (tuningMode == KoraTuningMode.PEG_TUNING) {
+                        Text(
+                            text = stringResource(R.string.live_tuner_peg_tuning_note),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             }
 
@@ -210,11 +224,11 @@ fun LiveTunerScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "Microphone",
+                        text = stringResource(R.string.live_tuner_section_microphone),
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = "Mode",
+                        text = stringResource(R.string.live_tuner_microphone_mode_label),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -222,28 +236,28 @@ fun LiveTunerScreen(
                             FilterChip(
                                 selected = mode == tunerUiState.performanceMode,
                                 onClick = { onPerformanceModeSelected(mode) },
-                                label = { Text(mode.label) }
+                                label = { Text(liveTunerPerformanceModeLabel(mode)) }
                             )
                         }
                     }
                     Text(
-                        text = tunerUiState.performanceMode.summary,
+                        text = liveTunerPerformanceModeSummary(tunerUiState.performanceMode),
                         style = MaterialTheme.typography.bodySmall
                     )
                     if (!tunerUiState.hasAudioPermission) {
                         Button(
                             onClick = { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) }
                         ) {
-                            Text("Grant Microphone Permission")
+                            Text(stringResource(R.string.action_grant_microphone_permission))
                         }
                     } else {
                         if (!tunerUiState.isListening) {
                             Button(onClick = onStartListening) {
-                                Text("Start Live Tuner")
+                                Text(stringResource(R.string.live_tuner_action_start))
                             }
                         } else {
                             OutlinedButton(onClick = onStopListening) {
-                                Text("Stop Live Tuner")
+                                Text(stringResource(R.string.live_tuner_action_stop))
                             }
                         }
                     }
@@ -265,19 +279,28 @@ fun LiveTunerScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = "Detection",
+                        text = stringResource(R.string.live_tuner_section_detection),
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = "Detected pitch: ${formatFrequency(tunerUiState.detectedFrequencyHz)}",
+                        text = stringResource(
+                            R.string.live_tuner_detected_pitch_line,
+                            formatFrequency(tunerUiState.detectedFrequencyHz)
+                        ),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "Confidence: ${formatPercent(tunerUiState.confidence)}",
+                        text = stringResource(
+                            R.string.live_tuner_confidence_line,
+                            formatPercent(tunerUiState.confidence)
+                        ),
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = "Signal level (RMS): ${"%.4f".format(tunerUiState.rms)}",
+                        text = stringResource(
+                            R.string.live_tuner_signal_rms_line,
+                            "%.4f".format(tunerUiState.rms)
+                        ),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -291,48 +314,76 @@ fun LiveTunerScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = "Nearest Target",
+                        text = stringResource(R.string.live_tuner_section_nearest_target),
                         style = MaterialTheme.typography.titleMedium
                     )
                     if (match == null) {
                         Text(
-                            text = "No match yet. Start tuner and play a string.",
+                            text = stringResource(R.string.live_tuner_nearest_target_no_match),
                             style = MaterialTheme.typography.bodySmall
                         )
                     } else {
-                        val tuningState = TuningFeedbackClassifier.classify(match.centsDeviation)
+                        val tuningState = TuningFeedbackClassifier.classify(
+                            centsDeviation = match.centsDeviation,
+                            inTuneThresholdCents = inTuneThresholdCents
+                        )
                         val tuningColor = tuningStateColor(tuningState)
                         Text(
-                            text = "String: ${match.target.roleLabel} (S${match.target.stringNumber})",
+                            text = stringResource(
+                                R.string.live_tuner_nearest_target_string_line,
+                                match.target.roleLabel,
+                                match.target.stringNumber
+                            ),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
-                            text = "Target pitch: ${match.target.targetPitch.asText()} (${formatFrequency(match.target.targetFrequencyHz)})",
+                            text = stringResource(
+                                R.string.live_tuner_nearest_target_pitch_line,
+                                match.target.targetPitch.asText(),
+                                formatFrequency(match.target.targetFrequencyHz)
+                            ),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
-                            text = "Target intonation: ${signed(match.target.targetIntonationCents)} cent",
+                            text = stringResource(
+                                R.string.live_tuner_nearest_target_intonation_line,
+                                signed(match.target.targetIntonationCents)
+                            ),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
-                            text = "Tuning status: ${tuningStateLabel(tuningState)}",
+                            text = stringResource(
+                                R.string.live_tuner_nearest_target_status_line,
+                                tuningStateLabel(tuningState)
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = tuningColor
                         )
                         Text(
-                            text = "Cent deviation: ${signed(match.centsDeviation)} cent",
+                            text = stringResource(
+                                R.string.live_tuner_nearest_target_deviation_line,
+                                signed(match.centsDeviation)
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = tuningColor
                         )
-                        Text(
-                            text = "Lever: ${match.target.requiredLeverState.name}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        if (tuningMode == KoraTuningMode.LEVERED) {
+                            Text(
+                                text = stringResource(
+                                    R.string.live_tuner_nearest_target_lever_line,
+                                    match.target.requiredLeverState.name
+                                ),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                         Text(
                             text = if (match.target.pegRetuneSemitones != 0) {
-                                "Peg adjustment: ${signed(match.target.pegRetuneSemitones.toDouble())} semitone(s)"
+                                stringResource(
+                                    R.string.live_tuner_nearest_target_peg_adjustment_line,
+                                    signed(match.target.pegRetuneSemitones.toDouble())
+                                )
                             } else {
-                                "Peg adjustment: none"
+                                stringResource(R.string.live_tuner_nearest_target_peg_adjustment_none)
                             },
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -350,7 +401,7 @@ fun LiveTunerScreen(
             )
 
             Text(
-                text = "Tip: stabilize pluck strength and sustain to improve cent-level consistency.",
+                text = stringResource(R.string.live_tuner_tip),
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -366,7 +417,7 @@ private fun SelectionControls(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Root note",
+            text = stringResource(R.string.scale_root_note_label),
             style = MaterialTheme.typography.titleMedium
         )
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -380,7 +431,7 @@ private fun SelectionControls(
         }
 
         Text(
-            text = "Scale type",
+            text = stringResource(R.string.scale_type_label),
             style = MaterialTheme.typography.titleMedium
         )
         ScaleTypeDropdownMenus(
@@ -418,19 +469,19 @@ private fun ReferenceToneCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Reference Tone (Tune to Specific Pitch)",
+                text = stringResource(R.string.live_tuner_reference_tone_title),
                 style = MaterialTheme.typography.titleMedium
             )
             if (targets.isEmpty()) {
                 Text(
-                    text = "No target pitches available for current setup.",
+                    text = stringResource(R.string.live_tuner_reference_tone_none),
                     style = MaterialTheme.typography.bodySmall
                 )
                 return@Column
             }
 
             Text(
-                text = "Left side (Bass -> High)",
+                text = stringResource(R.string.instrument_tuning_assistant_left_side),
                 style = MaterialTheme.typography.labelMedium
             )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -443,7 +494,7 @@ private fun ReferenceToneCard(
                 }
             }
             Text(
-                text = "Right side (Bass -> High)",
+                text = stringResource(R.string.instrument_tuning_assistant_right_side),
                 style = MaterialTheme.typography.labelMedium
             )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -458,20 +509,28 @@ private fun ReferenceToneCard(
 
             if (selectedTarget != null) {
                 Text(
-                    text = "Selected: ${selectedTarget.roleLabel} (S${selectedTarget.stringNumber}) ${selectedTarget.targetPitch.asText()}",
+                    text = stringResource(
+                        R.string.live_tuner_reference_tone_selected_line,
+                        selectedTarget.roleLabel,
+                        selectedTarget.stringNumber,
+                        selectedTarget.targetPitch.asText()
+                    ),
                     style = MaterialTheme.typography.bodySmall
                 )
                 Text(
-                    text = "Reference frequency: ${formatFrequency(selectedTarget.targetFrequencyHz)}",
+                    text = stringResource(
+                        R.string.live_tuner_reference_tone_frequency_line,
+                        formatFrequency(selectedTarget.targetFrequencyHz)
+                    ),
                     style = MaterialTheme.typography.bodySmall
                 )
                 if (!isReferenceTonePlaying) {
                     Button(onClick = onPlay) {
-                        Text("Play Reference Tone")
+                        Text(stringResource(R.string.live_tuner_reference_tone_action_play))
                     }
                 } else {
                     OutlinedButton(onClick = onStop) {
-                        Text("Stop Reference Tone")
+                        Text(stringResource(R.string.live_tuner_reference_tone_action_stop))
                     }
                 }
             }
@@ -505,11 +564,12 @@ private fun tuningStateColor(state: TuningFeedbackState): Color {
     }
 }
 
+@Composable
 private fun tuningStateLabel(state: TuningFeedbackState): String {
     return when (state) {
-        TuningFeedbackState.IN_TUNE -> "In Tune"
-        TuningFeedbackState.FLAT -> "Flat"
-        TuningFeedbackState.SHARP -> "Sharp"
+        TuningFeedbackState.IN_TUNE -> stringResource(R.string.tuning_in_tune)
+        TuningFeedbackState.FLAT -> stringResource(R.string.tuning_flat)
+        TuningFeedbackState.SHARP -> stringResource(R.string.tuning_sharp)
     }
 }
 
@@ -518,5 +578,23 @@ private fun targetRolePosition(target: TunerTarget): Int {
         .drop(1)
         .toIntOrNull()
         ?: Int.MAX_VALUE
+}
+
+private const val PEG_TUNING_IN_TUNE_THRESHOLD_CENTS = 200.0
+
+@Composable
+private fun liveTunerPerformanceModeLabel(mode: LiveTunerPerformanceMode): String {
+    return when (mode) {
+        LiveTunerPerformanceMode.REALTIME -> stringResource(R.string.live_tuner_mode_realtime_label)
+        LiveTunerPerformanceMode.PRECISION -> stringResource(R.string.live_tuner_mode_precision_label)
+    }
+}
+
+@Composable
+private fun liveTunerPerformanceModeSummary(mode: LiveTunerPerformanceMode): String {
+    return when (mode) {
+        LiveTunerPerformanceMode.REALTIME -> stringResource(R.string.live_tuner_mode_realtime_summary)
+        LiveTunerPerformanceMode.PRECISION -> stringResource(R.string.live_tuner_mode_precision_summary)
+    }
 }
 

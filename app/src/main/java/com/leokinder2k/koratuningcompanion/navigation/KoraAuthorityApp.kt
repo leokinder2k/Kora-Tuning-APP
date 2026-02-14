@@ -1,5 +1,6 @@
 package com.leokinder2k.koratuningcompanion.navigation
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -11,8 +12,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.leokinder2k.koratuningcompanion.R
 import com.leokinder2k.koratuningcompanion.instrumentconfig.ui.InstrumentConfigurationRoute
 import com.leokinder2k.koratuningcompanion.instrumentconfig.ui.TraditionalPresetsRoute
 import com.leokinder2k.koratuningcompanion.livetuner.ui.LiveTunerRoute
@@ -40,13 +43,13 @@ fun KoraAuthorityApp(modifier: Modifier = Modifier) {
                 item(
                     icon = {
                         Text(
-                            text = destination.shortLabel,
+                            text = stringResource(destination.shortLabelRes),
                             style = MaterialTheme.typography.labelSmall
                         )
                     },
                     label = {
                         Text(
-                            text = destination.label,
+                            text = stringResource(destination.labelRes),
                             maxLines = 1,
                             softWrap = false,
                             overflow = TextOverflow.Ellipsis
@@ -86,14 +89,14 @@ fun KoraAuthorityApp(modifier: Modifier = Modifier) {
 }
 
 private enum class AppDestination(
-    val label: String,
-    val shortLabel: String
+    @param:StringRes val labelRes: Int,
+    @param:StringRes val shortLabelRes: Int
 ) {
-    INSTRUMENT_CONFIG("Instrument", "I"),
-    SCALE_ENGINE("Scale", "S"),
-    GUIDED_SETUP("Guided", "G"),
-    INSTANT_OVERVIEW("Overview", "O"),
-    LIVE_TUNER("Tuner", "T"),
-    PRESETS("Presets", "P"),
+    INSTRUMENT_CONFIG(R.string.nav_instrument_label, R.string.nav_instrument_short),
+    SCALE_ENGINE(R.string.nav_scale_label, R.string.nav_scale_short),
+    GUIDED_SETUP(R.string.nav_guided_label, R.string.nav_guided_short),
+    INSTANT_OVERVIEW(R.string.nav_overview_label, R.string.nav_overview_short),
+    LIVE_TUNER(R.string.nav_tuner_label, R.string.nav_tuner_short),
+    PRESETS(R.string.nav_presets_label, R.string.nav_presets_short),
 }
 

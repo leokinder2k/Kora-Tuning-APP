@@ -2,6 +2,11 @@ package com.leokinder2k.koratuningcompanion.instrumentconfig.model
 
 private val SUPPORTED_STRING_COUNTS = setOf(21, 22)
 
+enum class KoraTuningMode {
+    LEVERED,
+    PEG_TUNING
+}
+
 data class StringTuning(
     val stringNumber: Int,
     val openPitch: Pitch,
@@ -12,6 +17,7 @@ data class StringTuning(
 
 data class InstrumentProfile(
     val stringCount: Int,
+    val tuningMode: KoraTuningMode = KoraTuningMode.LEVERED,
     val openPitches: List<Pitch>,
     val openIntonationCents: List<Double> = List(stringCount) { 0.0 },
     val closedIntonationCents: List<Double> = List(stringCount) { 0.0 }

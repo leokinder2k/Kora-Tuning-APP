@@ -26,7 +26,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.leokinder2k.koratuningcompanion.R
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.scaleengine.model.PegCorrectStringResult
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
@@ -40,6 +43,7 @@ fun GuidedSetupScreen(
     modifier: Modifier = Modifier
 ) {
     val steps = uiState.result.pegCorrectTable
+    val tuningMode = uiState.result.request.instrumentProfile.tuningMode
     var currentStepIndex by rememberSaveable(
         uiState.rootNote,
         uiState.scaleType,
@@ -58,7 +62,7 @@ fun GuidedSetupScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Guided Setup Mode") }
+                title = { Text(stringResource(R.string.title_guided_setup)) }
             )
         }
     ) { innerPadding ->
@@ -85,7 +89,7 @@ fun GuidedSetupScreen(
             if (steps.isEmpty()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "No tuning steps available.",
+                        text = stringResource(R.string.guided_setup_no_steps),
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -97,7 +101,8 @@ fun GuidedSetupScreen(
                     step = step,
                     currentStep = currentStepIndex + 1,
                     totalSteps = steps.size,
-                    progress = progress
+                    progress = progress,
+                    tuningMode = tuningMode
                 )
 
                 Row(
@@ -109,7 +114,7 @@ fun GuidedSetupScreen(
                         enabled = currentStepIndex > 0,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Previous")
+                        Text(stringResource(R.string.action_previous))
                     }
                     Button(
                         onClick = {
@@ -118,7 +123,7 @@ fun GuidedSetupScreen(
                         enabled = currentStepIndex < steps.lastIndex,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Next")
+                        Text(stringResource(R.string.action_next))
                     }
                 }
             }
@@ -131,7 +136,8 @@ private fun GuidedStepCard(
     step: PegCorrectStringResult,
     currentStep: Int,
     totalSteps: Int,
-    progress: Float
+    progress: Float,
+    tuningMode: KoraTuningMode
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -141,7 +147,7 @@ private fun GuidedStepCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Step $currentStep of $totalSteps",
+                text = stringResource(R.string.guided_setup_step_counter, currentStep, totalSteps),
                 style = MaterialTheme.typography.titleMedium
             )
             LinearProgressIndicator(
@@ -149,26 +155,44 @@ private fun GuidedStepCard(
                 modifier = Modifier.fillMaxWidth()
             )
             Text(
-                text = "String: ${step.role.asLabel()} (S${step.stringNumber})",
+                text = stringResource(
+                    R.string.guided_setup_string_line,
+                    step.role.asLabel(),
+                    step.stringNumber
+                ),
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "Target pitch: ${step.selectedPitch.asText()}",
+                text = stringResource(
+                    R.string.guided_setup_target_pitch_line,
+                    step.selectedPitch.asText()
+                ),
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "Intonation: ${signed(step.selectedIntonationCents)} cent",
+                text = stringResource(
+                    R.string.guided_setup_intonation_line,
+                    signed(step.selectedIntonationCents)
+                ),
                 style = MaterialTheme.typography.bodyMedium
             )
-            Text(
-                text = "Lever: ${step.selectedLeverState.name}",
-                style = MaterialTheme.typography.bodyMedium
-            )
+            if (tuningMode == KoraTuningMode.LEVERED) {
+                Text(
+                    text = stringResource(
+                        R.string.guided_setup_lever_line,
+                        step.selectedLeverState.name
+                    ),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
             Text(
                 text = if (step.pegRetuneRequired) {
-                    "Peg adjustment: ${signed(step.pegRetuneSemitones)} semitone(s)"
+                    stringResource(
+                        R.string.guided_setup_peg_adjustment_line,
+                        signed(step.pegRetuneSemitones)
+                    )
                 } else {
-                    "Peg adjustment: none"
+                    stringResource(R.string.guided_setup_peg_adjustment_none)
                 },
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -185,7 +209,7 @@ private fun SelectionControls(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Root note",
+            text = stringResource(R.string.scale_root_note_label),
             style = MaterialTheme.typography.titleMedium
         )
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -199,7 +223,7 @@ private fun SelectionControls(
         }
 
         Text(
-            text = "Scale type",
+            text = stringResource(R.string.scale_type_label),
             style = MaterialTheme.typography.titleMedium
         )
         ScaleTypeDropdownMenus(

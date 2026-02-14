@@ -8,10 +8,10 @@ import kotlin.math.PI
 import kotlin.math.exp
 import kotlin.math.sin
 
-enum class MetronomeSoundOption(val label: String) {
-    WOOD_SOFT("Soft Wood"),
-    WOOD_BLOCK("Wood Block"),
-    WOOD_CLICK("Bright Click")
+enum class MetronomeSoundOption {
+    WOOD_SOFT,
+    WOOD_BLOCK,
+    WOOD_CLICK
 }
 
 class MetronomeClickPlayer(

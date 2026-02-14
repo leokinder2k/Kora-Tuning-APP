@@ -4,6 +4,7 @@ import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringLayout
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringSide
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.StringTuning
 import com.leokinder2k.koratuningcompanion.scaleengine.model.EngineMode
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverOnlyStringResult
@@ -25,6 +26,7 @@ class ScaleCalculationEngine {
             transposeString(string, semitones = profileTransposeSemitones)
         }
         val scaleNotes = request.scaleType.notesForRoot(request.rootNote)
+        val includeClosedLever = request.instrumentProfile.tuningMode == KoraTuningMode.LEVERED
 
         val leverRows = strings.map { string ->
             val role = roleForStringNumber(
@@ -36,7 +38,8 @@ class ScaleCalculationEngine {
                 closedPitch = string.closedPitch,
                 openIntonationCents = string.openIntonationCents,
                 closedIntonationCents = string.closedIntonationCents,
-                scaleNotes = scaleNotes
+                scaleNotes = scaleNotes,
+                includeClosedLever = includeClosedLever
             )
 
             val selectedOption = selectLeverOnlyOption(options)
@@ -67,7 +70,8 @@ class ScaleCalculationEngine {
                 closedPitch = string.closedPitch,
                 openIntonationCents = string.openIntonationCents,
                 closedIntonationCents = string.closedIntonationCents,
-                scaleNotes = scaleNotes
+                scaleNotes = scaleNotes,
+                includeClosedLever = includeClosedLever
             )
 
             val leverOnlyOption = selectLeverOnlyOption(options)
@@ -88,7 +92,8 @@ class ScaleCalculationEngine {
             } else {
                 val retune = selectBestRetune(
                     originalOpenPitch = string.openPitch,
-                    scaleNotes = scaleNotes
+                    scaleNotes = scaleNotes,
+                    allowClosedLever = includeClosedLever
                 )
                 val retunedOpen = pitchFromAbsoluteSemitone(retune.retunedOpenAbsolute)
                 val retunedClosed = retunedOpen.plusSemitones(1)
@@ -153,7 +158,8 @@ class ScaleCalculationEngine {
         closedPitch: Pitch,
         openIntonationCents: Double,
         closedIntonationCents: Double,
-        scaleNotes: Set<NoteName>
+        scaleNotes: Set<NoteName>,
+        includeClosedLever: Boolean = true
     ): List<LeverOption> {
         val options = mutableListOf<LeverOption>()
         if (openPitch.note in scaleNotes) {
@@ -163,7 +169,7 @@ class ScaleCalculationEngine {
                 intonationCents = openIntonationCents
             )
         }
-        if (closedPitch.note in scaleNotes) {
+        if (includeClosedLever && closedPitch.note in scaleNotes) {
             options += LeverOption(
                 leverState = LeverState.CLOSED,
                 pitch = closedPitch,
@@ -187,7 +193,8 @@ class ScaleCalculationEngine {
 
     private fun selectBestRetune(
         originalOpenPitch: Pitch,
-        scaleNotes: Set<NoteName>
+        scaleNotes: Set<NoteName>,
+        allowClosedLever: Boolean
     ): RetuneCandidate {
         val openAbsolute = originalOpenPitch.absoluteSemitone()
         var best: RetuneCandidate? = null
@@ -208,17 +215,19 @@ class ScaleCalculationEngine {
                     best = better
                 }
 
-                val closedRetunedOpen = targetAbsolute - 1
-                considerRetuneCandidate(
-                    candidate = RetuneCandidate(
-                        retunedOpenAbsolute = closedRetunedOpen,
-                        selectedLeverState = LeverState.CLOSED,
-                        absoluteRetuneDistance = abs(closedRetunedOpen - openAbsolute),
-                        leverPenalty = 1
-                    ),
-                    currentBest = best
-                )?.let { better ->
-                    best = better
+                if (allowClosedLever) {
+                    val closedRetunedOpen = targetAbsolute - 1
+                    considerRetuneCandidate(
+                        candidate = RetuneCandidate(
+                            retunedOpenAbsolute = closedRetunedOpen,
+                            selectedLeverState = LeverState.CLOSED,
+                            absoluteRetuneDistance = abs(closedRetunedOpen - openAbsolute),
+                            leverPenalty = 1
+                        ),
+                        currentBest = best
+                    )?.let { better ->
+                        best = better
+                    }
                 }
             }
         }

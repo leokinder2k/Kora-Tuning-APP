@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.leokinder2k.koratuningcompanion.R
 import com.leokinder2k.koratuningcompanion.livetuner.LiveTunerEngine
 import com.leokinder2k.koratuningcompanion.livetuner.audio.AudioRecordFrameSource
 import com.leokinder2k.koratuningcompanion.livetuner.detection.AutocorrelationPitchDetector
@@ -16,18 +17,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class LiveTunerPerformanceMode(
-    val label: String,
-    val summary: String
-) {
-    REALTIME(
-        label = "Realtime",
-        summary = "Lower latency, reduced precision."
-    ),
-    PRECISION(
-        label = "Precision",
-        summary = "Higher precision, increased latency."
-    )
+enum class LiveTunerPerformanceMode {
+    REALTIME,
+    PRECISION
 }
 
 data class LiveTunerUiState(
@@ -41,6 +33,7 @@ data class LiveTunerUiState(
 )
 
 class LiveTunerViewModel(
+    private val appContext: Context,
     private val engineFactory: (LiveTunerPerformanceMode) -> LiveTunerEngine
 ) : ViewModel() {
 
@@ -63,7 +56,7 @@ class LiveTunerViewModel(
         _uiState.update { state ->
             state.copy(
                 hasAudioPermission = granted,
-                errorMessage = if (granted) null else "Microphone permission required."
+                errorMessage = if (granted) null else appContext.getString(R.string.live_tuner_error_mic_permission_required)
             )
         }
         if (!granted) {
@@ -94,7 +87,7 @@ class LiveTunerViewModel(
         val state = _uiState.value
         if (!state.hasAudioPermission) {
             _uiState.update { current ->
-                current.copy(errorMessage = "Grant microphone permission to start tuning.")
+                current.copy(errorMessage = appContext.getString(R.string.live_tuner_error_grant_permission_to_start))
             }
             return
         }
@@ -125,7 +118,7 @@ class LiveTunerViewModel(
                 _uiState.update { current ->
                     current.copy(
                         isListening = false,
-                        errorMessage = error.message ?: "Live tuner stream failed."
+                        errorMessage = error.message ?: appContext.getString(R.string.live_tuner_error_stream_failed)
                     )
                 }
             }
@@ -149,6 +142,7 @@ class LiveTunerViewModel(
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 LiveTunerViewModel(
+                    appContext = context.applicationContext,
                     engineFactory = { mode ->
                         when (mode) {
                             LiveTunerPerformanceMode.REALTIME -> LiveTunerEngine(

@@ -1,3 +1,341 @@
 <resources>
     <string name="app_name">Kora Tuning Companion</string>
+
+    <!-- Navigation -->
+    <string name="nav_instrument_label">Instrument</string>
+    <string name="nav_instrument_short">I</string>
+    <string name="nav_scale_label">Scale</string>
+    <string name="nav_scale_short">S</string>
+    <string name="nav_guided_label">Guided</string>
+    <string name="nav_guided_short">G</string>
+    <string name="nav_overview_label">Overview</string>
+    <string name="nav_overview_short">O</string>
+    <string name="nav_tuner_label">Tuner</string>
+    <string name="nav_tuner_short">T</string>
+    <string name="nav_presets_label">Presets</string>
+    <string name="nav_presets_short">P</string>
+
+    <!-- Common -->
+    <string name="strings_count">%1$d strings</string>
+    <string name="quick_start_title">Quick Start</string>
+    <string name="action_start">Start</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_previous">Previous</string>
+    <string name="action_next">Next</string>
+    <string name="action_grant_mic_short">Grant Mic</string>
+    <string name="action_grant_microphone_permission">Grant Microphone Permission</string>
+
+    <!-- Instrument Configuration -->
+    <string name="title_instrument_configuration">Instrument Configuration</string>
+    <string name="instrument_config_section_strings">Strings</string>
+    <string name="instrument_config_description_levered">Set open tuning for each string. Closed pitch is calculated automatically (+1 semitone). You can also enter open/closed intonation offsets in cents.</string>
+    <string name="instrument_config_description_peg_tuning">Peg tuning mode (non-chromatic): your kora has no levers. Set open tuning for each string and (optionally) open cents offsets.</string>
+    <string name="instrument_config_section_instrument_type">Instrument type</string>
+    <string name="instrument_type_levers">Levers (chromatic)</string>
+    <string name="instrument_type_pegs">Peg tuning</string>
+    <string name="instrument_config_quick_start_step_1">1. Choose 21 or 22 strings.</string>
+    <string name="instrument_config_quick_start_step_2">2. Enter open pitch and optional cents offsets per string.</string>
+    <string name="instrument_config_quick_start_step_3">3. Save profile, then use Scale/Guided/Overview/Tuner tabs.</string>
+    <string name="instrument_config_auto_save_note">String notes and cents are auto-saved when entries are valid.</string>
+    <string name="instrument_config_action_load_starter_profile">Load Starter Profile</string>
+    <string name="instrument_config_action_save_profile">Save Instrument Profile</string>
+    <string name="instrument_preset_manual">Manual</string>
+
+    <string name="instrument_tuning_assistant_title">Instrument Tuning Assistant</string>
+    <string name="instrument_tuning_assistant_subtitle">Select a string and tune its open pitch using target note/cents and status lights.</string>
+    <string name="instrument_tuning_assistant_controls_title">Tuner Controls</string>
+    <string name="instrument_tuning_assistant_target_line">Target: %1$s (%2$s c)</string>
+    <string name="instrument_tuning_assistant_target_hz_line">Target Hz: %1$s</string>
+    <string name="instrument_tuning_assistant_detected_hz_line">Detected: %1$s</string>
+    <string name="instrument_tuning_assistant_deviation_line">Deviation: %1$s c (%2$s)</string>
+    <string name="instrument_tuning_assistant_deviation_none">Deviation: --</string>
+    <string name="instrument_tuning_assistant_left_side">Left side (Bass -&gt; High)</string>
+    <string name="instrument_tuning_assistant_right_side">Right side (Bass -&gt; High)</string>
+    <string name="instrument_tuning_assistant_string_chip">S%1$d %2$s</string>
+
+    <string name="tuning_flat">Flat</string>
+    <string name="tuning_in_tune">In Tune</string>
+    <string name="tuning_sharp">Sharp</string>
+
+    <string name="instrument_config_string_title">String %1$d</string>
+    <string name="instrument_config_open_pitch_label">Open pitch</string>
+    <string name="instrument_config_open_pitch_placeholder">E3</string>
+    <string name="instrument_config_closed_pitch_supporting">Closed pitch: %1$s</string>
+    <string name="instrument_config_open_pitch_supporting">Enter open pitch to calculate closed pitch.</string>
+    <string name="instrument_config_open_pitch_supporting_peg">Peg tuning mode: open pitch only (no levers).</string>
+    <string name="instrument_config_open_cents_label">Open cents</string>
+    <string name="instrument_config_closed_cents_label">Closed cents</string>
+    <string name="instrument_config_cents_placeholder">0.0</string>
+
+    <!-- Live tuner mode labels (used in multiple screens) -->
+    <string name="live_tuner_mode_realtime_label">Realtime</string>
+    <string name="live_tuner_mode_precision_label">Precision</string>
+    <string name="live_tuner_mode_realtime_summary">Lower latency, reduced precision.</string>
+    <string name="live_tuner_mode_precision_summary">Higher precision, increased latency.</string>
+
+    <!-- Scale selection (shared) -->
+    <string name="scale_root_note_label">Root note</string>
+    <string name="scale_type_label">Scale type</string>
+    <string name="scale_family_label">Scale family</string>
+    <string name="scale_label">Scale</string>
+
+    <string name="scale_family_modes">Modes</string>
+    <string name="scale_family_pentatonic">Pentatonic</string>
+    <string name="scale_family_blues">Blues</string>
+    <string name="scale_family_kora_scales">Kora Scales</string>
+    <string name="scale_family_hexatonic">Hexatonic</string>
+    <string name="scale_family_beebop">Beebop</string>
+    <string name="scale_family_diminished">Diminished</string>
+    <string name="scale_family_other">Other</string>
+
+    <string name="scale_type_major">Major (Heptatonic)</string>
+    <string name="scale_type_natural_minor">Natural Minor (Heptatonic)</string>
+    <string name="scale_type_harmonic_minor">Harmonic Minor (Heptatonic)</string>
+    <string name="scale_type_melodic_minor">Melodic Minor (Heptatonic)</string>
+
+    <string name="scale_type_ionian">Ionian (Mode 1)</string>
+    <string name="scale_type_dorian">Dorian (Mode 2)</string>
+    <string name="scale_type_phrygian">Phrygian (Mode 3)</string>
+    <string name="scale_type_lydian">Lydian (Mode 4)</string>
+    <string name="scale_type_mixolydian">Mixolydian (Mode 5)</string>
+    <string name="scale_type_aeolian">Aeolian (Mode 6)</string>
+    <string name="scale_type_locrian">Locrian (Mode 7)</string>
+
+    <string name="scale_type_major_pentatonic">Major Pentatonic</string>
+    <string name="scale_type_minor_pentatonic">Minor Pentatonic</string>
+
+    <string name="scale_type_major_hexatonic">Major Hexatonic</string>
+    <string name="scale_type_minor_hexatonic">Minor Hexatonic</string>
+    <string name="scale_type_whole_tone">Whole Tone (Hexatonic)</string>
+    <string name="scale_type_major_blues">Major Blues (Hexatonic)</string>
+    <string name="scale_type_minor_blues">Minor Blues (Hexatonic)</string>
+
+    <string name="scale_type_beebop_major">Beebop Major</string>
+    <string name="scale_type_beebop_dominant">Beebop Dominant</string>
+    <string name="scale_type_beebop_dorian">Beebop Dorian</string>
+
+    <string name="scale_type_diminished_whole_half">Diminished Whole-Half (Octatonic)</string>
+    <string name="scale_type_diminished_half_whole">Diminished Half-Whole (Octatonic)</string>
+
+    <string name="scale_type_chromatic">Chromatic</string>
+
+    <!-- Live Tuner -->
+    <string name="title_live_tuner">Live Tuner</string>
+    <string name="live_tuner_quick_start_step_1">1. Select mode: Realtime for response, Precision for cent accuracy.</string>
+    <string name="live_tuner_quick_start_step_2">2. Grant microphone access and start tuner.</string>
+    <string name="live_tuner_quick_start_step_3">3. Pluck one string cleanly and match cent deviation to 0.</string>
+    <string name="live_tuner_peg_tuning_note">Peg tuning mode: status lights use ±1 tone (±200 cents) tolerance and levers are ignored.</string>
+    <string name="live_tuner_section_microphone">Microphone</string>
+    <string name="live_tuner_microphone_mode_label">Mode</string>
+    <string name="live_tuner_action_start">Start Live Tuner</string>
+    <string name="live_tuner_action_stop">Stop Live Tuner</string>
+    <string name="live_tuner_section_detection">Detection</string>
+    <string name="live_tuner_detected_pitch_line">Detected pitch: %1$s</string>
+    <string name="live_tuner_confidence_line">Confidence: %1$s</string>
+    <string name="live_tuner_signal_rms_line">Signal level (RMS): %1$s</string>
+    <string name="live_tuner_section_nearest_target">Nearest Target</string>
+    <string name="live_tuner_nearest_target_no_match">No match yet. Start tuner and play a string.</string>
+    <string name="live_tuner_nearest_target_string_line">String: %1$s (S%2$d)</string>
+    <string name="live_tuner_nearest_target_pitch_line">Target pitch: %1$s (%2$s)</string>
+    <string name="live_tuner_nearest_target_intonation_line">Target intonation: %1$s cent</string>
+    <string name="live_tuner_nearest_target_status_line">Tuning status: %1$s</string>
+    <string name="live_tuner_nearest_target_deviation_line">Cent deviation: %1$s cent</string>
+    <string name="live_tuner_nearest_target_lever_line">Lever: %1$s</string>
+    <string name="live_tuner_nearest_target_peg_adjustment_line">Peg adjustment: %1$s semitone(s)</string>
+    <string name="live_tuner_nearest_target_peg_adjustment_none">Peg adjustment: none</string>
+    <string name="live_tuner_reference_tone_title">Reference Tone (Tune to Specific Pitch)</string>
+    <string name="live_tuner_reference_tone_none">No target pitches available for current setup.</string>
+    <string name="live_tuner_reference_tone_selected_line">Selected: %1$s (S%2$d) %3$s</string>
+    <string name="live_tuner_reference_tone_frequency_line">Reference frequency: %1$s</string>
+    <string name="live_tuner_reference_tone_action_play">Play Reference Tone</string>
+    <string name="live_tuner_reference_tone_action_stop">Stop Reference Tone</string>
+    <string name="live_tuner_tip">Tip: stabilize pluck strength and sustain to improve cent-level consistency.</string>
+
+    <!-- Scale Calculation Engine -->
+    <string name="title_scale_calculation_engine">Scale Calculation Engine</string>
+    <string name="scale_engine_quick_start_levered">Pick root + scale, review lever-only table, then apply peg-correct plan if required.</string>
+    <string name="scale_engine_quick_start_peg_tuning">Pick root + scale, then retune open strings using the peg tuning table (no levers).</string>
+
+    <string name="scale_engine_summary_scale_notes">Scale Notes: %1$s</string>
+    <string name="scale_engine_summary_left_strings">Left Strings (Bass -&gt; High): %1$s</string>
+    <string name="scale_engine_summary_right_strings">Right Strings (Bass -&gt; High): %1$s</string>
+    <string name="scale_engine_summary_lever_only_retunes">Lever-only peg retunes: %1$d</string>
+    <string name="scale_engine_summary_peg_adjustment_retunes">Peg-adjustment retunes: %1$d</string>
+    <string name="scale_engine_summary_peg_tuning_retunes">Peg tuning retunes: %1$d</string>
+
+    <string name="scale_engine_lever_only_table_title">Lever-only Table</string>
+    <string name="scale_engine_peg_adjustment_table_title">Retune (Peg Adjustment) Table</string>
+    <string name="scale_engine_peg_tuning_table_title">Peg Tuning Table (No Levers)</string>
+    <string name="scale_engine_two_column_note">Two-column kora view: Left strings on left, Right strings on right (both bass to high).</string>
+
+    <string name="table_left_header">Left (Bass -&gt; High)</string>
+    <string name="table_right_header">Right (Bass -&gt; High)</string>
+
+    <string name="value_na">N/A</string>
+    <string name="value_yes">YES</string>
+    <string name="value_no">NO</string>
+
+    <string name="scale_engine_lever_only_row_open_closed">Open %1$s  Closed %2$s</string>
+    <string name="scale_engine_lever_only_row_lever_target">Lever %1$s  Target %2$s</string>
+    <string name="scale_engine_row_int_peg">Int %1$s c  Peg %2$s</string>
+    <string name="scale_engine_peg_row_target_lever">Target %1$s  Lever %2$s</string>
+    <string name="scale_engine_peg_tuning_row_target">Target %1$s</string>
+    <string name="scale_engine_peg_tuning_row_tune_open">Tune open %1$s</string>
+
+    <string name="scale_engine_conflicts_title">Voicing Conflicts</string>
+    <string name="scale_engine_conflicts_none">No conflicts detected.</string>
+    <string name="scale_engine_conflict_line">%1$s: %2$s-side S%3$d-&gt;S%4$d (%5$s)</string>
+
+    <string name="scale_engine_suggestions_title">Alternative Voicing Suggestions</string>
+    <string name="scale_engine_suggestions_none">No suggestions required.</string>
+    <string name="scale_engine_suggestion_line">%1$s: %2$s</string>
+
+    <!-- Instrument config: status/errors (ViewModel) -->
+    <string name="instrument_config_status_loaded_starter_profile">Loaded starter profile for %1$d strings.</string>
+    <string name="instrument_config_status_enter_valid_before_saving">Enter valid open pitches and intonation cents for all strings before saving.</string>
+    <string name="instrument_config_status_unable_save_verify_pitch">Unable to save. Please verify your pitch inputs.</string>
+    <string name="instrument_config_status_unable_save_verify_intonation">Unable to save. Please verify your intonation inputs.</string>
+    <string name="instrument_config_status_profile_saved">Instrument profile saved.</string>
+    <string name="instrument_config_error_pitch_format">Use format like E3 or F#4.</string>
+    <string name="instrument_config_error_cents_format">Use cents like -13.7 or 0.0.</string>
+
+    <!-- Guided Setup -->
+    <string name="title_guided_setup">Guided Setup Mode</string>
+    <string name="guided_setup_no_steps">No tuning steps available.</string>
+    <string name="guided_setup_step_counter">Step %1$d of %2$d</string>
+    <string name="guided_setup_string_line">String: %1$s (S%2$d)</string>
+    <string name="guided_setup_target_pitch_line">Target pitch: %1$s</string>
+    <string name="guided_setup_intonation_line">Intonation: %1$s cent</string>
+    <string name="guided_setup_lever_line">Lever: %1$s</string>
+    <string name="guided_setup_peg_adjustment_line">Peg adjustment: %1$s semitone(s)</string>
+    <string name="guided_setup_peg_adjustment_none">Peg adjustment: none</string>
+
+    <!-- Traditional Presets -->
+    <string name="title_traditional_presets">Traditional Presets</string>
+    <string name="traditional_presets_intro">Select a traditional tuning preset and load it directly into the active instrument profile.</string>
+    <string name="traditional_presets_workflow_title">Preset Workflow</string>
+    <string name="traditional_presets_workflow_body">Choose string count, select a preset, review open/closed pitches + cents, then load.</string>
+    <string name="traditional_presets_custom_title">Custom Presets</string>
+    <string name="traditional_presets_custom_body">Save your active instrument tuning as your own reusable preset.</string>
+    <string name="traditional_presets_custom_name_label">Preset name</string>
+    <string name="traditional_presets_action_save_custom">Save Custom Preset</string>
+    <string name="traditional_presets_action_delete_selected">Delete Selected</string>
+    <string name="traditional_presets_custom_suffix">%1$s (Custom)</string>
+    <string name="traditional_presets_open_tuning_preview">Open tuning preview: %1$s</string>
+    <string name="traditional_presets_selected">Selected</string>
+    <string name="traditional_presets_action_select_preset">Select Preset</string>
+    <string name="traditional_presets_selected_strings_title">Selected Preset Strings</string>
+    <string name="traditional_presets_selected_string_row">S%1$d | Open %2$s (%3$s c) | Closed %4$s (%5$s c)</string>
+    <string name="traditional_presets_action_load_selected">Load Selected Preset</string>
+    <string name="traditional_presets_default_custom_name">My Preset</string>
+    <string name="traditional_presets_user_preset_description">User preset saved from your instrument tuning.</string>
+    <string name="traditional_presets_status_save_profile_first">Save an instrument profile first, then create a custom preset.</string>
+    <string name="traditional_presets_status_enter_name">Enter a preset name.</string>
+    <string name="traditional_presets_status_saved_custom">Saved custom preset \"%1$s\".</string>
+    <string name="traditional_presets_status_select_custom_to_delete">Select a custom preset to delete.</string>
+    <string name="traditional_presets_status_not_custom_preset">Selected preset is not a custom preset.</string>
+    <string name="traditional_presets_status_deleted_custom">Deleted custom preset \"%1$s\".</string>
+    <string name="traditional_presets_status_select_preset_before_loading">Select a preset before loading.</string>
+    <string name="traditional_presets_status_loaded_preset">Loaded %1$s preset for %2$d strings.</string>
+
+    <!-- Scale profile status -->
+    <string name="scale_profile_status_no_saved">No saved profile found. Using starter %1$d-string profile.</string>
+    <string name="scale_profile_status_using_saved">Using saved %1$d-string profile from Instrument Configuration.</string>
+
+    <!-- Live tuner errors -->
+    <string name="live_tuner_error_mic_permission_required">Microphone permission required.</string>
+    <string name="live_tuner_error_grant_permission_to_start">Grant microphone permission to start tuning.</string>
+    <string name="live_tuner_error_stream_failed">Live tuner stream failed.</string>
+
+    <!-- Chords/metronome -->
+    <string name="chord_quality_major">Major</string>
+    <string name="chord_quality_minor">Minor</string>
+    <string name="chord_quality_diminished">Diminished</string>
+    <string name="chord_quality_half_diminished">Half-Diminished (m7b5)</string>
+    <string name="chord_quality_sus2">Sus2</string>
+    <string name="chord_quality_sus4">Sus4</string>
+    <string name="chord_quality_dominant7">Dominant 7</string>
+    <string name="chord_quality_major7">Major 7</string>
+    <string name="chord_quality_minor7">Minor 7</string>
+
+    <string name="metronome_sound_soft_wood">Soft Wood</string>
+    <string name="metronome_sound_wood_block">Wood Block</string>
+    <string name="metronome_sound_bright_click">Bright Click</string>
+
+    <!-- Instant Overview -->
+    <string name="title_instant_overview">Instant Overview</string>
+    <string name="overview_view_diagram">Diagram</string>
+    <string name="overview_view_table">Table</string>
+    <string name="overview_view_chords">Chords</string>
+    <string name="overview_view_exercise">Exercise</string>
+
+    <string name="overview_action_stop_all_tones">Stop All Tones</string>
+    <string name="overview_action_play_all_strings">Play All Strings</string>
+    <string name="action_reset">Reset</string>
+
+    <string name="overview_diagram_title">Kora Diagram</string>
+    <string name="overview_diagram_zoom_label">Zoom: %1$s%%</string>
+    <string name="overview_diagram_tap_to_hear">Tap a string to hear its tone (double tap to stop).</string>
+    <string name="content_desc_kora_diagram">Kora diagram</string>
+    <string name="content_desc_chord_kora_diagram">Chord kora diagram</string>
+
+    <string name="overview_legend_open_lever">Lever open</string>
+    <string name="overview_legend_closed_lever">Lever closed</string>
+    <string name="overview_legend_peg_retune_required">Peg retune required</string>
+
+    <string name="overview_table_title">Kora Table</string>
+
+    <string name="overview_chords_title">Chords</string>
+    <string name="overview_chords_subtitle">Find playable chord voicings based on your current string tuning.</string>
+    <string name="overview_chords_root_label">Chord root</string>
+    <string name="overview_chords_quality_label">Chord quality</string>
+    <string name="overview_chords_notes_line">Notes: %1$s</string>
+    <string name="overview_chords_positions_label">Chord tones</string>
+    <string name="overview_chords_coverage_complete">Coverage: complete</string>
+    <string name="overview_chords_coverage_missing">Coverage: missing %1$s</string>
+    <string name="overview_chords_strings_to_play_line">Strings to play: %1$d of %2$d</string>
+    <string name="overview_chords_pool_line">Playable strings: %1$d (open %2$d, closed %3$d, detuned %4$d)</string>
+    <string name="overview_chords_playback_label">Playback</string>
+    <string name="overview_chords_playback_block">Block</string>
+    <string name="overview_chords_playback_broken">Broken</string>
+    <string name="overview_chords_playback_spread">Spread</string>
+    <string name="overview_chords_notes_count_chip">%1$d notes</string>
+    <string name="overview_chords_action_sound_chord">Sound Chord</string>
+    <string name="overview_chords_detuned_warning">Detuned strings used. Stable alternative: %1$s</string>
+    <string name="overview_chords_action_use_stable_alternative">Use Stable Alternative</string>
+    <string name="overview_chords_exercise_note">Practice chord changes in the Exercise view.</string>
+    <string name="overview_chords_diagram_label">Chord diagram</string>
+    <string name="overview_chords_diagram_title">Chord Diagram</string>
+    <string name="overview_chords_closest_title">Closest Matches</string>
+    <string name="overview_chords_match_notes_play_line">Notes: %1$s (%2$d strings)</string>
+    <string name="overview_chords_match_includes_detuned">Includes detuned strings</string>
+    <string name="overview_chords_match_no_detuned">No detuned strings</string>
+    <string name="overview_chords_action_use">Use</string>
+
+    <string name="overview_exercise_title">Exercise</string>
+    <string name="overview_exercise_order_note">Circle of fifths practice: follow the highlighted next root.</string>
+    <string name="overview_exercise_start_key_label">Start key</string>
+    <string name="overview_exercise_choice_mode_label">Choice mode</string>
+    <string name="overview_exercise_choice_preset">Preset</string>
+    <string name="overview_exercise_choice_random">Random</string>
+    <string name="overview_exercise_diagram_title">Circle of Fifths</string>
+    <string name="overview_exercise_diagram_legend">Start (open), next (highlight), choices (optional).</string>
+    <string name="overview_exercise_next_step">Next: %1$s %2$s</string>
+    <string name="overview_exercise_action_next_fifth">Next Fifth</string>
+    <string name="overview_exercise_timed_interval_label">Timed interval</string>
+    <string name="overview_exercise_action_start_timed">Start Timed</string>
+    <string name="overview_exercise_action_stop_timed">Stop Timed</string>
+    <string name="overview_exercise_timed_note">Timed mode highlights a suggested next chord at a regular beat interval.</string>
+    <string name="overview_exercise_choice_item">%1$s %2$s</string>
+
+    <string name="overview_metronome_title">Metronome</string>
+    <string name="overview_metronome_bpm_line">BPM: %1$d</string>
+    <string name="overview_metronome_time_signature_label">Time signature</string>
+    <string name="overview_metronome_beats_to_click_label">Beats to click</string>
+    <string name="overview_metronome_sound_label">Click sound</string>
+    <string name="overview_metronome_action_start">Start Metronome</string>
+    <string name="overview_metronome_action_stop">Stop Metronome</string>
+
+    <string name="value_none_found">None found</string>
+    <string name="value_detuned">Detuned</string>
 </resources>
