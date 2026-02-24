@@ -2398,11 +2398,8 @@ private fun ChordPictorialKoraDiagram(
                         }
                     }
             ) {
-                KoraDiagramBackground(
-                    contentDescription = stringResource(R.string.content_desc_chord_kora_diagram),
-                    modifier = Modifier.fillMaxSize()
-                )
                 Canvas(modifier = Modifier.fillMaxSize()) {
+                    drawKoraBody(colors)
                     drawKoraDiagram(
                         leftRows = leftRows,
                         rightRows = rightRows,
