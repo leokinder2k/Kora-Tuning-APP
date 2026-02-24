@@ -271,6 +271,8 @@
 
     <string name="overview_action_stop_all_tones">Stop All Tones</string>
     <string name="overview_action_play_all_strings">Play All Strings</string>
+    <string name="overview_reference_volume_label">Reference tone volume</string>
+    <string name="overview_note_letters_label">Show note letters</string>
     <string name="action_reset">Reset</string>
 
     <string name="overview_diagram_title">Kora Diagram</string>

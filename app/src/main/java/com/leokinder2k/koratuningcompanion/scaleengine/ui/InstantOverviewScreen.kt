@@ -1,12 +1,25 @@
 package com.leokinder2k.koratuningcompanion.scaleengine.ui
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.pdf.PdfRenderer
 import android.os.SystemClock
+import android.os.ParcelFileDescriptor
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,13 +27,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,8 +46,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -47,6 +63,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,15 +71,20 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import android.graphics.Paint
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.PointerInputScope
-import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
+import androidx.compose.ui.input.pointer.consumePositionChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -73,6 +95,7 @@ import androidx.compose.ui.unit.sp
 import com.leokinder2k.koratuningcompanion.R
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
 import com.leokinder2k.koratuningcompanion.livetuner.audio.MetronomeClickPlayer
 import com.leokinder2k.koratuningcompanion.livetuner.audio.MetronomeSoundOption
 import com.leokinder2k.koratuningcompanion.livetuner.audio.PluckedStringPlayer
@@ -88,11 +111,17 @@ import com.leokinder2k.koratuningcompanion.scaleengine.model.StringSide
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraClosedLeverColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraDetunedColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraOpenLeverColor
+import java.io.File
+import java.io.FileOutputStream
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
+import kotlinx.coroutines.withContext
+import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -114,6 +143,11 @@ private enum class ExerciseChoiceMode {
     RANDOM
 }
 
+private val StickyDiagramHeight = 360.dp
+private const val KORA_DIAGRAM_PDF_ASSET_NAME = "Kora_x22.pdf"
+private const val KORA_DIAGRAM_PDF_PAGE_INDEX = 0
+private const val KORA_DIAGRAM_PDF_SCALE = 2
+
 private data class MetronomeTimeSignature(
     val numerator: Int,
     val denominator: Int
@@ -128,7 +162,7 @@ private data class DiagramStringSegment(
 )
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 fun InstantOverviewScreen(
     uiState: ScaleCalculationUiState,
     onRootNoteSelected: (NoteName) -> Unit,
@@ -136,7 +170,11 @@ fun InstantOverviewScreen(
     modifier: Modifier = Modifier
 ) {
     val showLeverInfo = uiState.result.request.instrumentProfile.tuningMode == KoraTuningMode.LEVERED
-    var viewMode by rememberSaveable { mutableStateOf(OverviewViewMode.DIAGRAM) }
+    val pagerState = rememberPagerState(
+        initialPage = OverviewViewMode.entries.indexOf(OverviewViewMode.DIAGRAM),
+        pageCount = { OverviewViewMode.entries.size }
+    )
+    val viewMode = OverviewViewMode.entries.getOrElse(pagerState.currentPage) { OverviewViewMode.DIAGRAM }
     var diagramZoom by rememberSaveable { mutableFloatStateOf(1f) }
     var playingStringNumbers by remember(
         uiState.rootNote,
@@ -167,17 +205,27 @@ fun InstantOverviewScreen(
     var metronomeCurrentBeat by remember { mutableIntStateOf(0) }
     var metronomeTick by remember { mutableLongStateOf(0L) }
     var metronomeEnabledBeats by remember { mutableStateOf(setOf(1, 3)) }
+    var toneVolumeDb by rememberSaveable { mutableFloatStateOf(70f) }
+    var showNoteLabels by rememberSaveable { mutableStateOf(true) }
     var selectedChordToneOffsets by remember(selectedChordQuality) {
         mutableStateOf(selectedChordQuality.tones.map { tone -> tone.semitoneOffset }.toSet())
     }
 
-    val rows = uiState.result.pegCorrectTable
+    val pitchShiftByString = remember { mutableStateMapOf<Int, Int>() }
+    val baseRows = uiState.result.pegCorrectTable
+    val rows = baseRows.map { row ->
+        val shift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
+        if (shift == 0) {
+            row
+        } else {
+            row.copy(selectedPitch = row.selectedPitch.plusSemitones(shift))
+        }
+    }
     val scrollState = rememberScrollState()
     val tonePlayer = remember { PluckedStringPlayer() }
     val metronomePlayer = remember { MetronomeClickPlayer() }
     val coroutineScope = rememberCoroutineScope()
     val playGenerationByString = remember { mutableStateMapOf<Int, Int>() }
-    val lastTapAtByString = remember { mutableStateMapOf<Int, Long>() }
 
     LaunchedEffect(
         uiState.rootNote,
@@ -186,7 +234,6 @@ fun InstantOverviewScreen(
     ) {
         playingStringNumbers = emptySet()
         playGenerationByString.clear()
-        lastTapAtByString.clear()
     }
     LaunchedEffect(metronomeTimeSignature) {
         val trimmed = metronomeEnabledBeats
@@ -233,6 +280,10 @@ fun InstantOverviewScreen(
             }
             delay(stepDelayMs)
         }
+    }
+
+    LaunchedEffect(toneVolumeDb) {
+        tonePlayer.setVolumeDb(toneVolumeDb.toDouble())
     }
 
     DisposableEffect(Unit) {
@@ -288,11 +339,14 @@ fun InstantOverviewScreen(
         )
     }
 
-    val playStringPluck: (PegCorrectStringResult) -> Unit = { row ->
-        val stringNumber = row.stringNumber
+    fun playString(
+        stringNumber: Int,
+        pitch: Pitch,
+        centsOffset: Double
+    ) {
         val frequency = TunerTargetMatcher.pitchToFrequencyHz(
-            pitch = row.selectedPitch,
-            centsOffset = row.selectedIntonationCents
+            pitch = pitch,
+            centsOffset = centsOffset
         )
         tonePlayer.play(
             stringNumber = stringNumber,
@@ -309,17 +363,70 @@ fun InstantOverviewScreen(
             }
         }
     }
+
+    fun playRow(row: PegCorrectStringResult) {
+        playString(
+            stringNumber = row.stringNumber,
+            pitch = row.selectedPitch,
+            centsOffset = row.selectedIntonationCents
+        )
+    }
+
+    fun stopRow(row: PegCorrectStringResult) {
+        tonePlayer.stop(row.stringNumber)
+        playingStringNumbers = playingStringNumbers - row.stringNumber
+        playGenerationByString.remove(row.stringNumber)
+    }
+    val toggleRow: (PegCorrectStringResult) -> Unit = { row ->
+        if (row.stringNumber in playingStringNumbers) {
+            stopRow(row)
+        } else {
+            playRow(row)
+        }
+    }
+    val sharpenRow: (PegCorrectStringResult) -> Unit = { row ->
+        val stringNumber = row.stringNumber
+        val currentShift = (pitchShiftByString[stringNumber] ?: 0).coerceIn(-1, 1)
+        val nextShift = if (currentShift == 1) 0 else 1
+        if (nextShift == 0) {
+            pitchShiftByString.remove(stringNumber)
+        } else {
+            pitchShiftByString[stringNumber] = nextShift
+        }
+        val basePitch = row.selectedPitch.plusSemitones(-currentShift)
+        playString(
+            stringNumber = stringNumber,
+            pitch = basePitch.plusSemitones(nextShift),
+            centsOffset = row.selectedIntonationCents
+        )
+    }
+    val flattenRow: (PegCorrectStringResult) -> Unit = { row ->
+        val stringNumber = row.stringNumber
+        val currentShift = (pitchShiftByString[stringNumber] ?: 0).coerceIn(-1, 1)
+        val nextShift = if (currentShift == -1) 0 else -1
+        if (nextShift == 0) {
+            pitchShiftByString.remove(stringNumber)
+        } else {
+            pitchShiftByString[stringNumber] = nextShift
+        }
+        val basePitch = row.selectedPitch.plusSemitones(-currentShift)
+        playString(
+            stringNumber = stringNumber,
+            pitch = basePitch.plusSemitones(nextShift),
+            centsOffset = row.selectedIntonationCents
+        )
+    }
     val playChord: (List<PegCorrectStringResult>, ChordPlaybackMode) -> Unit = { chordRows, mode ->
         val limitedRows = chordRows.take(4)
         when (mode) {
             ChordPlaybackMode.BLOCK -> {
-                limitedRows.forEach { row -> playStringPluck(row) }
+                limitedRows.forEach { row -> playRow(row) }
             }
 
             ChordPlaybackMode.BROKEN -> {
                 coroutineScope.launch {
                     limitedRows.forEachIndexed { index, row ->
-                        playStringPluck(row)
+                        playRow(row)
                         if (index != limitedRows.lastIndex) {
                             delay(BROKEN_CHORD_STEP_MS)
                         }
@@ -331,7 +438,7 @@ fun InstantOverviewScreen(
                 val spreadRows = spreadOrder(limitedRows)
                 coroutineScope.launch {
                     spreadRows.forEachIndexed { index, row ->
-                        playStringPluck(row)
+                        playRow(row)
                         if (index != spreadRows.lastIndex) {
                             delay(SPREAD_CHORD_STEP_MS)
                         }
@@ -344,7 +451,6 @@ fun InstantOverviewScreen(
         tonePlayer.stopAll()
         playingStringNumbers = emptySet()
         playGenerationByString.clear()
-        lastTapAtByString.clear()
     }
     val runCircleExerciseStep: () -> Unit = {
         val startIndex = circleOfFifthsIndexFor(circleExerciseStartRoot)
@@ -448,25 +554,7 @@ fun InstantOverviewScreen(
         .coerceAtLeast(0L)
         .toInt()
 
-    val onStringTouched: (PegCorrectStringResult) -> Unit = { row ->
-        val stringNumber = row.stringNumber
-        val nowMs = SystemClock.elapsedRealtime()
-        val previousTapMs = lastTapAtByString[stringNumber]
-
-        val shouldStop = previousTapMs != null &&
-            (nowMs - previousTapMs) <= DOUBLE_TAP_STOP_WINDOW_MS &&
-            stringNumber in playingStringNumbers
-
-        if (shouldStop) {
-            tonePlayer.stop(stringNumber)
-            playingStringNumbers = playingStringNumbers - stringNumber
-            playGenerationByString.remove(stringNumber)
-            lastTapAtByString.remove(stringNumber)
-        } else {
-            lastTapAtByString[stringNumber] = nowMs
-            playStringPluck(row)
-        }
-    }
+    val onStringTouched: (PegCorrectStringResult) -> Unit = toggleRow
     val isScreenScrollEnabled = !(viewMode == OverviewViewMode.DIAGRAM && diagramZoom > 1f)
 
     Scaffold(
@@ -493,6 +581,51 @@ fun InstantOverviewScreen(
                 style = MaterialTheme.typography.bodyMedium
             )
 
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.overview_reference_volume_label),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text(
+                            text = "${toneVolumeDb.roundToInt()} dB",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Slider(
+                        value = toneVolumeDb,
+                        onValueChange = { toneVolumeDb = it },
+                        valueRange = 30f..100f
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.overview_note_letters_label),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Switch(
+                            checked = showNoteLabels,
+                            onCheckedChange = { showNoteLabels = it }
+                        )
+                    }
+                }
+            }
+
             OverviewSelectionControls(
                 rootNote = uiState.rootNote,
                 scaleType = uiState.scaleType,
@@ -503,22 +636,38 @@ fun InstantOverviewScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = viewMode == OverviewViewMode.DIAGRAM,
-                    onClick = { viewMode = OverviewViewMode.DIAGRAM },
+                    onClick = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(OverviewViewMode.entries.indexOf(OverviewViewMode.DIAGRAM))
+                        }
+                    },
                     label = { Text(stringResource(R.string.overview_view_diagram)) }
                 )
                 FilterChip(
                     selected = viewMode == OverviewViewMode.TABLE,
-                    onClick = { viewMode = OverviewViewMode.TABLE },
+                    onClick = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(OverviewViewMode.entries.indexOf(OverviewViewMode.TABLE))
+                        }
+                    },
                     label = { Text(stringResource(R.string.overview_view_table)) }
                 )
                 FilterChip(
                     selected = viewMode == OverviewViewMode.CHORDS,
-                    onClick = { viewMode = OverviewViewMode.CHORDS },
+                    onClick = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(OverviewViewMode.entries.indexOf(OverviewViewMode.CHORDS))
+                        }
+                    },
                     label = { Text(stringResource(R.string.overview_view_chords)) }
                 )
                 FilterChip(
                     selected = viewMode == OverviewViewMode.EXERCISE,
-                    onClick = { viewMode = OverviewViewMode.EXERCISE },
+                    onClick = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(OverviewViewMode.entries.indexOf(OverviewViewMode.EXERCISE))
+                        }
+                    },
                     label = { Text(stringResource(R.string.overview_view_exercise)) }
                 )
             }
@@ -544,27 +693,38 @@ fun InstantOverviewScreen(
             }
             }
 
-            when (viewMode) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxWidth(),
+                userScrollEnabled = false
+            ) { page ->
+                when (OverviewViewMode.entries[page]) {
                 OverviewViewMode.DIAGRAM -> DiagramOverview(
                     rows = rows,
+                    pitchShiftByString = pitchShiftByString,
                     playingStringNumbers = playingStringNumbers,
-                    onStringTouched = onStringTouched,
+                    onStringTouched = toggleRow,
+                    onStringSharpened = sharpenRow,
+                    onStringFlattened = flattenRow,
                     onPlayAllStrings = {
-                        rows.forEach { row -> playStringPluck(row) }
+                        rows.forEach { row -> playRow(row) }
                     },
                     onStopAllStrings = stopAllPlayback,
                     showLeverInfo = showLeverInfo,
                     diagramZoom = diagramZoom,
-                    onDiagramZoomChanged = { value -> diagramZoom = value }
+                    onDiagramZoomChanged = { value -> diagramZoom = value },
+                    showNoteLetters = showNoteLabels
                 )
                 OverviewViewMode.TABLE -> TableOverview(
                     rows = rows,
+                    pitchShiftByString = pitchShiftByString,
                     playingStringNumbers = playingStringNumbers,
                     onStringTouched = onStringTouched,
                     showLeverInfo = showLeverInfo
                 )
                 OverviewViewMode.CHORDS -> ChordOverview(
                     rows = rows,
+                    pitchShiftByString = pitchShiftByString,
                     selectedRoot = selectedChordRoot,
                     onRootSelected = { note -> selectedChordRoot = note },
                     selectedQuality = selectedChordQuality,
@@ -708,6 +868,7 @@ fun InstantOverviewScreen(
                     onMetronomeRunningChanged = { running -> isMetronomeRunning = running },
                     metronomeCurrentBeat = metronomeCurrentBeat
                 )
+                }
             }
         }
     }
@@ -749,13 +910,17 @@ private fun OverviewSelectionControls(
 @Composable
 private fun DiagramOverview(
     rows: List<PegCorrectStringResult>,
+    pitchShiftByString: Map<Int, Int>,
     playingStringNumbers: Set<Int>,
     onStringTouched: (PegCorrectStringResult) -> Unit,
+    onStringSharpened: (PegCorrectStringResult) -> Unit,
+    onStringFlattened: (PegCorrectStringResult) -> Unit,
     onPlayAllStrings: () -> Unit,
     onStopAllStrings: () -> Unit,
     showLeverInfo: Boolean,
     diagramZoom: Float,
-    onDiagramZoomChanged: (Float) -> Unit
+    onDiagramZoomChanged: (Float) -> Unit,
+    showNoteLetters: Boolean
 ) {
     val left = rows
         .filter { row -> row.role.side == StringSide.LEFT }
@@ -767,6 +932,18 @@ private fun DiagramOverview(
     val density = LocalDensity.current
     val maxTapDistancePx = with(density) { 20.dp.toPx() }
     var diagramSize by remember { mutableStateOf(IntSize.Zero) }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "string_vibration")
+    val rawVibrationPhase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2.0 * PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 280, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "vibration_phase"
+    )
+    val vibrationPhase = if (playingStringNumbers.isNotEmpty()) rawVibrationPhase else 0f
 
     Box(modifier = Modifier.fillMaxWidth()) {
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -826,35 +1003,44 @@ private fun DiagramOverview(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(0.86f)
+                        .height(StickyDiagramHeight)
                         .clipToBounds()
                         .onSizeChanged { size -> diagramSize = size }
                         .pointerInput(left, right, diagramZoom, diagramSize) {
-                            detectMultiTouchStringPresses(
-                                resolveHitRow = { tapOffset ->
-                                    if (diagramSize.width == 0 || diagramSize.height == 0) {
-                                        return@detectMultiTouchStringPresses null
-                                    }
-                                    val size = Size(
-                                        width = diagramSize.width.toFloat(),
-                                        height = diagramSize.height.toFloat()
-                                    )
-                                    val unscaledTap = unscaleTapOffset(
+                            detectTapGestures(
+                                onTap = { tapOffset ->
+                                    val hit = resolveDiagramHit(
                                         tapOffset = tapOffset,
-                                        size = size,
-                                        zoom = diagramZoom
-                                    )
-                                    findTappedString(
-                                        tapOffset = unscaledTap,
-                                        segments = buildDiagramStringSegments(
-                                            leftRows = left,
-                                            rightRows = right,
-                                            size = size
-                                        ),
+                                        diagramSize = diagramSize,
+                                        zoom = diagramZoom,
+                                        leftRows = left,
+                                        rightRows = right,
                                         maxDistancePx = maxTapDistancePx
                                     )
+                                    hit?.let(onStringTouched)
                                 },
-                                onStringTouched = onStringTouched
+                                onDoubleTap = { tapOffset ->
+                                    val hit = resolveDiagramHit(
+                                        tapOffset = tapOffset,
+                                        diagramSize = diagramSize,
+                                        zoom = diagramZoom,
+                                        leftRows = left,
+                                        rightRows = right,
+                                        maxDistancePx = maxTapDistancePx
+                                    )
+                                    hit?.let(onStringSharpened)
+                                },
+                                onLongPress = { tapOffset ->
+                                    val hit = resolveDiagramHit(
+                                        tapOffset = tapOffset,
+                                        diagramSize = diagramSize,
+                                        zoom = diagramZoom,
+                                        leftRows = left,
+                                        rightRows = right,
+                                        maxDistancePx = maxTapDistancePx
+                                    )
+                                    hit?.let(onStringFlattened)
+                                }
                             )
                         }
                 ) {
@@ -866,30 +1052,32 @@ private fun DiagramOverview(
                                 scaleY = diagramZoom
                             )
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_kora_diagram_base),
-                            contentDescription = stringResource(R.string.content_desc_kora_diagram),
-                            modifier = Modifier.fillMaxSize()
-                        )
                         Canvas(modifier = Modifier.fillMaxSize()) {
+                            drawKoraBody(colors)
                             drawKoraDiagram(
                                 leftRows = left,
                                 rightRows = right,
                                 colors = colors,
                                 activeStringNumbers = playingStringNumbers,
-                                showLeverInfo = showLeverInfo
+                                showLeverInfo = showLeverInfo,
+                                noteLabelsVisible = showNoteLetters,
+                                pitchShiftByString = pitchShiftByString,
+                                vibrationPhase = vibrationPhase
                             )
                         }
                     }
                 }
 
                 DiagramLegend(showLeverInfo = showLeverInfo)
-                TouchStringRows(
-                    leftRows = left,
-                    rightRows = right,
-                    playingStringNumbers = playingStringNumbers,
-                    onStringTouched = onStringTouched
-                )
+            TouchStringRows(
+                leftRows = left,
+                rightRows = right,
+                pitchShiftByString = pitchShiftByString,
+                playingStringNumbers = playingStringNumbers,
+                onStringTouched = onStringTouched,
+                onStringSharpened = onStringSharpened,
+                onStringFlattened = onStringFlattened
+            )
             }
         }
         if (playingStringNumbers.isNotEmpty()) {
@@ -905,12 +1093,82 @@ private fun DiagramOverview(
     }
 }
 
+private fun DrawScope.drawKoraBody(colors: ColorScheme) {
+    val w = size.width; val h = size.height
+    val bg0 = colors.background
+    val isDark = (bg0.red * 0.299f + bg0.green * 0.587f + bg0.blue * 0.114f) < 0.5f
+
+    val bg        = if (isDark) Color(0xFF0F0A05) else Color(0xFFF5F0E8)
+    val woodDark  = Color(0xFF3B2010)
+    val woodMid   = Color(0xFF6B4520)
+    val woodLight = Color(0xFF9B6840)
+    val skinIvory = Color(0xFFF2E8D0)
+    val accentRed = Color(0xFFB71C1C)
+
+    val nCX = w * 0.500f;  val nHW = w * 0.052f
+    val nL  = nCX - nHW;  val nR  = nCX + nHW
+    val nSD = w * 0.018f
+    val nBY = h * 0.560f
+
+    val gX = w * 0.500f;  val gY = h * 0.730f
+    val gRX = w * 0.400f; val gRY = h * 0.245f
+
+    val bY = h * 0.560f; val bH = h * 0.022f
+    val bL = w * 0.040f; val bR = w * 0.960f
+
+    val aLX = w * 0.212f; val aRX = w * 0.788f
+    val aY  = h * 0.669f; val aTY = h * 0.774f
+    val aThick = w * 0.024f
+
+    // 0 – background
+    drawRect(color = bg)
+
+    // 1 – side arms (behind gourd)
+    for ((ax, tipX) in listOf(aLX to 0f, aRX to w)) {
+        drawLine(woodDark,  Offset(ax, aY), Offset(tipX, aTY), aThick,        StrokeCap.Round)
+        drawLine(woodLight, Offset(ax, aY), Offset(tipX, aTY), aThick * 0.38f, StrokeCap.Round)
+    }
+
+    // 2 – neck (right-side depth face + front face + highlight + grain + cap)
+    drawRect(woodDark,  topLeft = Offset(nR, 0f),   size = Size(nSD,      nBY))
+    drawRect(woodMid,   topLeft = Offset(nL, 0f),   size = Size(nHW*2f,   nBY))
+    drawRect(woodLight.copy(alpha=0.42f),
+             topLeft = Offset(nCX - nHW*0.28f, 0f), size = Size(nHW*0.56f, nBY))
+    repeat(7) { i ->
+        val y = nBY * ((i + 1) / 8f)
+        drawLine(woodDark.copy(alpha=0.15f), Offset(nL+1f, y), Offset(nR, y), 1f)
+    }
+    drawRect(woodDark, topLeft = Offset(nL-2f, 0f), size = Size(nHW*2f+nSD+2f, h*0.015f))
+
+    // 3 – gourd shadow
+    drawOval(Color.Black.copy(alpha=0.20f),
+             topLeft = Offset(gX-gRX+5f, gY-gRY+9f), size = Size(gRX*2f, gRY*2f))
+    // gourd rim
+    drawOval(woodMid,  topLeft = Offset(gX-gRX, gY-gRY),            size = Size(gRX*2f, gRY*2f))
+    // skin
+    val sp = w * 0.018f
+    drawOval(skinIvory, topLeft = Offset(gX-gRX+sp, gY-gRY+sp),     size = Size((gRX-sp)*2f, (gRY-sp)*2f))
+    // highlight
+    drawOval(Color.White.copy(alpha=0.09f),
+             topLeft = Offset(gX-gRX*0.68f, gY-gRY*0.68f),          size = Size(gRX*1.28f, gRY*1.10f))
+
+    // 4 – bridge
+    drawRect(Color.Black.copy(alpha=0.25f), topLeft=Offset(bL, bY+bH), size=Size(bR-bL, h*0.007f))
+    drawRect(woodDark,   topLeft = Offset(bL, bY),                    size = Size(bR-bL, bH))
+    // red accent on bridge centre
+    drawRect(accentRed,  topLeft = Offset(nL - w*0.10f, bY + bH*0.1f),
+                         size    = Size(nHW*2f + w*0.20f, bH*0.80f))
+}
+
 private fun DrawScope.drawKoraDiagram(
     leftRows: List<PegCorrectStringResult>,
     rightRows: List<PegCorrectStringResult>,
     colors: ColorScheme,
     activeStringNumbers: Set<Int>,
-    showLeverInfo: Boolean
+    showLeverInfo: Boolean,
+    noteLabelsVisible: Boolean,
+    pitchShiftByString: Map<Int, Int>,
+    vibrationPhase: Float = 0f
 ) {
     val bridgeCenterY = size.height * 0.56f
     val bridgeTop = bridgeCenterY - (size.height * 0.17f)
@@ -923,7 +1181,10 @@ private fun DrawScope.drawKoraDiagram(
         bridgeBottom = bridgeBottom,
         colors = colors,
         activeStringNumbers = activeStringNumbers,
-        showLeverInfo = showLeverInfo
+        showLeverInfo = showLeverInfo,
+        noteLabelsVisible = noteLabelsVisible,
+        pitchShiftByString = pitchShiftByString,
+        vibrationPhase = vibrationPhase
     )
     drawStringSet(
         rows = rightRows,
@@ -932,7 +1193,10 @@ private fun DrawScope.drawKoraDiagram(
         bridgeBottom = bridgeBottom,
         colors = colors,
         activeStringNumbers = activeStringNumbers,
-        showLeverInfo = showLeverInfo
+        showLeverInfo = showLeverInfo,
+        noteLabelsVisible = noteLabelsVisible,
+        pitchShiftByString = pitchShiftByString,
+        vibrationPhase = vibrationPhase
     )
 }
 
@@ -943,23 +1207,31 @@ private fun DrawScope.drawStringSet(
     bridgeBottom: Float,
     colors: ColorScheme,
     activeStringNumbers: Set<Int>,
-    showLeverInfo: Boolean
+    showLeverInfo: Boolean,
+    noteLabelsVisible: Boolean,
+    pitchShiftByString: Map<Int, Int>,
+    vibrationPhase: Float = 0f
 ) {
     if (rows.isEmpty()) {
         return
     }
 
     val width = size.width
-    val topY = size.height * 0.1f
-    val bottomY = size.height * 0.9f
-    val pegX = if (isLeft) width * 0.11f else width * 0.89f
-    val bridgeX = if (isLeft) width * 0.485f else width * 0.515f
+    val pegTopY    = size.height * 0.06f          // treble pegs — near top of neck
+    val pegBottomY = size.height * 0.28f          // bass pegs   — lower on neck
+    val pegX = if (isLeft) width * 0.42f else width * 0.58f   // left/right neck edge
+
+    // Bridge is a horizontal bar; X fans from edge (bass) to center (treble)
+    val bridgeBassX   = if (isLeft) width * 0.08f else width * 0.92f
+    val bridgeTrebleX = if (isLeft) width * 0.42f else width * 0.58f
+    val bridgeY = (bridgeTop + bridgeBottom) / 2f              // constant — bridge is horizontal
     val maxIndex = rows.lastIndex.coerceAtLeast(1)
 
     rows.forEachIndexed { index, row ->
         val ratio = index.toFloat() / maxIndex.toFloat()
-        val pegY = lerp(start = bottomY, stop = topY, fraction = ratio)
-        val bridgeY = lerp(start = bridgeBottom, stop = bridgeTop, fraction = ratio)
+        // Bass strings (ratio=0) at bottom, high strings (ratio=1) at top — no crossing
+        val pegY    = lerp(start = pegBottomY, stop = pegTopY,    fraction = ratio)
+        val bridgeX = lerp(start = bridgeBassX, stop = bridgeTrebleX, fraction = ratio)
         val leverColor = if (showLeverInfo) {
             when (row.selectedLeverState) {
                 LeverState.OPEN -> KoraOpenLeverColor
@@ -974,16 +1246,50 @@ private fun DrawScope.drawStringSet(
         } else {
             width * 0.004f
         }
-        val strokeWidth = if (isActive) baseStrokeWidth * 1.8f else baseStrokeWidth
+        // Add a mild "depth" effect: bass strings are a bit thicker than high strings.
+        val depthThickness = (1.25f - (0.45f * ratio)).coerceIn(0.75f, 1.25f)
+        val strokeWidth = (if (isActive) baseStrokeWidth * 1.8f else baseStrokeWidth) * depthThickness
         val stringColor = if (isActive) colors.primary else leverColor
 
-        drawLine(
-            color = stringColor,
-            start = Offset(pegX, pegY),
-            end = Offset(bridgeX, bridgeY),
-            strokeWidth = strokeWidth,
-            cap = StrokeCap.Round
-        )
+        val midX = (pegX + bridgeX) * 0.5f
+        val midY = (pegY + bridgeY) * 0.5f
+        // Gentle outward bow: control point nudged away from neck center
+        val staticBendX = if (isLeft) -width * 0.025f else width * 0.025f
+
+        if (isActive && vibrationPhase != 0f) {
+            // Animate active strings with a sinusoidal bezier curve (plucked vibration)
+            val dx = bridgeX - pegX
+            val dy = bridgeY - pegY
+            val len = sqrt(dx * dx + dy * dy).coerceAtLeast(1f)
+            val perpX = -dy / len
+            val perpY = dx / len
+            // Bass strings vibrate with more amplitude than high strings
+            val amplitude = width * 0.009f * (1.25f - ratio * 0.5f)
+            val offset = sin(vibrationPhase + ratio * PI.toFloat()) * amplitude
+            val path = Path().apply {
+                moveTo(pegX, pegY)
+                quadraticTo(
+                    midX + staticBendX + perpX * offset,
+                    midY + perpY * offset,
+                    bridgeX,
+                    bridgeY
+                )
+            }
+            drawPath(
+                path = path,
+                color = stringColor,
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
+        } else {
+            drawPath(
+                path = Path().apply {
+                    moveTo(pegX, pegY)
+                    quadraticTo(midX + staticBendX, midY, bridgeX, bridgeY)
+                },
+                color = stringColor,
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
+        }
 
         drawCircle(
             color = if (row.pegRetuneRequired) KoraDetunedColor else colors.outline,
@@ -996,6 +1302,30 @@ private fun DrawScope.drawStringSet(
             radius = if (isActive) width * 0.0082f else width * 0.006f,
             center = Offset(bridgeX, bridgeY)
         )
+        if (noteLabelsVisible) {
+            val semitoneShift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
+            val labelPaint = Paint().apply {
+                color = colors.onBackground.toArgb()
+                textAlign = if (isLeft) Paint.Align.RIGHT else Paint.Align.LEFT
+                textSize = width * 0.024f
+                isAntiAlias = true
+            }
+            val labelX = if (isLeft) {
+                pegX - (width * 0.045f)
+            } else {
+                pegX + (width * 0.045f)
+            }
+            drawContext.canvas.nativeCanvas.drawText(
+                displayPitchLabel(
+                    effectivePitch = row.selectedPitch,
+                    semitoneShift = semitoneShift,
+                    includeOctave = false
+                ),
+                labelX,
+                pegY + (width * 0.010f),
+                labelPaint
+            )
+        }
     }
 }
 
@@ -1034,16 +1364,21 @@ private fun buildSideStringSegments(
         return emptyList()
     }
 
-    val topY = size.height * 0.1f
-    val bottomY = size.height * 0.9f
-    val pegX = if (isLeft) size.width * 0.11f else size.width * 0.89f
-    val bridgeX = if (isLeft) size.width * 0.485f else size.width * 0.515f
+    val width      = size.width
+    val pegTopY    = size.height * 0.06f
+    val pegBottomY = size.height * 0.28f
+    val pegX = if (isLeft) width * 0.42f else width * 0.58f
+
+    val bridgeBassX   = if (isLeft) width * 0.08f else width * 0.92f
+    val bridgeTrebleX = if (isLeft) width * 0.42f else width * 0.58f
+    val bridgeY = (bridgeTop + bridgeBottom) / 2f
     val maxIndex = rows.lastIndex.coerceAtLeast(1)
 
     return rows.mapIndexed { index, row ->
-        val ratio = index.toFloat() / maxIndex.toFloat()
-        val pegY = lerp(start = bottomY, stop = topY, fraction = ratio)
-        val bridgeY = lerp(start = bridgeBottom, stop = bridgeTop, fraction = ratio)
+        val ratio   = index.toFloat() / maxIndex.toFloat()
+        // Match drawStringSet: bass (ratio=0) at bottom, high (ratio=1) at top
+        val pegY    = lerp(start = pegBottomY, stop = pegTopY,    fraction = ratio)
+        val bridgeX = lerp(start = bridgeBassX, stop = bridgeTrebleX, fraction = ratio)
         DiagramStringSegment(
             row = row,
             peg = Offset(x = pegX, y = pegY),
@@ -1073,21 +1408,35 @@ private fun findTappedString(
     return if (distance <= maxDistancePx) nearest.row else null
 }
 
-private suspend fun PointerInputScope.detectMultiTouchStringPresses(
-    resolveHitRow: (Offset) -> PegCorrectStringResult?,
-    onStringTouched: (PegCorrectStringResult) -> Unit
-) {
-    awaitEachGesture {
-        do {
-            val event = awaitPointerEvent()
-            event.changes.forEach { change ->
-                if (change.changedToDownIgnoreConsumed()) {
-                    resolveHitRow(change.position)?.let(onStringTouched)
-                    change.consume()
-                }
-            }
-        } while (event.changes.any { change -> change.pressed })
+private fun resolveDiagramHit(
+    tapOffset: Offset,
+    diagramSize: IntSize,
+    zoom: Float,
+    leftRows: List<PegCorrectStringResult>,
+    rightRows: List<PegCorrectStringResult>,
+    maxDistancePx: Float
+): PegCorrectStringResult? {
+    if (diagramSize.width == 0 || diagramSize.height == 0) {
+        return null
     }
+    val size = Size(
+        width = diagramSize.width.toFloat(),
+        height = diagramSize.height.toFloat()
+    )
+    val unscaledTap = unscaleTapOffset(
+        tapOffset = tapOffset,
+        size = size,
+        zoom = zoom
+    )
+    return findTappedString(
+        tapOffset = unscaledTap,
+        segments = buildDiagramStringSegments(
+            leftRows = leftRows,
+            rightRows = rightRows,
+            size = size
+        ),
+        maxDistancePx = maxDistancePx
+    )
 }
 
 private suspend fun PointerInputScope.consumeAllTouches() {
@@ -1142,6 +1491,62 @@ private fun unscaleTapOffset(
     )
 }
 
+@Composable
+private fun KoraDiagramBackground(
+    contentDescription: String,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val pdfBitmap by produceState<Bitmap?>(initialValue = null, context) {
+        value = withContext(Dispatchers.IO) {
+            runCatching { renderKoraDiagramPdfBitmap(context) }
+                .getOrNull()
+        }
+    }
+
+    if (pdfBitmap != null) {
+        Image(
+            bitmap = pdfBitmap!!.asImageBitmap(),
+            contentDescription = contentDescription,
+            modifier = modifier
+        )
+    } else {
+        Image(
+            painter = painterResource(id = R.drawable.ic_kora_diagram_base),
+            contentDescription = contentDescription,
+            modifier = modifier
+        )
+    }
+}
+
+private fun renderKoraDiagramPdfBitmap(context: Context): Bitmap {
+    val cachedPdfFile = File(context.cacheDir, KORA_DIAGRAM_PDF_ASSET_NAME)
+    if (!cachedPdfFile.exists() || cachedPdfFile.length() <= 0L) {
+        context.assets.open(KORA_DIAGRAM_PDF_ASSET_NAME).use { input ->
+            FileOutputStream(cachedPdfFile, false).use { output ->
+                input.copyTo(output)
+            }
+        }
+    }
+
+    return ParcelFileDescriptor.open(cachedPdfFile, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
+        PdfRenderer(descriptor).use { renderer ->
+            require(renderer.pageCount > KORA_DIAGRAM_PDF_PAGE_INDEX) {
+                "Kora diagram PDF has no page index $KORA_DIAGRAM_PDF_PAGE_INDEX"
+            }
+            renderer.openPage(KORA_DIAGRAM_PDF_PAGE_INDEX).use { page ->
+                val bitmap = Bitmap.createBitmap(
+                    (page.width * KORA_DIAGRAM_PDF_SCALE).coerceAtLeast(1),
+                    (page.height * KORA_DIAGRAM_PDF_SCALE).coerceAtLeast(1),
+                    Bitmap.Config.ARGB_8888
+                )
+                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                bitmap
+            }
+        }
+    }
+}
+
 private fun lerp(start: Float, stop: Float, fraction: Float): Float {
     return start + (stop - start) * fraction
 }
@@ -1170,8 +1575,11 @@ private fun DiagramLegend(showLeverInfo: Boolean) {
 private fun TouchStringRows(
     leftRows: List<PegCorrectStringResult>,
     rightRows: List<PegCorrectStringResult>,
+    pitchShiftByString: Map<Int, Int>,
     playingStringNumbers: Set<Int>,
-    onStringTouched: (PegCorrectStringResult) -> Unit
+    onStringTouched: (PegCorrectStringResult) -> Unit,
+    onStringSharpened: (PegCorrectStringResult) -> Unit,
+    onStringFlattened: (PegCorrectStringResult) -> Unit
 ) {
     Text(
         text = stringResource(R.string.overview_diagram_tap_to_hear),
@@ -1183,10 +1591,19 @@ private fun TouchStringRows(
     )
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(items = leftRows, key = { row -> row.stringNumber }) { row ->
-            FilterChip(
-                selected = row.stringNumber in playingStringNumbers,
+            val semitoneShift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
+            PitchActionChip(
+                isActive = row.stringNumber in playingStringNumbers,
+                text = "${row.role.asLabel()} ${
+                    displayPitchLabel(
+                        effectivePitch = row.selectedPitch,
+                        semitoneShift = semitoneShift,
+                        includeOctave = false
+                    )
+                }",
                 onClick = { onStringTouched(row) },
-                label = { Text("${row.role.asLabel()} ${row.selectedPitch.asText()}") }
+                onDoubleClick = { onStringSharpened(row) },
+                onLongPress = { onStringFlattened(row) }
             )
         }
     }
@@ -1196,18 +1613,56 @@ private fun TouchStringRows(
     )
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(items = rightRows, key = { row -> row.stringNumber }) { row ->
-            FilterChip(
-                selected = row.stringNumber in playingStringNumbers,
+            val semitoneShift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
+            PitchActionChip(
+                isActive = row.stringNumber in playingStringNumbers,
+                text = "${row.role.asLabel()} ${
+                    displayPitchLabel(
+                        effectivePitch = row.selectedPitch,
+                        semitoneShift = semitoneShift,
+                        includeOctave = false
+                    )
+                }",
                 onClick = { onStringTouched(row) },
-                label = { Text("${row.role.asLabel()} ${row.selectedPitch.asText()}") }
+                onDoubleClick = { onStringSharpened(row) },
+                onLongPress = { onStringFlattened(row) }
             )
         }
     }
 }
 
 @Composable
+private fun PitchActionChip(
+    isActive: Boolean,
+    text: String,
+    onClick: () -> Unit,
+    onDoubleClick: () -> Unit,
+    onLongPress: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    Card(
+        modifier = Modifier.combinedClickable(
+            onClick = onClick,
+            onDoubleClick = onDoubleClick,
+            onLongClick = onLongPress
+        ),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isActive) colors.secondaryContainer else colors.surface
+        ),
+        border = BorderStroke(1.dp, if (isActive) colors.primary else colors.outlineVariant)
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+    }
+}
+
+@Composable
 private fun ChordOverview(
     rows: List<PegCorrectStringResult>,
+    pitchShiftByString: Map<Int, Int>,
     selectedRoot: NoteName,
     onRootSelected: (NoteName) -> Unit,
     selectedQuality: ChordQuality,
@@ -1450,6 +1905,7 @@ private fun ChordOverview(
                     if (leftRow != null) {
                         ChordSideCell(
                             row = leftRow,
+                            pitchShiftByString = pitchShiftByString,
                             shouldPlay = leftRow.stringNumber in selectedChordStringNumbers,
                             isSounding = leftRow.stringNumber in playingStringNumbers,
                             onStringTouched = onStringTouched,
@@ -1463,6 +1919,7 @@ private fun ChordOverview(
                     if (rightRow != null) {
                         ChordSideCell(
                             row = rightRow,
+                            pitchShiftByString = pitchShiftByString,
                             shouldPlay = rightRow.stringNumber in selectedChordStringNumbers,
                             isSounding = rightRow.stringNumber in playingStringNumbers,
                             onStringTouched = onStringTouched,
@@ -1925,35 +2382,23 @@ private fun ChordPictorialKoraDiagram(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(0.86f)
+                    .height(StickyDiagramHeight)
                     .clipToBounds()
                     .onSizeChanged { size -> diagramSize = size }
                     .pointerInput(leftRows, rightRows, diagramSize) {
-                        detectMultiTouchStringPresses(
-                            resolveHitRow = { tapOffset ->
-                                if (diagramSize.width == 0 || diagramSize.height == 0) {
-                                    return@detectMultiTouchStringPresses null
-                                }
-                                val size = Size(
-                                    width = diagramSize.width.toFloat(),
-                                    height = diagramSize.height.toFloat()
-                                )
-                                findTappedString(
-                                    tapOffset = tapOffset,
-                                    segments = buildDiagramStringSegments(
-                                        leftRows = leftRows,
-                                        rightRows = rightRows,
-                                        size = size
-                                    ),
-                                    maxDistancePx = maxTapDistancePx
-                                )
-                            },
-                            onStringTouched = onStringTouched
-                        )
+                        detectTapGestures { tapOffset ->
+                            resolveDiagramHit(
+                                tapOffset = tapOffset,
+                                diagramSize = diagramSize,
+                                zoom = 1f,
+                                leftRows = leftRows,
+                                rightRows = rightRows,
+                                maxDistancePx = maxTapDistancePx
+                            )?.let(onStringTouched)
+                        }
                     }
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_kora_diagram_base),
+                KoraDiagramBackground(
                     contentDescription = stringResource(R.string.content_desc_chord_kora_diagram),
                     modifier = Modifier.fillMaxSize()
                 )
@@ -1963,7 +2408,9 @@ private fun ChordPictorialKoraDiagram(
                         rightRows = rightRows,
                         colors = colors,
                         activeStringNumbers = playingStringNumbers,
-                        showLeverInfo = showLeverInfo
+                        showLeverInfo = showLeverInfo,
+                        noteLabelsVisible = false,
+                        pitchShiftByString = emptyMap()
                     )
                     drawChordMarkers(
                         segments = buildDiagramStringSegments(
@@ -2028,6 +2475,7 @@ private fun DrawScope.drawChordMarkers(
 @Composable
 private fun ChordSideCell(
     row: PegCorrectStringResult,
+    pitchShiftByString: Map<Int, Int>,
     shouldPlay: Boolean,
     isSounding: Boolean,
     onStringTouched: (PegCorrectStringResult) -> Unit,
@@ -2058,9 +2506,16 @@ private fun ChordSideCell(
     ) {
         Text(
             text = buildString {
+                val semitoneShift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
                 append(if (shouldPlay) "X " else "- ")
                 append("${row.role.asLabel()} (S${row.stringNumber})\n")
-                append(row.selectedPitch.asText())
+                append(
+                    displayPitchLabel(
+                        effectivePitch = row.selectedPitch,
+                        semitoneShift = semitoneShift,
+                        includeOctave = true
+                    )
+                )
                 if (showLeverInfo) {
                     append("  ${row.selectedLeverState.name}")
                 }
@@ -2098,6 +2553,7 @@ private fun LegendItem(
 @Composable
 private fun TableOverview(
     rows: List<PegCorrectStringResult>,
+    pitchShiftByString: Map<Int, Int>,
     playingStringNumbers: Set<Int>,
     onStringTouched: (PegCorrectStringResult) -> Unit,
     showLeverInfo: Boolean
@@ -2134,7 +2590,11 @@ private fun TableOverview(
                     val leftRow = leftRows.getOrNull(index)
                     if (leftRow != null) {
                         SideCell(
-                            text = formatOverviewRow(leftRow, showLeverInfo = showLeverInfo),
+                            text = formatOverviewRow(
+                                row = leftRow,
+                                showLeverInfo = showLeverInfo,
+                                pitchShiftByString = pitchShiftByString
+                            ),
                             isActive = leftRow.stringNumber in playingStringNumbers,
                             onClick = { onStringTouched(leftRow) },
                             modifier = Modifier.weight(1f)
@@ -2145,7 +2605,11 @@ private fun TableOverview(
                     val rightRow = rightRows.getOrNull(index)
                     if (rightRow != null) {
                         SideCell(
-                            text = formatOverviewRow(rightRow, showLeverInfo = showLeverInfo),
+                            text = formatOverviewRow(
+                                row = rightRow,
+                                showLeverInfo = showLeverInfo,
+                                pitchShiftByString = pitchShiftByString
+                            ),
                             isActive = rightRow.stringNumber in playingStringNumbers,
                             onClick = { onStringTouched(rightRow) },
                             modifier = Modifier.weight(1f)
@@ -2206,25 +2670,32 @@ private fun SideCell(
 @Composable
 private fun formatOverviewRow(
     row: PegCorrectStringResult,
-    showLeverInfo: Boolean
+    showLeverInfo: Boolean,
+    pitchShiftByString: Map<Int, Int>
 ): String {
     val pegIndicator = if (row.pegRetuneRequired) {
         signed(row.pegRetuneSemitones)
     } else {
         "0"
     }
+    val semitoneShift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
+    val pitchLabel = displayPitchLabel(
+        effectivePitch = row.selectedPitch,
+        semitoneShift = semitoneShift,
+        includeOctave = true
+    )
     return buildString {
         append("${row.role.asLabel()} (S${row.stringNumber})\n")
         if (showLeverInfo) {
             append(
                 stringResource(
                     R.string.scale_engine_peg_row_target_lever,
-                    row.selectedPitch.asText(),
+                    pitchLabel,
                     row.selectedLeverState.name
                 )
             )
         } else {
-            append(stringResource(R.string.scale_engine_peg_tuning_row_target, row.selectedPitch.asText()))
+            append(stringResource(R.string.scale_engine_peg_tuning_row_target, pitchLabel))
         }
         append("\n")
         append(stringResource(R.string.scale_engine_row_int_peg, signed(row.selectedIntonationCents), pegIndicator))
@@ -2237,6 +2708,22 @@ private fun signed(value: Int): String {
 
 private fun signed(value: Double): String {
     return if (value >= 0.0) "+${"%.1f".format(value)}" else "%.1f".format(value)
+}
+
+private fun displayPitchLabel(
+    effectivePitch: Pitch,
+    semitoneShift: Int,
+    includeOctave: Boolean
+): String {
+    val shift = semitoneShift.coerceIn(-1, 1)
+    val basePitch = effectivePitch.plusSemitones(-shift)
+    val baseSymbol = basePitch.note.symbol
+    val shiftedSymbol = when (shift) {
+        1 -> "${baseSymbol}#"
+        -1 -> if (baseSymbol.endsWith("#")) baseSymbol.dropLast(1) else "${baseSymbol}b"
+        else -> baseSymbol
+    }
+    return if (includeOctave) "${shiftedSymbol}${basePitch.octave}" else shiftedSymbol
 }
 
 private const val DOUBLE_TAP_STOP_WINDOW_MS = 280L
