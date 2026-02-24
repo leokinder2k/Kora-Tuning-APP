@@ -1007,41 +1007,26 @@ private fun DiagramOverview(
                         .clipToBounds()
                         .onSizeChanged { size -> diagramSize = size }
                         .pointerInput(left, right, diagramZoom, diagramSize) {
-                            detectTapGestures(
-                                onTap = { tapOffset ->
-                                    val hit = resolveDiagramHit(
-                                        tapOffset = tapOffset,
-                                        diagramSize = diagramSize,
-                                        zoom = diagramZoom,
-                                        leftRows = left,
-                                        rightRows = right,
-                                        maxDistancePx = maxTapDistancePx
-                                    )
-                                    hit?.let(onStringTouched)
-                                },
-                                onDoubleTap = { tapOffset ->
-                                    val hit = resolveDiagramHit(
-                                        tapOffset = tapOffset,
-                                        diagramSize = diagramSize,
-                                        zoom = diagramZoom,
-                                        leftRows = left,
-                                        rightRows = right,
-                                        maxDistancePx = maxTapDistancePx
-                                    )
-                                    hit?.let(onStringSharpened)
-                                },
-                                onLongPress = { tapOffset ->
-                                    val hit = resolveDiagramHit(
-                                        tapOffset = tapOffset,
-                                        diagramSize = diagramSize,
-                                        zoom = diagramZoom,
-                                        leftRows = left,
-                                        rightRows = right,
-                                        maxDistancePx = maxTapDistancePx
-                                    )
-                                    hit?.let(onStringFlattened)
+                            awaitEachGesture {
+                                var event = awaitPointerEvent()
+                                while (true) {
+                                    // Fire for every new finger press
+                                    event.changes
+                                        .filter { it.pressed && !it.previousPressed }
+                                        .forEach { change ->
+                                            resolveDiagramHit(
+                                                tapOffset = change.position,
+                                                diagramSize = diagramSize,
+                                                zoom = diagramZoom,
+                                                leftRows = left,
+                                                rightRows = right,
+                                                maxDistancePx = maxTapDistancePx
+                                            )?.let(onStringTouched)
+                                        }
+                                    if (event.changes.none { it.pressed }) break
+                                    event = awaitPointerEvent()
                                 }
-                            )
+                            }
                         }
                 ) {
                     Box(
@@ -1108,12 +1093,12 @@ private fun DrawScope.drawKoraBody(colors: ColorScheme) {
     val nCX = w * 0.500f;  val nHW = w * 0.052f
     val nL  = nCX - nHW;  val nR  = nCX + nHW
     val nSD = w * 0.018f
-    val nBY = h * 0.560f
+    val nBY = h * 0.600f
 
     val gX = w * 0.500f;  val gY = h * 0.730f
     val gRX = w * 0.400f; val gRY = h * 0.245f
 
-    val bY = h * 0.560f; val bH = h * 0.022f
+    val bY = h * 0.600f; val bH = h * 0.022f
     val bL = w * 0.040f; val bR = w * 0.960f
 
     val aLX = w * 0.212f; val aRX = w * 0.788f
@@ -1170,7 +1155,7 @@ private fun DrawScope.drawKoraDiagram(
     pitchShiftByString: Map<Int, Int>,
     vibrationPhase: Float = 0f
 ) {
-    val bridgeCenterY = size.height * 0.56f
+    val bridgeCenterY = size.height * 0.60f
     val bridgeTop = bridgeCenterY - (size.height * 0.17f)
     val bridgeBottom = bridgeCenterY + (size.height * 0.17f)
 
@@ -1217,8 +1202,8 @@ private fun DrawScope.drawStringSet(
     }
 
     val width = size.width
-    val pegTopY    = size.height * 0.06f          // treble pegs — near top of neck
-    val pegBottomY = size.height * 0.28f          // bass pegs   — lower on neck
+    val pegTopY    = size.height * 0.06f          // bass pegs   — near top of neck (longest strings)
+    val pegBottomY = size.height * 0.28f          // treble pegs — lower on neck (shortest strings)
     val pegX = if (isLeft) width * 0.42f else width * 0.58f   // left/right neck edge
 
     // Bridge is a horizontal bar; X fans from edge (bass) to center (treble)
@@ -1229,8 +1214,8 @@ private fun DrawScope.drawStringSet(
 
     rows.forEachIndexed { index, row ->
         val ratio = index.toFloat() / maxIndex.toFloat()
-        // Bass strings (ratio=0) at bottom, high strings (ratio=1) at top — no crossing
-        val pegY    = lerp(start = pegBottomY, stop = pegTopY,    fraction = ratio)
+        // Bass strings (ratio=0) at top → long; high strings (ratio=1) near bottom → short
+        val pegY    = lerp(start = pegTopY, stop = pegBottomY,    fraction = ratio)
         val bridgeX = lerp(start = bridgeBassX, stop = bridgeTrebleX, fraction = ratio)
         val leverColor = if (showLeverInfo) {
             when (row.selectedLeverState) {
@@ -1304,16 +1289,17 @@ private fun DrawScope.drawStringSet(
         )
         if (noteLabelsVisible) {
             val semitoneShift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
+            // Labels sit on the neck, just inside each peg (towards centre)
+            val labelX = if (isLeft) {
+                pegX + (width * 0.032f)   // right of left peg → onto neck
+            } else {
+                pegX - (width * 0.032f)   // left of right peg → onto neck
+            }
             val labelPaint = Paint().apply {
                 color = colors.onBackground.toArgb()
-                textAlign = if (isLeft) Paint.Align.RIGHT else Paint.Align.LEFT
-                textSize = width * 0.024f
+                textAlign = if (isLeft) Paint.Align.LEFT else Paint.Align.RIGHT
+                textSize = width * 0.022f
                 isAntiAlias = true
-            }
-            val labelX = if (isLeft) {
-                pegX - (width * 0.045f)
-            } else {
-                pegX + (width * 0.045f)
             }
             drawContext.canvas.nativeCanvas.drawText(
                 displayPitchLabel(
@@ -1334,7 +1320,7 @@ private fun buildDiagramStringSegments(
     rightRows: List<PegCorrectStringResult>,
     size: Size
 ): List<DiagramStringSegment> {
-    val bridgeCenterY = size.height * 0.56f
+    val bridgeCenterY = size.height * 0.60f
     val bridgeTop = bridgeCenterY - (size.height * 0.17f)
     val bridgeBottom = bridgeCenterY + (size.height * 0.17f)
 
@@ -1376,8 +1362,8 @@ private fun buildSideStringSegments(
 
     return rows.mapIndexed { index, row ->
         val ratio   = index.toFloat() / maxIndex.toFloat()
-        // Match drawStringSet: bass (ratio=0) at bottom, high (ratio=1) at top
-        val pegY    = lerp(start = pegBottomY, stop = pegTopY,    fraction = ratio)
+        // Match drawStringSet: bass (ratio=0) at top, high (ratio=1) near bottom
+        val pegY    = lerp(start = pegTopY, stop = pegBottomY,    fraction = ratio)
         val bridgeX = lerp(start = bridgeBassX, stop = bridgeTrebleX, fraction = ratio)
         DiagramStringSegment(
             row = row,
