@@ -1101,41 +1101,89 @@ private fun DrawScope.drawKoraBody(colors: ColorScheme) {
     val bY = h * 0.600f; val bH = h * 0.022f
     val bL = w * 0.040f; val bR = w * 0.960f
 
-    val aLX = w * 0.212f; val aRX = w * 0.788f
-    val aY  = h * 0.669f; val aTY = h * 0.774f
-    val aThick = w * 0.024f
+    val aBodyThick = w * 0.048f   // thick cylindrical arm body
+    val aHighlight = w * 0.014f   // top highlight width
 
     // 0 – background
     drawRect(color = bg)
 
-    // 1 – side arms (behind gourd)
-    for ((ax, tipX) in listOf(aLX to 0f, aRX to w)) {
-        drawLine(woodDark,  Offset(ax, aY), Offset(tipX, aTY), aThick,        StrokeCap.Round)
-        drawLine(woodLight, Offset(ax, aY), Offset(tipX, aTY), aThick * 0.38f, StrokeCap.Round)
+    // 1 – side arms (konting) as thick turned-wood balusters, nearly horizontal
+    // Attach near neck/gourd junction; StrokeCap.Round gives the outer finial naturally
+    for ((attachX, tipX) in listOf(w * 0.200f to w * 0.018f, w * 0.800f to w * 0.982f)) {
+        val attachY = h * 0.622f
+        val tipY    = h * 0.638f   // nearly horizontal — slight outward drop
+        // Drop shadow
+        drawLine(Color.Black.copy(alpha = 0.25f),
+                 Offset(attachX, attachY + aBodyThick * 0.32f),
+                 Offset(tipX,    tipY    + aBodyThick * 0.32f),
+                 aBodyThick, StrokeCap.Round)
+        // Main cylinder body
+        drawLine(woodMid,
+                 Offset(attachX, attachY), Offset(tipX, tipY),
+                 aBodyThick, StrokeCap.Round)
+        // Dark lower rim (cylinder depth / roundness)
+        drawLine(woodDark.copy(alpha = 0.60f),
+                 Offset(attachX, attachY + aBodyThick * 0.18f),
+                 Offset(tipX,    tipY    + aBodyThick * 0.18f),
+                 aBodyThick * 0.52f, StrokeCap.Round)
+        // Bright top highlight
+        drawLine(woodLight.copy(alpha = 0.65f),
+                 Offset(attachX, attachY - aBodyThick * 0.20f),
+                 Offset(tipX,    tipY    - aBodyThick * 0.20f),
+                 aHighlight, StrokeCap.Round)
     }
 
-    // 2 – neck (right-side depth face + front face + highlight + grain + cap)
-    drawRect(woodDark,  topLeft = Offset(nR, 0f),   size = Size(nSD,      nBY))
-    drawRect(woodMid,   topLeft = Offset(nL, 0f),   size = Size(nHW*2f,   nBY))
-    drawRect(woodLight.copy(alpha=0.42f),
-             topLeft = Offset(nCX - nHW*0.28f, 0f), size = Size(nHW*0.56f, nBY))
+    // 2 – neck: 2-pt perspective taper (wider at bridge level, narrower at top)
+    val nTopHW = nHW * 0.82f   // half-width at top
+    val nTopSD = nSD * 0.82f   // depth face also tapers
+    // Right depth face (trapezoid)
+    drawPath(Path().apply {
+        moveTo(nCX + nHW,              nBY)
+        lineTo(nCX + nHW + nSD,        nBY)
+        lineTo(nCX + nTopHW + nTopSD,  0f)
+        lineTo(nCX + nTopHW,           0f)
+        close()
+    }, woodDark)
+    // Front face (trapezoid)
+    drawPath(Path().apply {
+        moveTo(nCX - nHW,    nBY)
+        lineTo(nCX + nHW,    nBY)
+        lineTo(nCX + nTopHW, 0f)
+        lineTo(nCX - nTopHW, 0f)
+        close()
+    }, woodMid)
+    // Centre highlight strip (tapered)
+    drawPath(Path().apply {
+        val hBotHW = nHW * 0.28f;  val hTopHW = nTopHW * 0.28f
+        moveTo(nCX - hBotHW, nBY);  lineTo(nCX + hBotHW, nBY)
+        lineTo(nCX + hTopHW, 0f);   lineTo(nCX - hTopHW, 0f)
+        close()
+    }, woodLight.copy(alpha = 0.42f))
+    // Horizontal grain lines (clipped to tapered neck width at each Y)
     repeat(7) { i ->
-        val y = nBY * ((i + 1) / 8f)
-        drawLine(woodDark.copy(alpha=0.15f), Offset(nL+1f, y), Offset(nR, y), 1f)
+        val frac = (i + 1) / 8f
+        val y    = nBY * frac
+        val hw   = lerp(nTopHW, nHW, frac)
+        drawLine(woodDark.copy(alpha = 0.15f), Offset(nCX - hw + 1f, y), Offset(nCX + hw, y), 1f)
     }
-    drawRect(woodDark, topLeft = Offset(nL-2f, 0f), size = Size(nHW*2f+nSD+2f, h*0.015f))
+    // Top cap (at narrower top width)
+    drawRect(woodDark, topLeft = Offset(nCX - nTopHW - 2f, 0f),
+             size = Size(nTopHW * 2f + nTopSD + 4f, h * 0.015f))
 
-    // 3 – gourd shadow
-    drawOval(Color.Black.copy(alpha=0.20f),
-             topLeft = Offset(gX-gRX+5f, gY-gRY+9f), size = Size(gRX*2f, gRY*2f))
+    // 3 – gourd shadow (larger offset for more 3D depth)
+    drawOval(Color.Black.copy(alpha = 0.28f),
+             topLeft = Offset(gX-gRX+8f, gY-gRY+14f), size = Size(gRX*2f, gRY*2f))
     // gourd rim
     drawOval(woodMid,  topLeft = Offset(gX-gRX, gY-gRY),            size = Size(gRX*2f, gRY*2f))
     // skin
     val sp = w * 0.018f
     drawOval(skinIvory, topLeft = Offset(gX-gRX+sp, gY-gRY+sp),     size = Size((gRX-sp)*2f, (gRY-sp)*2f))
-    // highlight
-    drawOval(Color.White.copy(alpha=0.09f),
-             topLeft = Offset(gX-gRX*0.68f, gY-gRY*0.68f),          size = Size(gRX*1.28f, gRY*1.10f))
+    // Lower depth shading (bottom half darker)
+    drawOval(woodDark.copy(alpha = 0.12f),
+             topLeft = Offset(gX-gRX+sp, gY),                        size = Size((gRX-sp)*2f, gRY-sp))
+    // Upper highlight (brighter + tighter)
+    drawOval(Color.White.copy(alpha = 0.13f),
+             topLeft = Offset(gX-gRX*0.65f, gY-gRY*0.72f),          size = Size(gRX*1.22f, gRY*1.0f))
 
     // 4 – bridge
     drawRect(Color.Black.copy(alpha=0.25f), topLeft=Offset(bL, bY+bH), size=Size(bR-bL, h*0.007f))
@@ -1212,7 +1260,9 @@ private fun DrawScope.drawStringSet(
     val bridgeY = (bridgeTop + bridgeBottom) / 2f              // constant — bridge is horizontal
     val maxIndex = rows.lastIndex.coerceAtLeast(1)
 
-    rows.forEachIndexed { index, row ->
+    // Draw treble (inner/background) first, bass (outer/foreground) last so bass is on top
+    (rows.indices.reversed()).forEach { index ->
+        val row = rows[index]
         val ratio = index.toFloat() / maxIndex.toFloat()
         // Bass strings (ratio=0) at top → long; high strings (ratio=1) near bottom → short
         val pegY    = lerp(start = pegTopY, stop = pegBottomY,    fraction = ratio)
@@ -1231,10 +1281,12 @@ private fun DrawScope.drawStringSet(
         } else {
             width * 0.004f
         }
-        // Add a mild "depth" effect: bass strings are a bit thicker than high strings.
-        val depthThickness = (1.25f - (0.45f * ratio)).coerceIn(0.75f, 1.25f)
+        // 2-pt perspective depth: bass (ratio=0) thick+opaque=foreground; treble thin+faded=background
+        val depthThickness = (1.55f - (0.75f * ratio)).coerceIn(0.80f, 1.55f)
+        val depthAlpha     = 0.60f + 0.40f * (1f - ratio)   // bass: 1.0 · treble: 0.60
         val strokeWidth = (if (isActive) baseStrokeWidth * 1.8f else baseStrokeWidth) * depthThickness
-        val stringColor = if (isActive) colors.primary else leverColor
+        val stringColor = if (isActive) colors.primary.copy(alpha = depthAlpha)
+                          else leverColor.copy(alpha = depthAlpha)
 
         val midX = (pegX + bridgeX) * 0.5f
         val midY = (pegY + bridgeY) * 0.5f
@@ -1277,7 +1329,7 @@ private fun DrawScope.drawStringSet(
         }
 
         drawCircle(
-            color = if (row.pegRetuneRequired) KoraDetunedColor else colors.outline,
+            color = (if (row.pegRetuneRequired) KoraDetunedColor else colors.outline).copy(alpha = depthAlpha),
             radius = if (row.pegRetuneRequired) width * 0.010f else width * 0.007f,
             center = Offset(pegX, pegY)
         )
