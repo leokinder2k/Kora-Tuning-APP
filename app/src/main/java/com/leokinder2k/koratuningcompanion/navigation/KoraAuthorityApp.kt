@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -116,6 +117,9 @@ fun KoraAuthorityApp(
         }
     ) {
         Scaffold(
+            // NavigationSuiteScaffold already manages system insets; zero out the
+            // inner Scaffold's insets so they are not double-applied.
+            contentWindowInsets = WindowInsets(0),
             topBar = {
                 TopAppBar(
                     title = { Text(stringResource(R.string.app_top_bar_title)) },
@@ -123,7 +127,7 @@ fun KoraAuthorityApp(
                         IconButton(onClick = { showOverflowMenu = true }) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
-                                contentDescription = null
+                                contentDescription = stringResource(R.string.menu_settings)
                             )
                         }
                         DropdownMenu(
