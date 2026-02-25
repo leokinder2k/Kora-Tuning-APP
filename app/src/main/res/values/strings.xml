@@ -360,4 +360,8 @@
     <string name="about_description">A tuning companion for the 21- and 22-string kora, covering scale analysis, chord voicing, guided tuning, and live pitch detection.</string>
     <string name="about_version">Version %1$s</string>
     <string name="about_privacy_policy">Privacy Policy</string>
+
+    <!-- Diagram lock toggle -->
+    <string name="overview_diagram_locked">Locked</string>
+    <string name="overview_diagram_free">Free</string>
 </resources>

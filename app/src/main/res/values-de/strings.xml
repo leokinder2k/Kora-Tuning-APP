@@ -355,5 +355,7 @@
     <string name="about_description">Ein Stimmbegleiter für die 21- und 22-saitige Kora mit Skalenanalyse, Akkordvoicing, geführter Stimmung und Live-Tonerkennung.</string>
     <string name="about_version">Version %1$s</string>
     <string name="about_privacy_policy">Datenschutzerklärung</string>
+    <string name="overview_diagram_locked">Gesperrt</string>
+    <string name="overview_diagram_free">Frei</string>
 </resources>
 

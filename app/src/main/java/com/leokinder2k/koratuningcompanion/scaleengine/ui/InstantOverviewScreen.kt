@@ -1007,7 +1007,7 @@ private fun DiagramOverview(
                             BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
                         else null
                     ) {
-                        Text(if (isDiagramLocked) "Locked" else "Free")
+                        Text(stringResource(if (isDiagramLocked) R.string.overview_diagram_locked else R.string.overview_diagram_free))
                     }
                 }
                 OutlinedButton(

@@ -355,5 +355,7 @@
     <string name="about_description">Un compañero de afinación para la kora de 21 y 22 cuerdas con análisis de escalas, voicing de acordes, afinación guiada y detección de tono en vivo.</string>
     <string name="about_version">Versión %1$s</string>
     <string name="about_privacy_policy">Política de privacidad</string>
+    <string name="overview_diagram_locked">Bloqueado</string>
+    <string name="overview_diagram_free">Libre</string>
 </resources>
 

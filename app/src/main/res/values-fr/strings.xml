@@ -353,6 +353,8 @@
     <string name="about_description">Un compagnon d\'accordage pour la kora à 21 et 22 cordes, couvrant l\'analyse des gammes, le voicing des accords, l\'accordage guidé et la détection de hauteur en direct.</string>
     <string name="about_version">Version %1$s</string>
     <string name="about_privacy_policy">Politique de confidentialité</string>
+    <string name="overview_diagram_locked">Verrouillé</string>
+    <string name="overview_diagram_free">Libre</string>
 </resources>
 
 

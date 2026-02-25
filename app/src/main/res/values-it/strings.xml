@@ -355,6 +355,8 @@
     <string name="about_description">Un compagno di accordatura per la kora a 21 e 22 corde, con analisi delle scale, voicing degli accordi, accordatura guidata e rilevamento del tono in tempo reale.</string>
     <string name="about_version">Versione %1$s</string>
     <string name="about_privacy_policy">Informativa sulla privacy</string>
+    <string name="overview_diagram_locked">Bloccato</string>
+    <string name="overview_diagram_free">Libero</string>
 </resources>
 
 

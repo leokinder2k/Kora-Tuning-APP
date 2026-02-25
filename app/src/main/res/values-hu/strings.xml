@@ -355,5 +355,7 @@
     <string name="about_description">Hangolási segéd 21 és 22 húros korához, skálaelemzéssel, akkordvoicinggal, irányított hangolással és élő hangmagasság-érzékeléssel.</string>
     <string name="about_version">%1$s verzió</string>
     <string name="about_privacy_policy">Adatvédelmi irányelvek</string>
+    <string name="overview_diagram_locked">Zárolva</string>
+    <string name="overview_diagram_free">Szabad</string>
 </resources>
 
