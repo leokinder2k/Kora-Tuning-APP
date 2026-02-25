@@ -394,7 +394,10 @@ fun LiveTunerScreen(
             ReferenceToneCard(
                 targets = targets,
                 selectedTargetStringNumber = selectedTargetStringNumber,
-                onTargetSelected = { selected -> selectedTargetStringNumber = selected },
+                onTargetSelected = { selected ->
+                    selectedTargetStringNumber = selected
+                    isReferenceTonePlaying = true
+                },
                 isReferenceTonePlaying = isReferenceTonePlaying,
                 onPlay = { isReferenceTonePlaying = true },
                 onStop = { isReferenceTonePlaying = false }
@@ -404,6 +407,23 @@ fun LiveTunerScreen(
                 text = stringResource(R.string.live_tuner_tip),
                 style = MaterialTheme.typography.bodySmall
             )
+
+            // Gentle save-preset prompt
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.live_tuner_save_preset_prompt_title),
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = stringResource(R.string.live_tuner_save_preset_prompt_body),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
         }
     }
 }

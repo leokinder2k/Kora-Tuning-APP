@@ -176,6 +176,7 @@ fun InstantOverviewScreen(
     )
     val viewMode = OverviewViewMode.entries.getOrElse(pagerState.currentPage) { OverviewViewMode.DIAGRAM }
     var diagramZoom by rememberSaveable { mutableFloatStateOf(1f) }
+    var isDiagramLocked by rememberSaveable { mutableStateOf(false) }
     var playingStringNumbers by remember(
         uiState.rootNote,
         uiState.scaleType,
@@ -234,6 +235,10 @@ fun InstantOverviewScreen(
     ) {
         playingStringNumbers = emptySet()
         playGenerationByString.clear()
+    }
+    // Reset per-string semitone shifts whenever the preset / instrument profile changes
+    LaunchedEffect(uiState.result.request.instrumentProfile) {
+        pitchShiftByString.clear()
     }
     LaunchedEffect(metronomeTimeSignature) {
         val trimmed = metronomeEnabledBeats
@@ -555,7 +560,7 @@ fun InstantOverviewScreen(
         .toInt()
 
     val onStringTouched: (PegCorrectStringResult) -> Unit = toggleRow
-    val isScreenScrollEnabled = !(viewMode == OverviewViewMode.DIAGRAM && diagramZoom > 1f)
+    val isScreenScrollEnabled = !(viewMode == OverviewViewMode.DIAGRAM && (diagramZoom > 1f || isDiagramLocked))
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -713,6 +718,8 @@ fun InstantOverviewScreen(
                     showLeverInfo = showLeverInfo,
                     diagramZoom = diagramZoom,
                     onDiagramZoomChanged = { value -> diagramZoom = value },
+                    isDiagramLocked = isDiagramLocked,
+                    onDiagramLockedChanged = { locked -> isDiagramLocked = locked },
                     showNoteLetters = showNoteLabels
                 )
                 OverviewViewMode.TABLE -> TableOverview(
@@ -920,6 +927,8 @@ private fun DiagramOverview(
     showLeverInfo: Boolean,
     diagramZoom: Float,
     onDiagramZoomChanged: (Float) -> Unit,
+    isDiagramLocked: Boolean,
+    onDiagramLockedChanged: (Boolean) -> Unit,
     showNoteLetters: Boolean
 ) {
     val left = rows
@@ -992,6 +1001,14 @@ private fun DiagramOverview(
                     ) {
                         Text(stringResource(R.string.action_reset))
                     }
+                    OutlinedButton(
+                        onClick = { onDiagramLockedChanged(!isDiagramLocked) },
+                        border = if (isDiagramLocked)
+                            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                        else null
+                    ) {
+                        Text(if (isDiagramLocked) "Locked" else "Free")
+                    }
                 }
                 OutlinedButton(
                     onClick = onPlayAllStrings,
@@ -1008,21 +1025,33 @@ private fun DiagramOverview(
                         .onSizeChanged { size -> diagramSize = size }
                         .pointerInput(left, right, diagramZoom, diagramSize) {
                             awaitEachGesture {
+                                // Track which string each pointer is currently over
+                                val activeStringByPointer = mutableMapOf<Long, Int>()
                                 var event = awaitPointerEvent()
                                 while (true) {
-                                    // Fire for every new finger press
-                                    event.changes
-                                        .filter { it.pressed && !it.previousPressed }
-                                        .forEach { change ->
-                                            resolveDiagramHit(
-                                                tapOffset = change.position,
-                                                diagramSize = diagramSize,
-                                                zoom = diagramZoom,
-                                                leftRows = left,
-                                                rightRows = right,
-                                                maxDistancePx = maxTapDistancePx
-                                            )?.let(onStringTouched)
+                                    event.changes.forEach { change ->
+                                        if (!change.pressed) {
+                                            activeStringByPointer.remove(change.id.value)
+                                            return@forEach
                                         }
+                                        val hit = resolveDiagramHit(
+                                            tapOffset = change.position,
+                                            diagramSize = diagramSize,
+                                            zoom = diagramZoom,
+                                            leftRows = left,
+                                            rightRows = right,
+                                            maxDistancePx = maxTapDistancePx
+                                        )
+                                        val newString = hit?.stringNumber
+                                        val prevString = activeStringByPointer[change.id.value]
+                                        if (newString != null && newString != prevString) {
+                                            // Finger pressed or slid onto a new string → play it
+                                            activeStringByPointer[change.id.value] = newString
+                                            onStringTouched(hit)
+                                        } else if (newString == null) {
+                                            activeStringByPointer.remove(change.id.value)
+                                        }
+                                    }
                                     if (event.changes.none { it.pressed }) break
                                     event = awaitPointerEvent()
                                 }

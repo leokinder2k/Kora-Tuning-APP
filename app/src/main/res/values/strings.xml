@@ -150,6 +150,8 @@
     <string name="live_tuner_reference_tone_action_play">Play Reference Tone</string>
     <string name="live_tuner_reference_tone_action_stop">Stop Reference Tone</string>
     <string name="live_tuner_tip">Tip: stabilize pluck strength and sustain to improve cent-level consistency.</string>
+    <string name="live_tuner_save_preset_prompt_title">Happy with your tuning?</string>
+    <string name="live_tuner_save_preset_prompt_body">Save it as a custom preset in the Presets tab so you can return to it any time.</string>
 
     <!-- Scale Calculation Engine -->
     <string name="title_scale_calculation_engine">Scale Calculation Engine</string>
@@ -277,7 +279,7 @@
 
     <string name="overview_diagram_title">Kora Diagram</string>
     <string name="overview_diagram_zoom_label">Zoom: %1$s%%</string>
-    <string name="overview_diagram_tap_to_hear">Tap a string to hear its tone (double tap to stop).</string>
+    <string name="overview_diagram_tap_to_hear">Tap to play/stop. Double tap: sharp (#). Long press: flat (b).</string>
     <string name="content_desc_kora_diagram">Kora diagram</string>
     <string name="content_desc_chord_kora_diagram">Chord kora diagram</string>
 
