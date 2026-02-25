@@ -15,7 +15,8 @@ class PluckedStringPlayer(
     private val pluckDurationMs: Int = 650
 ) {
 
-    private val extraVolumeFactor = 5.0
+    // Requested: boost kora string output volume by 10x.
+    private val extraVolumeFactor = 250.0
     private var amplitudeScale = 1.0
 
     fun setVolumeDb(db: Double) {
