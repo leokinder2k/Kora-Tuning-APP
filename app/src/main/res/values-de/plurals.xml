@@ -1,0 +1,12 @@
+<resources>
+    <plurals name="overview_exercise_suggested_next">
+        <item quantity="one">Nächster Vorschlag: %1$s %2$s in %3$d Schlag (Schlag %4$d).</item>
+        <item quantity="other">Nächster Vorschlag: %1$s %2$s in %3$d Schlägen (Schlag %4$d).</item>
+    </plurals>
+
+    <plurals name="overview_exercise_interval_chip">
+        <item quantity="one">%d Schlag</item>
+        <item quantity="other">%d Schläge</item>
+    </plurals>
+</resources>
+

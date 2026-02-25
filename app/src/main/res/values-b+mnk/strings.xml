@@ -1,0 +1,34 @@
+<resources>
+    <!--
+      Mandinka (mnk)
+      TODO: Replace with preferred Mandinka terminology.
+      For now, key musical terms use common Francophone music terms used in the region.
+    -->
+    <string name="nav_instrument_label">Instrument</string>
+    <string name="nav_scale_label">Gamme</string>
+    <string name="nav_guided_label">Guidé</string>
+    <string name="nav_overview_label">Aperçu</string>
+    <string name="nav_tuner_label">Accordeur</string>
+    <string name="nav_presets_label">Préréglages</string>
+
+    <string name="tuning_flat">Bémol</string>
+    <string name="tuning_in_tune">Juste</string>
+    <string name="tuning_sharp">Dièse</string>
+
+    <string name="scale_root_note_label">Tonique</string>
+    <string name="scale_type_label">Type de gamme</string>
+    <string name="scale_family_label">Famille de gammes</string>
+    <string name="scale_label">Gamme</string>
+
+    <string name="chord_quality_major">Majeur</string>
+    <string name="chord_quality_minor">Mineur</string>
+    <string name="chord_quality_diminished">Diminué</string>
+    <string name="chord_quality_half_diminished">Semi-diminué (m7b5)</string>
+    <string name="chord_quality_dominant7">Dominante 7</string>
+    <string name="chord_quality_major7">Majeur 7</string>
+    <string name="chord_quality_minor7">Mineur 7</string>
+
+    <string name="overview_chords_title">Accords</string>
+    <string name="overview_metronome_title">Métronome</string>
+</resources>
+

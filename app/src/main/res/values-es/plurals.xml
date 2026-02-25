@@ -1,0 +1,12 @@
+<resources>
+    <plurals name="overview_exercise_suggested_next">
+        <item quantity="one">Siguiente sugerido: %1$s %2$s en %3$d pulso (pulso %4$d).</item>
+        <item quantity="other">Siguiente sugerido: %1$s %2$s en %3$d pulsos (pulso %4$d).</item>
+    </plurals>
+
+    <plurals name="overview_exercise_interval_chip">
+        <item quantity="one">%d pulso</item>
+        <item quantity="other">%d pulsos</item>
+    </plurals>
+</resources>
+

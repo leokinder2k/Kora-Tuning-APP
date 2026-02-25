@@ -1,0 +1,359 @@
+<resources>
+    <string name="app_name">Kora hangoló segéd</string>
+
+    <!-- Navigation -->
+    <string name="nav_instrument_label">Hangszer</string>
+    <string name="nav_instrument_short">I</string>
+    <string name="nav_scale_label">Skála</string>
+    <string name="nav_scale_short">S</string>
+    <string name="nav_guided_label">Vezetett</string>
+    <string name="nav_guided_short">G</string>
+    <string name="nav_overview_label">Áttekintés</string>
+    <string name="nav_overview_short">O</string>
+    <string name="nav_tuner_label">Hangoló</string>
+    <string name="nav_tuner_short">T</string>
+    <string name="nav_presets_label">Előbeállítások</string>
+    <string name="nav_presets_short">P</string>
+
+    <!-- Common -->
+    <string name="strings_count">%1$d húr</string>
+    <string name="quick_start_title">Gyors indítás</string>
+    <string name="action_start">Indítás</string>
+    <string name="action_stop">Leállítás</string>
+    <string name="action_previous">Előző</string>
+    <string name="action_next">Következő</string>
+    <string name="action_grant_mic_short">Mikro engedély</string>
+    <string name="action_grant_microphone_permission">Mikrofon engedély megadása</string>
+
+    <!-- Instrument Configuration -->
+    <string name="title_instrument_configuration">Hangszer konfiguráció</string>
+    <string name="instrument_config_section_strings">Húrok</string>
+    <string name="instrument_config_description_levered">Állítsd be minden húr nyitott hangolását. A zárt hangmagasság automatikusan számolódik (+1 félhang). A nyitott/zárt intonációs eltéréseket is megadhatod centben.</string>
+    <string name="instrument_config_description_peg_tuning">Csapos hangolás (nem kromatikus): a korádon nincsenek karok. Állítsd be minden húr nyitott hangolását és (opcionálisan) a nyitott cent eltéréseket.</string>
+    <string name="instrument_config_section_instrument_type">Hangszer típusa</string>
+    <string name="instrument_type_levers">Karok (kromatikus)</string>
+    <string name="instrument_type_pegs">Csapos hangolás</string>
+    <string name="instrument_config_quick_start_step_1">1. Válassz 21 vagy 22 húrt.</string>
+    <string name="instrument_config_quick_start_step_2">2. Add meg húronként a nyitott hangmagasságot és opcionálisan a cent eltérést.</string>
+    <string name="instrument_config_quick_start_step_3">3. Mentsd a profilt, majd használd a Skála/Vezetett/Áttekintés/Hangoló füleket.</string>
+    <string name="instrument_config_auto_save_note">A húrhangok és cent értékek automatikusan mentésre kerülnek, ha az adatok érvényesek.</string>
+    <string name="instrument_config_action_load_starter_profile">Kezdő profil betöltése</string>
+    <string name="instrument_config_action_save_profile">Hangszerprofil mentése</string>
+
+    <string name="instrument_tuning_assistant_title">Hangolási asszisztens</string>
+    <string name="instrument_tuning_assistant_subtitle">Válassz egy húrt, és hangold a nyitott hangmagasságát a célhang/cents és az állapotjelzők alapján.</string>
+    <string name="instrument_tuning_assistant_controls_title">Hangoló vezérlők</string>
+    <string name="instrument_tuning_assistant_target_line">Cél: %1$s (%2$s c)</string>
+    <string name="instrument_tuning_assistant_target_hz_line">Cél Hz: %1$s</string>
+    <string name="instrument_tuning_assistant_detected_hz_line">Észlelt: %1$s</string>
+    <string name="instrument_tuning_assistant_deviation_line">Eltérés: %1$s c (%2$s)</string>
+    <string name="instrument_tuning_assistant_deviation_none">Eltérés: --</string>
+    <string name="instrument_tuning_assistant_left_side">Bal oldal (Mély -&gt; Magas)</string>
+    <string name="instrument_tuning_assistant_right_side">Jobb oldal (Mély -&gt; Magas)</string>
+    <string name="instrument_tuning_assistant_string_chip">S%1$d %2$s</string>
+
+    <string name="tuning_flat">Túl mély</string>
+    <string name="tuning_in_tune">Pontos</string>
+    <string name="tuning_sharp">Túl magas</string>
+
+    <string name="instrument_config_string_title">Húr %1$d</string>
+    <string name="instrument_config_open_pitch_label">Nyitott hangmagasság</string>
+    <string name="instrument_config_open_pitch_placeholder">E3</string>
+    <string name="instrument_config_closed_pitch_supporting">Zárt hangmagasság: %1$s</string>
+    <string name="instrument_config_open_pitch_supporting">Add meg a nyitott hangmagasságot a zárt hangmagasság kiszámításához.</string>
+    <string name="instrument_config_open_pitch_supporting_peg">Csapos hangolás: csak nyitott hangmagasság (nincsenek karok).</string>
+    <string name="instrument_config_open_cents_label">Nyitott cent</string>
+    <string name="instrument_config_closed_cents_label">Zárt cent</string>
+    <string name="instrument_config_cents_placeholder">0.0</string>
+
+    <!-- Live tuner mode labels (used in multiple screens) -->
+    <string name="live_tuner_mode_realtime_label">Valós idejű</string>
+    <string name="live_tuner_mode_precision_label">Precíz</string>
+    <string name="live_tuner_mode_realtime_summary">Alacsonyabb késleltetés, kisebb pontosság.</string>
+    <string name="live_tuner_mode_precision_summary">Nagyobb pontosság, nagyobb késleltetés.</string>
+
+    <!-- Scale selection (shared) -->
+    <string name="scale_root_note_label">Alaphang</string>
+    <string name="scale_type_label">Skála típusa</string>
+    <string name="scale_family_label">Skála család</string>
+    <string name="scale_label">Skála</string>
+
+    <string name="scale_family_modes">Módusok</string>
+    <string name="scale_family_pentatonic">Pentaton</string>
+    <string name="scale_family_blues">Blues</string>
+    <string name="scale_family_kora_scales">Kora skálák</string>
+    <string name="scale_family_hexatonic">Hexaton</string>
+    <string name="scale_family_beebop">Beebop</string>
+    <string name="scale_family_diminished">Szűkített</string>
+    <string name="scale_family_other">Egyéb</string>
+
+    <string name="scale_type_major">Dúr (Heptaton)</string>
+    <string name="scale_type_natural_minor">Természetes moll (Heptaton)</string>
+    <string name="scale_type_harmonic_minor">Harmonikus moll (Heptaton)</string>
+    <string name="scale_type_melodic_minor">Melodikus moll (Heptaton)</string>
+
+    <string name="scale_type_ionian">Ión (Módusz 1)</string>
+    <string name="scale_type_dorian">Dór (Módusz 2)</string>
+    <string name="scale_type_phrygian">Fríg (Módusz 3)</string>
+    <string name="scale_type_lydian">Líd (Módusz 4)</string>
+    <string name="scale_type_mixolydian">Mixolíd (Módusz 5)</string>
+    <string name="scale_type_aeolian">Eol (Módusz 6)</string>
+    <string name="scale_type_locrian">Lokriszi (Módusz 7)</string>
+
+    <string name="scale_type_major_pentatonic">Dúr pentaton</string>
+    <string name="scale_type_minor_pentatonic">Moll pentaton</string>
+
+    <string name="scale_type_major_hexatonic">Dúr hexaton</string>
+    <string name="scale_type_minor_hexatonic">Moll hexaton</string>
+    <string name="scale_type_whole_tone">Egész hangú (Hexaton)</string>
+    <string name="scale_type_major_blues">Dúr blues (Hexaton)</string>
+    <string name="scale_type_minor_blues">Moll blues (Hexaton)</string>
+
+    <string name="scale_type_beebop_major">Beebop dúr</string>
+    <string name="scale_type_beebop_dominant">Beebop domináns</string>
+    <string name="scale_type_beebop_dorian">Beebop dór</string>
+
+    <string name="scale_type_diminished_whole_half">Szűkített egész-fél (Oktaton)</string>
+    <string name="scale_type_diminished_half_whole">Szűkített fél-egész (Oktaton)</string>
+
+    <string name="scale_type_chromatic">Kromatikus</string>
+
+    <!-- Live Tuner -->
+    <string name="title_live_tuner">Élő hangoló</string>
+    <string name="live_tuner_quick_start_step_1">1. Válassz módot: Valós idejű a gyors reakcióhoz, Precíz a cent pontossághoz.</string>
+    <string name="live_tuner_quick_start_step_2">2. Engedélyezd a mikrofont és indítsd a hangolót.</string>
+    <string name="live_tuner_quick_start_step_3">3. Pendíts meg egy húrt tisztán, és állítsd a cent eltérést 0-ra.</string>
+    <string name="live_tuner_peg_tuning_note">Csapos hangolás: az állapotjelzők ±1 hang (±200 cent) tűrést használnak, a karok figyelmen kívül vannak hagyva.</string>
+    <string name="live_tuner_section_microphone">Mikrofon</string>
+    <string name="live_tuner_microphone_mode_label">Mód</string>
+    <string name="live_tuner_action_start">Élő hangoló indítása</string>
+    <string name="live_tuner_action_stop">Élő hangoló leállítása</string>
+    <string name="live_tuner_section_detection">Észlelés</string>
+    <string name="live_tuner_detected_pitch_line">Észlelt hangmagasság: %1$s</string>
+    <string name="live_tuner_confidence_line">Bizonyosság: %1$s</string>
+    <string name="live_tuner_signal_rms_line">Jelszint (RMS): %1$s</string>
+    <string name="live_tuner_section_nearest_target">Legközelebbi cél</string>
+    <string name="live_tuner_nearest_target_no_match">Még nincs egyezés. Indítsd a hangolót és játssz egy húrt.</string>
+    <string name="live_tuner_nearest_target_string_line">Húr: %1$s (S%2$d)</string>
+    <string name="live_tuner_nearest_target_pitch_line">Cél hangmagasság: %1$s (%2$s)</string>
+    <string name="live_tuner_nearest_target_intonation_line">Cél intonáció: %1$s cent</string>
+    <string name="live_tuner_nearest_target_status_line">Hangolási állapot: %1$s</string>
+    <string name="live_tuner_nearest_target_deviation_line">Cent eltérés: %1$s cent</string>
+    <string name="live_tuner_nearest_target_lever_line">Kar: %1$s</string>
+    <string name="live_tuner_nearest_target_peg_adjustment_line">Csap állítás: %1$s félhang</string>
+    <string name="live_tuner_nearest_target_peg_adjustment_none">Csap állítás: nincs</string>
+    <string name="live_tuner_reference_tone_title">Referencia hang (hangolás adott hangra)</string>
+    <string name="live_tuner_reference_tone_none">Nincs elérhető célhang a jelenlegi beállításhoz.</string>
+    <string name="live_tuner_reference_tone_selected_line">Kiválasztva: %1$s (S%2$d) %3$s</string>
+    <string name="live_tuner_reference_tone_frequency_line">Referencia frekvencia: %1$s</string>
+    <string name="live_tuner_reference_tone_action_play">Referencia hang lejátszása</string>
+    <string name="live_tuner_reference_tone_action_stop">Referencia hang leállítása</string>
+    <string name="live_tuner_tip">Tipp: stabilizáld a pengetés erejét és a lecsengést, hogy javuljon a cent szintű következetesség.</string>
+
+    <!-- Scale Calculation Engine -->
+    <string name="title_scale_calculation_engine">Skála számító motor</string>
+    <string name="scale_engine_quick_start_levered">Válassz alaphangot + skálát, nézd át a csak-karos táblázatot, majd ha kell, alkalmazd a csapos korrekciós tervet.</string>
+    <string name="scale_engine_quick_start_peg_tuning">Válassz alaphangot + skálát, majd hangold újra a nyitott húrokat a csapos táblázat szerint (nincs kar).</string>
+
+    <string name="scale_engine_summary_scale_notes">Skála hangok: %1$s</string>
+    <string name="scale_engine_summary_left_strings">Bal húrok (Mély -&gt; Magas): %1$s</string>
+    <string name="scale_engine_summary_right_strings">Jobb húrok (Mély -&gt; Magas): %1$s</string>
+    <string name="scale_engine_summary_lever_only_retunes">Csak karos átállítások: %1$d</string>
+    <string name="scale_engine_summary_peg_adjustment_retunes">Csap állításos átállítások: %1$d</string>
+    <string name="scale_engine_summary_peg_tuning_retunes">Csapos hangolási átállítások: %1$d</string>
+
+    <string name="scale_engine_lever_only_table_title">Csak karos táblázat</string>
+    <string name="scale_engine_peg_adjustment_table_title">Újrahangolás (csap állítás) táblázat</string>
+    <string name="scale_engine_peg_tuning_table_title">Csapos hangolás táblázat (nincs kar)</string>
+    <string name="scale_engine_two_column_note">Kétoszlopos kora nézet: bal húrok balra, jobb húrok jobbra (mindkettő mélytől magasig).</string>
+
+    <string name="table_left_header">Bal (Mély -&gt; Magas)</string>
+    <string name="table_right_header">Jobb (Mély -&gt; Magas)</string>
+
+    <string name="value_na">N/A</string>
+    <string name="value_yes">IGEN</string>
+    <string name="value_no">NEM</string>
+
+    <string name="scale_engine_lever_only_row_open_closed">Nyitott %1$s  Zárt %2$s</string>
+    <string name="scale_engine_lever_only_row_lever_target">Kar %1$s  Cél %2$s</string>
+    <string name="scale_engine_row_int_peg">Int %1$s c  Csap %2$s</string>
+    <string name="scale_engine_peg_row_target_lever">Cél %1$s  Kar %2$s</string>
+    <string name="scale_engine_peg_tuning_row_target">Cél %1$s</string>
+    <string name="scale_engine_peg_tuning_row_tune_open">Hangold nyitottra: %1$s</string>
+
+    <string name="scale_engine_conflicts_title">Voicing ütközések</string>
+    <string name="scale_engine_conflicts_none">Nem észlelhető ütközés.</string>
+    <string name="scale_engine_conflict_line">%1$s: %2$s oldal S%3$d-&gt;S%4$d (%5$s)</string>
+
+    <string name="scale_engine_suggestions_title">Alternatív voicing javaslatok</string>
+    <string name="scale_engine_suggestions_none">Nincs szükség javaslatokra.</string>
+    <string name="scale_engine_suggestion_line">%1$s: %2$s</string>
+
+    <!-- Instrument config: status/errors (ViewModel) -->
+    <string name="instrument_config_status_loaded_starter_profile">Kezdő profil betöltve %1$d húrhoz.</string>
+    <string name="instrument_config_status_enter_valid_before_saving">Mentés előtt adj meg érvényes nyitott hangmagasságokat és intonációs cent értékeket minden húrhoz.</string>
+    <string name="instrument_config_status_unable_save_verify_pitch">Nem sikerült menteni. Ellenőrizd a hangmagasság megadásokat.</string>
+    <string name="instrument_config_status_unable_save_verify_intonation">Nem sikerült menteni. Ellenőrizd az intonáció megadásokat.</string>
+    <string name="instrument_config_status_profile_saved">Hangszerprofil mentve.</string>
+    <string name="instrument_config_error_pitch_format">Használj ilyen formátumot: E3 vagy F#4.</string>
+    <string name="instrument_config_error_cents_format">Használj cent értéket így: -13.7 vagy 0.0.</string>
+
+    <!-- Guided Setup -->
+    <string name="title_guided_setup">Vezetett beállítás</string>
+    <string name="guided_setup_no_steps">Nincs elérhető hangolási lépés.</string>
+    <string name="guided_setup_step_counter">Lépés: %1$d / %2$d</string>
+    <string name="guided_setup_string_line">Húr: %1$s (S%2$d)</string>
+    <string name="guided_setup_target_pitch_line">Cél hangmagasság: %1$s</string>
+    <string name="guided_setup_intonation_line">Intonáció: %1$s cent</string>
+    <string name="guided_setup_lever_line">Kar: %1$s</string>
+    <string name="guided_setup_peg_adjustment_line">Csap állítás: %1$s félhang</string>
+    <string name="guided_setup_peg_adjustment_none">Csap állítás: nincs</string>
+
+    <!-- Traditional Presets -->
+    <string name="title_traditional_presets">Hagyományos előbeállítások</string>
+    <string name="traditional_presets_intro">Válassz egy hagyományos hangolási előbeállítást, és töltsd be közvetlenül az aktív hangszerprofilba.</string>
+    <string name="traditional_presets_workflow_title">Előbeállítás folyamat</string>
+    <string name="traditional_presets_workflow_body">Válassz húrszámot, válassz előbeállítást, nézd át a nyitott/zárt hangokat + centeket, majd töltsd be.</string>
+    <string name="traditional_presets_custom_title">Egyedi előbeállítások</string>
+    <string name="traditional_presets_custom_body">Mentsd el az aktív hangszer hangolásodat saját, újrahasználható előbeállításként.</string>
+    <string name="traditional_presets_custom_name_label">Előbeállítás neve</string>
+    <string name="traditional_presets_action_save_custom">Egyedi előbeállítás mentése</string>
+    <string name="traditional_presets_action_delete_selected">Kijelölt törlése</string>
+    <string name="traditional_presets_custom_suffix">%1$s (Egyedi)</string>
+    <string name="traditional_presets_open_tuning_preview">Nyitott hangolás előnézet: %1$s</string>
+    <string name="traditional_presets_selected">Kiválasztva</string>
+    <string name="traditional_presets_action_select_preset">Előbeállítás kiválasztása</string>
+    <string name="traditional_presets_selected_strings_title">Kiválasztott előbeállítás húrok</string>
+    <string name="traditional_presets_selected_string_row">S%1$d | Nyitott %2$s (%3$s c) | Zárt %4$s (%5$s c)</string>
+    <string name="traditional_presets_action_load_selected">Kiválasztott előbeállítás betöltése</string>
+    <string name="traditional_presets_default_custom_name">Saját előbeállítás</string>
+    <string name="traditional_presets_user_preset_description">Felhasználói előbeállítás a hangszer hangolásodból mentve.</string>
+    <string name="traditional_presets_status_save_profile_first">Előbb ments hangszerprofilt, majd készíts egyedi előbeállítást.</string>
+    <string name="traditional_presets_status_enter_name">Adj meg nevet az előbeállításhoz.</string>
+    <string name="traditional_presets_status_saved_custom">Egyedi előbeállítás mentve: \"%1$s\".</string>
+    <string name="traditional_presets_status_select_custom_to_delete">Válassz egyedi előbeállítást a törléshez.</string>
+    <string name="traditional_presets_status_not_custom_preset">A kiválasztott előbeállítás nem egyedi.</string>
+    <string name="traditional_presets_status_deleted_custom">Egyedi előbeállítás törölve: \"%1$s\".</string>
+    <string name="traditional_presets_status_select_preset_before_loading">Betöltés előtt válassz előbeállítást.</string>
+    <string name="traditional_presets_status_loaded_preset">%1$s előbeállítás betöltve %2$d húrhoz.</string>
+
+    <!-- Scale profile status -->
+    <string name="scale_profile_status_no_saved">Nincs mentett profil. Kezdő %1$d húros profil használata.</string>
+    <string name="scale_profile_status_using_saved">Mentett %1$d húros profil használata a Hangszer konfigurációból.</string>
+
+    <!-- Live tuner errors -->
+    <string name="live_tuner_error_mic_permission_required">Mikrofon engedély szükséges.</string>
+    <string name="live_tuner_error_grant_permission_to_start">A hangolás indításához engedélyezd a mikrofont.</string>
+    <string name="live_tuner_error_stream_failed">Az élő hangoló adatfolyam sikertelen.</string>
+
+    <!-- Chords/metronome -->
+    <string name="chord_quality_major">Dúr</string>
+    <string name="chord_quality_minor">Moll</string>
+    <string name="chord_quality_diminished">Szűkített</string>
+    <string name="chord_quality_half_diminished">Félszűkített (m7b5)</string>
+    <string name="chord_quality_sus2">Sus2</string>
+    <string name="chord_quality_sus4">Sus4</string>
+    <string name="chord_quality_dominant7">Domináns 7</string>
+    <string name="chord_quality_major7">Dúr 7</string>
+    <string name="chord_quality_minor7">Moll 7</string>
+
+    <string name="metronome_sound_soft_wood">Puha fa</string>
+    <string name="metronome_sound_wood_block">Fakocka</string>
+    <string name="metronome_sound_bright_click">Fényes kattintás</string>
+
+    <!-- Instant Overview -->
+    <string name="title_instant_overview">Azonnali áttekintés</string>
+    <string name="overview_view_diagram">Diagram</string>
+    <string name="overview_view_table">Táblázat</string>
+    <string name="overview_view_chords">Akkordok</string>
+    <string name="overview_view_exercise">Gyakorlat</string>
+
+    <string name="overview_action_stop_all_tones">Összes hang leállítása</string>
+    <string name="overview_action_play_all_strings">Összes húr lejátszása</string>
+    <string name="action_reset">Visszaállítás</string>
+
+    <string name="overview_diagram_title">Kora diagram</string>
+    <string name="overview_diagram_zoom_label">Nagyítás: %1$s%%</string>
+    <string name="overview_diagram_tap_to_hear">Érints meg egy húrt a hang meghallgatásához (dupla érintés a leállításhoz).</string>
+    <string name="content_desc_kora_diagram">Kora diagram</string>
+    <string name="content_desc_chord_kora_diagram">Akkord kora diagram</string>
+
+    <string name="overview_legend_open_lever">Kar nyitott</string>
+    <string name="overview_legend_closed_lever">Kar zárt</string>
+    <string name="overview_legend_peg_retune_required">Csapos újrahangolás szükséges</string>
+
+    <string name="overview_table_title">Kora táblázat</string>
+
+    <string name="overview_chords_title">Akkordok</string>
+    <string name="overview_chords_subtitle">Találj játszható akkord-voicingokat a jelenlegi húrhangolás alapján.</string>
+    <string name="overview_chords_root_label">Akkord alaphang</string>
+    <string name="overview_chords_quality_label">Akkord minőség</string>
+    <string name="overview_chords_notes_line">Hangok: %1$s</string>
+    <string name="overview_chords_positions_label">Akkord hangok</string>
+    <string name="overview_chords_coverage_complete">Lefedettség: teljes</string>
+    <string name="overview_chords_coverage_missing">Lefedettség: hiányzik %1$s</string>
+    <string name="overview_chords_strings_to_play_line">Játszandó húrok: %1$d / %2$d</string>
+    <string name="overview_chords_pool_line">Játszható húrok: %1$d (nyitott %2$d, zárt %3$d, elhangolt %4$d)</string>
+    <string name="overview_chords_playback_label">Lejátszás</string>
+    <string name="overview_chords_playback_block">Blokk</string>
+    <string name="overview_chords_playback_broken">Arpeggio</string>
+    <string name="overview_chords_playback_spread">Szétszórt</string>
+    <string name="overview_chords_notes_count_chip">%1$d hang</string>
+    <string name="overview_chords_action_sound_chord">Akkord lejátszása</string>
+    <string name="overview_chords_detuned_warning">Elhangolt húrok használatban. Stabil alternatíva: %1$s</string>
+    <string name="overview_chords_action_use_stable_alternative">Stabil alternatíva használata</string>
+    <string name="overview_chords_exercise_note">Gyakorold az akkordváltásokat a Gyakorlat nézetben.</string>
+    <string name="overview_chords_diagram_label">Akkord diagram</string>
+    <string name="overview_chords_diagram_title">Akkord diagram</string>
+    <string name="overview_chords_closest_title">Legközelebbi találatok</string>
+    <string name="overview_chords_match_notes_play_line">Hangok: %1$s (%2$d húr)</string>
+    <string name="overview_chords_match_includes_detuned">Elhangolt húrokat tartalmaz</string>
+    <string name="overview_chords_match_no_detuned">Nincs elhangolt húr</string>
+    <string name="overview_chords_action_use">Használ</string>
+
+    <string name="overview_exercise_title">Gyakorlat</string>
+    <string name="overview_exercise_order_note">Kvintkör gyakorlás: kövesd a kiemelt következő alaphangot.</string>
+    <string name="overview_exercise_start_key_label">Kezdő hangnem</string>
+    <string name="overview_exercise_choice_mode_label">Választási mód</string>
+    <string name="overview_exercise_choice_preset">Előre beállított</string>
+    <string name="overview_exercise_choice_random">Véletlen</string>
+    <string name="overview_exercise_diagram_title">Kvintkör</string>
+    <string name="overview_exercise_diagram_legend">Kezdés (nyitott), következő (kiemelt), választások (opcionális).</string>
+    <string name="overview_exercise_next_step">Következő: %1$s %2$s</string>
+    <string name="overview_exercise_action_next_fifth">Következő kvint</string>
+    <string name="overview_exercise_timed_interval_label">Időzített intervallum</string>
+    <string name="overview_exercise_action_start_timed">Időzített indítása</string>
+    <string name="overview_exercise_action_stop_timed">Időzített leállítása</string>
+    <string name="overview_exercise_timed_note">Az időzített mód egy javasolt következő akkordot emel ki szabályos ütés-intervallumban.</string>
+    <string name="overview_exercise_choice_item">%1$s %2$s</string>
+
+    <string name="overview_metronome_title">Metronóm</string>
+    <string name="overview_metronome_bpm_line">BPM: %1$d</string>
+    <string name="overview_metronome_time_signature_label">Ütemmutató</string>
+    <string name="overview_metronome_beats_to_click_label">Kattintandó ütések</string>
+    <string name="overview_metronome_sound_label">Kattintás hangja</string>
+    <string name="overview_metronome_action_start">Metronóm indítása</string>
+    <string name="overview_metronome_action_stop">Metronóm leállítása</string>
+
+    <string name="value_none_found">Nincs</string>
+    <string name="value_detuned">Elhangolt</string>
+
+    <string name="live_tuner_save_preset_prompt_title">Elégedett a hangolással?</string>
+    <string name="live_tuner_save_preset_prompt_body">Mentse el egyéni presetként a „Presetek" fülön, hogy bármikor visszatérhessen hozzá.</string>
+    <string name="overview_reference_volume_label">Referencia hangvolumen</string>
+    <string name="overview_note_letters_label">Hangjelölések megjelenítése</string>
+
+    <string name="app_top_bar_title">Kora Hangolás</string>
+    <string name="menu_settings">Beállítások</string>
+    <string name="menu_about">Az alkalmazásról</string>
+    <string name="settings_title">Beállítások</string>
+    <string name="settings_theme_label">App téma</string>
+    <string name="settings_theme_system">Rendszer szerint</string>
+    <string name="settings_theme_light">Világos</string>
+    <string name="settings_theme_dark">Sötét</string>
+    <string name="about_title">Az alkalmazásról</string>
+    <string name="about_description">Hangolási segéd 21 és 22 húros korához, skálaelemzéssel, akkordvoicinggal, irányított hangolással és élő hangmagasság-érzékeléssel.</string>
+    <string name="about_version">%1$s verzió</string>
+    <string name="about_privacy_policy">Adatvédelmi irányelvek</string>
+</resources>
+

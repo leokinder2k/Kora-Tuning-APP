@@ -1,0 +1,12 @@
+<resources>
+    <plurals name="overview_exercise_suggested_next">
+        <item quantity="one">Prossimo suggerito: %1$s %2$s tra %3$d battuta (battuta %4$d).</item>
+        <item quantity="other">Prossimo suggerito: %1$s %2$s tra %3$d battute (battuta %4$d).</item>
+    </plurals>
+
+    <plurals name="overview_exercise_interval_chip">
+        <item quantity="one">%d battuta</item>
+        <item quantity="other">%d battute</item>
+    </plurals>
+</resources>
+

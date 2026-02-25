@@ -1,0 +1,12 @@
+<resources>
+    <plurals name="overview_exercise_suggested_next">
+        <item quantity="one">Javasolt következő: %1$s %2$s %3$d ütés múlva (ütés %4$d).</item>
+        <item quantity="other">Javasolt következő: %1$s %2$s %3$d ütés múlva (ütés %4$d).</item>
+    </plurals>
+
+    <plurals name="overview_exercise_interval_chip">
+        <item quantity="one">%d ütés</item>
+        <item quantity="other">%d ütés</item>
+    </plurals>
+</resources>
+

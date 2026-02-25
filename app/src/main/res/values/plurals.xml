@@ -1,0 +1,12 @@
+<resources>
+    <plurals name="overview_exercise_suggested_next">
+        <item quantity="one">Suggested next: %1$s %2$s in %3$d beat (beat %4$d).</item>
+        <item quantity="other">Suggested next: %1$s %2$s in %3$d beats (beat %4$d).</item>
+    </plurals>
+
+    <plurals name="overview_exercise_interval_chip">
+        <item quantity="one">%d beat</item>
+        <item quantity="other">%d beats</item>
+    </plurals>
+</resources>
+
