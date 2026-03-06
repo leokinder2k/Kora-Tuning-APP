@@ -6,6 +6,7 @@ on:
       - main
       - master
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ios-${{ github.workflow }}-${{ github.ref }}
@@ -39,7 +40,7 @@ jobs:
         run: brew install xcodegen
 
       - name: Generate Xcode project
-        working-directory: iosApp
+        working-directory: apple
         run: xcodegen generate
 
       # ── 3. Compile the iOS app (simulator, no code-signing) ─────────────────
@@ -57,7 +58,6 @@ jobs:
       # ── 4. Boot the simulator ───────────────────────────────────────────────
       - name: Boot iOS Simulator
         run: |
-          # Find an available iPhone 16 UDID (fall back to any iPhone)
           UDID=$(xcrun simctl list devices available | \
             grep "iPhone 16" | grep -v "Pro\|Plus\|Max" | head -1 | \
             grep -oE '[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}')
@@ -69,36 +69,74 @@ jobs:
 
           echo "SIMULATOR_UDID=$UDID" >> "$GITHUB_ENV"
           echo "Booting simulator UDID: $UDID"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
 
-          xcrun simctl boot "$UDID" || true   # already booted is fine
-          xcrun simctl bootstatus "$UDID" -b  # waits until fully booted
-
-      # ── 5. Install and launch the app ───────────────────────────────────────
+      # ── 5. Install app ───────────────────────────────────────────────────────
       - name: Install app on simulator
         run: |
           APP=$(find build/ios-derived -name "iosApp.app" -type d | head -1)
           echo "App bundle: $APP"
           xcrun simctl install "$SIMULATOR_UDID" "$APP"
 
-      - name: Launch app on simulator
-        run: |
-          xcrun simctl launch "$SIMULATOR_UDID" com.leokinder2k.koratuningcompanion.ios
-          # Give the app time to fully render before screenshotting
-          sleep 8
-
-      # ── 6. Capture screenshots ──────────────────────────────────────────────
-      - name: Take simulator screenshots
+      # ── 6. Start video recording, launch app, capture screenshots ───────────
+      - name: Record and screenshot app
         run: |
           mkdir -p screenshots
+
+          # Start video recording in background
+          xcrun simctl io "$SIMULATOR_UDID" recordVideo \
+            --codec=h264 screenshots/app-demo.mp4 &
+          VIDEO_PID=$!
+
+          # Launch the app
+          xcrun simctl launch "$SIMULATOR_UDID" com.leokinder2k.koratuningcompanion.ios
+          echo "App launched, waiting for home screen..."
+          sleep 8
           xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/01_home.png
-          echo "Screenshot captured."
+
+          # Swipe to navigate through tabs (bottom nav: tap approx positions)
+          # Instrument Config tab (index 0 — already visible)
+          sleep 2
+          xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/02_instrument_config.png
+
+          # Scale Calculation tab (tap bottom-nav area)
+          xcrun simctl io "$SIMULATOR_UDID" touch 195 840
+          sleep 4
+          xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/03_scale_calculation.png
+
+          # Instant Overview tab
+          xcrun simctl io "$SIMULATOR_UDID" touch 293 840
+          sleep 4
+          xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/04_instant_overview.png
+
+          # Guided Setup tab
+          xcrun simctl io "$SIMULATOR_UDID" touch 390 840
+          sleep 4
+          xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/05_guided_setup.png
+
+          # Live Tuner tab
+          xcrun simctl io "$SIMULATOR_UDID" touch 488 840
+          sleep 4
+          xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/06_live_tuner.png
+
+          # Stop recording
+          kill $VIDEO_PID || true
+          wait $VIDEO_PID 2>/dev/null || true
+          echo "Recording saved."
 
       # ── 7. Upload artifacts ─────────────────────────────────────────────────
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
         with:
           name: ios-simulator-screenshots
-          path: screenshots/
+          path: screenshots/*.png
+
+      - name: Upload demo video
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-video
+          path: screenshots/app-demo.mp4
 
       - name: Upload .app bundle
         uses: actions/upload-artifact@v4
