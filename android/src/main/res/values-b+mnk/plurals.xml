@@ -1,0 +1,12 @@
+<resources>
+    <plurals name="overview_exercise_suggested_next">
+        <item quantity="one">Ladilikan min be tugu o la: %1$s %2$s kɔnɔ %3$d bugɔli la (bugɔli %4$d kɔnɔ).</item>
+        <item quantity="other">Ladili min be sɔrɔ o la: %1$s %2$s %3$d bugɔli kɔnɔ (bugu %4$d).</item>
+    </plurals>
+
+    <plurals name="overview_exercise_interval_chip">
+        <item quantity="one">%d bugɔli</item>
+        <item quantity="other">%d gosi</item>
+    </plurals>
+</resources>
+

@@ -21,3 +21,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "Kora Tuning System"
 include(":app")
+project(":app").projectDir = file("android")
+include(":shared")
+include(":desktopApp")

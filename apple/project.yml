@@ -1,0 +1,47 @@
+name: iosApp
+options:
+  deploymentTarget:
+    iOS: "16.0"
+  bundleIdPrefix: com.leokinder2k.koratuningcompanion
+
+settings:
+  SWIFT_VERSION: "5.9"
+  ENABLE_BITCODE: "NO"
+
+targets:
+  iosApp:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: iosApp
+    info:
+      path: iosApp/Info.plist
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.leokinder2k.koratuningcompanion.ios
+      PRODUCT_NAME: KoraTuning
+      SWIFT_EMIT_LOC_STRINGS: YES
+      FRAMEWORK_SEARCH_PATHS: $(inherited) $(SRCROOT)/../shared/build/bin/iosSimulatorArm64/debugFramework $(SRCROOT)/../shared/build/bin/iosArm64/releaseFramework
+      OTHER_LDFLAGS: $(inherited) -framework shared
+    dependencies:
+      - framework:
+          path: ../shared/build/bin/iosSimulatorArm64/debugFramework/shared.framework
+          embed: true
+          codeSign: false
+          condition: sdk:iphonesimulator*
+      - framework:
+          path: ../shared/build/bin/iosArm64/releaseFramework/shared.framework
+          embed: true
+          codeSign: true
+          condition: sdk:iphoneos*
+    preBuildScripts:
+      - name: Build Kotlin Framework
+        script: |
+          if [[ "$PLATFORM_NAME" == *"simulator"* ]]; then
+            cd "$SRCROOT/.."
+            ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64 --no-daemon
+          else
+            cd "$SRCROOT/.."
+            ./gradlew :shared:linkReleaseFrameworkIosArm64 --no-daemon
+          fi
+        basedOnDependencyAnalysis: false

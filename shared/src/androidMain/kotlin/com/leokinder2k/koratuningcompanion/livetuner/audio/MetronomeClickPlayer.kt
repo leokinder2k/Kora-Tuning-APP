@@ -1,0 +1,133 @@
+package com.leokinder2k.koratuningcompanion.livetuner.audio
+
+import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioTrack
+import kotlin.concurrent.thread
+import kotlin.math.PI
+import kotlin.math.exp
+import kotlin.math.sin
+
+actual class MetronomeClickPlayer actual constructor(
+    private val sampleRateHz: Int
+) {
+
+    private val activeTracks = mutableSetOf<AudioTrack>()
+
+    @Synchronized
+    actual fun play(sound: MetronomeSoundOption, accent: Boolean, volumeScale: Float) {
+        val samples = createClickWave(
+            sound = sound,
+            accent = accent,
+            volumeScale = volumeScale.coerceIn(0f, 1.8f).toDouble()
+        )
+        val minBufferBytes = AudioTrack.getMinBufferSize(
+            sampleRateHz,
+            AudioFormat.CHANNEL_OUT_MONO,
+            AudioFormat.ENCODING_PCM_16BIT
+        )
+        val bufferSizeBytes = maxOf(minBufferBytes, samples.size * 2)
+
+        val track = AudioTrack.Builder()
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            .setAudioFormat(
+                AudioFormat.Builder()
+                    .setSampleRate(sampleRateHz)
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                    .build()
+            )
+            .setTransferMode(AudioTrack.MODE_STATIC)
+            .setBufferSizeInBytes(bufferSizeBytes)
+            .build()
+
+        val written = track.write(samples, 0, samples.size, AudioTrack.WRITE_BLOCKING)
+        if (written <= 0) {
+            track.release()
+            return
+        }
+
+        activeTracks += track
+        track.play()
+
+        val releaseDelayMs = ((samples.size.toDouble() / sampleRateHz) * 1000.0).toLong() + 40L
+        thread(start = true, isDaemon = true, name = "metronome-release") {
+            Thread.sleep(releaseDelayMs)
+            synchronized(this@MetronomeClickPlayer) {
+                if (track in activeTracks) {
+                    releaseTrack(track)
+                    activeTracks -= track
+                }
+            }
+        }
+    }
+
+    @Synchronized
+    actual fun stopAll() {
+        val tracks = activeTracks.toList()
+        activeTracks.clear()
+        tracks.forEach { track -> releaseTrack(track) }
+    }
+
+    @Synchronized
+    actual fun release() {
+        stopAll()
+    }
+
+    private fun releaseTrack(track: AudioTrack) {
+        track.runCatching {
+            if (playState == AudioTrack.PLAYSTATE_PLAYING) {
+                stop()
+            }
+            flush()
+            release()
+        }
+    }
+
+    private fun createClickWave(
+        sound: MetronomeSoundOption,
+        accent: Boolean,
+        volumeScale: Double
+    ): ShortArray {
+        val baseDurationMs = when (sound) {
+            MetronomeSoundOption.WOOD_SOFT -> 58
+            MetronomeSoundOption.WOOD_BLOCK -> 46
+            MetronomeSoundOption.WOOD_CLICK -> 34
+        }
+        val sampleCount = ((sampleRateHz * baseDurationMs) / 1000.0).toInt().coerceAtLeast(1)
+        val baseFrequencyHz = when (sound) {
+            MetronomeSoundOption.WOOD_SOFT -> 880.0
+            MetronomeSoundOption.WOOD_BLOCK -> 1_450.0
+            MetronomeSoundOption.WOOD_CLICK -> 2_250.0
+        }
+        val harmonicGain = when (sound) {
+            MetronomeSoundOption.WOOD_SOFT -> 0.16
+            MetronomeSoundOption.WOOD_BLOCK -> 0.24
+            MetronomeSoundOption.WOOD_CLICK -> 0.32
+        }
+        val amplitude = (if (accent) 0.48 else 0.34) * volumeScale
+        val attackSamples = (sampleRateHz * 0.0018).toInt().coerceAtLeast(1)
+        val samples = ShortArray(sampleCount)
+
+        for (i in 0 until sampleCount) {
+            val attack = if (i < attackSamples) {
+                i.toDouble() / attackSamples.toDouble()
+            } else {
+                1.0
+            }
+            val progress = i.toDouble() / sampleCount.toDouble()
+            val decay = exp(-8.0 * progress)
+            val fundamental = sin((2.0 * PI * baseFrequencyHz * i) / sampleRateHz)
+            val harmonic = sin((2.0 * PI * baseFrequencyHz * 2.38 * i) / sampleRateHz)
+            val tone = (fundamental + (harmonicGain * harmonic)) * attack * decay
+            val scaled = (tone * amplitude).coerceIn(-1.0, 1.0)
+            samples[i] = (scaled * Short.MAX_VALUE).toInt().toShort()
+        }
+        return samples
+    }
+}

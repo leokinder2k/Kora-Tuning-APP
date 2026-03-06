@@ -1,0 +1,107 @@
+name: iOS CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+concurrency:
+  group: ios-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-simulator:
+    name: Build & Run on iOS Simulator
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      # ── 1. Build the Kotlin shared framework for the simulator ──────────────
+      - name: Build shared framework (iosSimulatorArm64)
+        run: ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64 --no-daemon
+
+      # ── 2. Generate Xcode project from project.yml ──────────────────────────
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: iosApp
+        run: xcodegen generate
+
+      # ── 3. Compile the iOS app (simulator, no code-signing) ─────────────────
+      - name: Build iOS app for simulator
+        run: |
+          xcodebuild \
+            -project apple/iosApp.xcodeproj \
+            -scheme iosApp \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -configuration Debug \
+            -derivedDataPath build/ios-derived \
+            build \
+            CODE_SIGNING_ALLOWED=NO
+
+      # ── 4. Boot the simulator ───────────────────────────────────────────────
+      - name: Boot iOS Simulator
+        run: |
+          # Find an available iPhone 16 UDID (fall back to any iPhone)
+          UDID=$(xcrun simctl list devices available | \
+            grep "iPhone 16" | grep -v "Pro\|Plus\|Max" | head -1 | \
+            grep -oE '[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}')
+
+          if [ -z "$UDID" ]; then
+            UDID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | \
+              grep -oE '[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}')
+          fi
+
+          echo "SIMULATOR_UDID=$UDID" >> "$GITHUB_ENV"
+          echo "Booting simulator UDID: $UDID"
+
+          xcrun simctl boot "$UDID" || true   # already booted is fine
+          xcrun simctl bootstatus "$UDID" -b  # waits until fully booted
+
+      # ── 5. Install and launch the app ───────────────────────────────────────
+      - name: Install app on simulator
+        run: |
+          APP=$(find build/ios-derived -name "iosApp.app" -type d | head -1)
+          echo "App bundle: $APP"
+          xcrun simctl install "$SIMULATOR_UDID" "$APP"
+
+      - name: Launch app on simulator
+        run: |
+          xcrun simctl launch "$SIMULATOR_UDID" com.leokinder2k.koratuningcompanion.ios
+          # Give the app time to fully render before screenshotting
+          sleep 8
+
+      # ── 6. Capture screenshots ──────────────────────────────────────────────
+      - name: Take simulator screenshots
+        run: |
+          mkdir -p screenshots
+          xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/01_home.png
+          echo "Screenshot captured."
+
+      # ── 7. Upload artifacts ─────────────────────────────────────────────────
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-screenshots
+          path: screenshots/
+
+      - name: Upload .app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-debug-app
+          path: build/ios-derived/Build/Products/Debug-iphonesimulator/iosApp.app

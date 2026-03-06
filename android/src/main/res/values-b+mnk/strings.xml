@@ -1,0 +1,371 @@
+<resources>
+    <string name="app_name">Kora Tuning tericɛ</string>
+
+    <!-- Navigation -->
+    <string name="nav_instrument_label">Minɛn</string>
+    <string name="nav_instrument_short">I</string>
+    <string name="nav_scale_label">Wɔrɔ</string>
+    <string name="nav_scale_short">S</string>
+    <string name="nav_guided_label">Bilasirali</string>
+    <string name="nav_guided_short">G</string>
+    <string name="nav_overview_label">A lajɛ</string>
+    <string name="nav_overview_short">O</string>
+    <string name="nav_tuner_label">Tuner</string>
+    <string name="nav_tuner_short">T</string>
+    <string name="nav_presets_label">Labɛnninw</string>
+    <string name="nav_presets_short">P</string>
+
+    <!-- Common -->
+    <string name="strings_count">%1$d juruw</string>
+    <string name="quick_start_title">Daminɛ joona</string>
+    <string name="action_start">Daminɛ</string>
+    <string name="action_stop">Lalɔ</string>
+    <string name="action_previous">Fɔlɔ fɔlɔɔ</string>
+    <string name="action_next">Nata</string>
+    <string name="action_grant_mic_short">Grant ka mikro</string>
+    <string name="action_grant_microphone_permission">Mikɔrɔfɔni sira di</string>
+
+    <!-- Instrument Configuration -->
+    <string name="title_instrument_configuration">Minɛnw labɛncogo</string>
+    <string name="instrument_config_section_strings">Juruw</string>
+    <string name="instrument_config_description_levered">A’ ye tuning dayɛlɛnin sigi juru kelen kelen bɛɛ kan. </string>
+    <string name="instrument_config_description_peg_tuning">Peg tuning cogo (min tɛ kromatiki ye): i ka kora tɛ ni levier ye. </string>
+    <string name="instrument_config_section_instrument_type">Minɛn suguya</string>
+    <string name="instrument_type_levers">Leviers (kromatiki)</string>
+    <string name="instrument_type_pegs">Tuning</string>
+    <string name="instrument_config_quick_start_step_1">1. I ka juru 21 wala 22 sugandi.</string>
+    <string name="instrument_config_quick_start_step_2">2. A’ ye yɔrɔ dayɛlɛninw ani santimɛtɛrɛw sɛbɛ juru kelen kelen bɛɛ la.</string>
+    <string name="instrument_config_quick_start_step_3">3. I ka porofayili mara, o kɔ, i ka baara kɛ ni Scale/Overview ani Tuner baarakɛcogo ye min farala ɲɔgɔn kan.</string>
+    <string name="instrument_config_auto_save_note">Noti juru ni santimɛtɛrɛw be mara u yɛrɛ ma ni sɛbɛninw be bɛn.</string>
+    <string name="instrument_config_action_load_starter_profile">Daminɛbaga ka porofayili don</string>
+    <string name="instrument_config_action_save_profile">Minɛn porofayili mara</string>
+    <string name="instrument_preset_manual">Min bɛ fɛn bolo la</string>
+
+    <string name="instrument_tuning_assistant_title">Minɛnw labɛnni dɛmɛbaga</string>
+    <string name="instrument_tuning_assistant_subtitle">Juru dɔ sugandi ani k’a ka fɔcogo dayɛlɛnin yɛlɛma n’i be baara kɛ ni target note/cents ani status lights ye.</string>
+    <string name="instrument_tuning_assistant_controls_title">Tuner kɔlɔsili</string>
+    <string name="instrument_tuning_assistant_target_line">Laɲini: %1$s (%2$s c)</string>
+    <string name="instrument_tuning_assistant_target_hz_line">Laɲini Hz: %1$s</string>
+    <string name="instrument_tuning_assistant_detected_hz_line">A yera: %1$s</string>
+    <string name="instrument_tuning_assistant_deviation_line">Yɛlɛmani: %1$s c (%2$s)</string>
+    <string name="instrument_tuning_assistant_deviation_none">Tiɲɛni: --</string>
+    <string name="instrument_tuning_assistant_left_side">Numunya fan fɛ (Basi -&amp;gt; Sanfɛ)</string>
+    <string name="instrument_tuning_assistant_right_side">Kinin fɛ (Basi -&amp;gt; Sanfɛ)</string>
+    <string name="instrument_tuning_assistant_string_chip">S%1$dPh_1__</string>
+
+    <string name="tuning_flat">Falafala</string>
+    <string name="tuning_in_tune">Tune kɔnɔ</string>
+    <string name="tuning_sharp">Leru</string>
+
+    <string name="instrument_config_string_title">Juru %1$d</string>
+    <string name="instrument_config_open_pitch_label">Dayɛlɛnin yɔrɔ</string>
+    <string name="instrument_config_open_pitch_placeholder">E3.</string>
+    <string name="instrument_config_closed_pitch_supporting">Kanɲɛ datugunin: %1$s</string>
+    <string name="instrument_config_open_pitch_supporting">A’ ye yɔrɔ dayɛlɛnin sɛbɛ walisa ka yɔrɔ datugunin jati.</string>
+    <string name="instrument_config_open_pitch_supporting_peg">Peg tuning cogoya: dayɛlɛnin dɔrɔn (levier tɛ yen).</string>
+    <string name="instrument_config_open_cents_label">Santimɛtiri dayɛlɛnin</string>
+    <string name="instrument_config_closed_cents_label">Santimɛtiri datugunin</string>
+    <string name="instrument_config_cents_placeholder">0.0</string>
+
+    <!-- Live tuner mode labels (used in multiple screens) -->
+    <string name="live_tuner_mode_realtime_label">Wagati yɛrɛ yɛrɛ</string>
+    <string name="live_tuner_mode_precision_label">Tiɲɛn</string>
+    <string name="live_tuner_mode_realtime_summary">Latency dɔgɔyara, tiɲɛtigiya dɔgɔyara.</string>
+    <string name="live_tuner_mode_precision_summary">Tiɲɛn ɲuman, latency caya.</string>
+
+    <!-- Scale selection (shared) -->
+    <string name="scale_root_note_label">Lili sɛbɛn</string>
+    <string name="scale_type_label">Sɛgɛsɛgɛli suguya</string>
+    <string name="scale_family_label">Denbaya hakɛ</string>
+    <string name="scale_label">Wɔrɔ</string>
+
+    <string name="scale_family_modes">Modɛsi</string>
+    <string name="scale_family_pentatonic">Pentatoniki</string>
+    <string name="scale_family_blues">Bulu</string>
+    <string name="scale_family_kora_scales">Kora sɛgɛsɛgɛli</string>
+    <string name="scale_family_hexatonic">Heksatoniki</string>
+    <string name="scale_family_beebop">Bibop</string>
+    <string name="scale_family_diminished">A dɔgɔyara</string>
+    <string name="scale_family_other">Wɛrɛ</string>
+
+    <string name="scale_type_major">Majɛrɛ (Heptatoniki)</string>
+    <string name="scale_type_natural_minor">Minɛn fitinin (Heptatoniki)</string>
+    <string name="scale_type_harmonic_minor">Harmoniki fitinin (Heptatoniki)</string>
+    <string name="scale_type_melodic_minor">Melodiki fitinin (Heptatoniki)</string>
+
+    <string name="scale_type_ionian">Iyɔni (Modi 1)</string>
+    <string name="scale_type_dorian">Dorian (Cogo 2nan)</string>
+    <string name="scale_type_phrygian">Firizikan (Cogo 3nan)</string>
+    <string name="scale_type_lydian">Lidi (Modi 4nan)</string>
+    <string name="scale_type_mixolydian">Miksolidi (Modi 5nan)</string>
+    <string name="scale_type_aeolian">Aeoli (Modi 6nan)</string>
+    <string name="scale_type_locrian">Lokriyan (Modi 7nan)</string>
+
+    <string name="scale_type_major_pentatonic">Pentatonikiba</string>
+    <string name="scale_type_minor_pentatonic">Pentatoniki fitinin</string>
+
+    <string name="scale_type_major_hexatonic">Heksatoniki belebele</string>
+    <string name="scale_type_minor_hexatonic">Heksatoniki fitinin</string>
+    <string name="scale_type_whole_tone">Kanɲɛ bɛɛ (Heksatoniki)</string>
+    <string name="scale_type_major_blues">Bulu belebele (Heksatoniki)</string>
+    <string name="scale_type_minor_blues">Bulu fitininw (Heksatoniki)</string>
+
+    <string name="scale_type_beebop_major">Bibop Majɛrɛ</string>
+    <string name="scale_type_beebop_dominant">Beebop ka fanga</string>
+    <string name="scale_type_beebop_dorian">Bibɔpu Doriyan</string>
+
+    <string name="scale_type_diminished_whole_half">A tilancɛ bɛɛ dɔgɔyara (Octatonic)</string>
+    <string name="scale_type_diminished_half_whole">Dɔgɔyanin tilancɛ (Octatonic)</string>
+
+    <string name="scale_type_chromatic">Kulɛri</string>
+
+    <!-- Live Tuner -->
+    <string name="title_live_tuner">Tuner ɲɛnama</string>
+    <string name="live_tuner_quick_start_step_1">1. Sugandili kɛ cogo min na: Wagati yɛrɛ yɛrɛ la jaabili kama, Tiɲɛn kɛmɛtiri tiɲɛn na.</string>
+    <string name="live_tuner_quick_start_step_2">2. A’ ye mikro don ani ka tuner daminɛ.</string>
+    <string name="live_tuner_quick_start_step_3">3. Juru kelen tigɛ ka ɲɛ ani ka santimɛtiri yɛlɛmani bɛn ni 0 ye.</string>
+    <string name="live_tuner_peg_tuning_note">Peg tuning cogoya: status yeelenw be baara kɛ ni ±1 ton (±200 cents) muɲuli ye ani leviers tɛ jati.</string>
+    <string name="live_tuner_section_microphone">Mikɔrɔfɔni</string>
+    <string name="live_tuner_microphone_mode_label">Mode</string>
+    <string name="live_tuner_action_start">Tuner ɲɛnama daminɛ</string>
+    <string name="live_tuner_action_stop">Tuner ɲɛnama lalɔ</string>
+    <string name="live_tuner_section_detection">lɔnniya</string>
+    <string name="live_tuner_detected_pitch_line">Kanɲɛ min lɔnna: %1$s</string>
+    <string name="live_tuner_confidence_line">Lanaya: %1$s</string>
+    <string name="live_tuner_signal_rms_line">Tagamasiɲɛ hakɛ (RMS): %1$s</string>
+    <string name="live_tuner_section_nearest_target">Laɲinita min ka surun</string>
+    <string name="live_tuner_nearest_target_no_match">A ma bɛn fɔlɔ. </string>
+    <string name="live_tuner_nearest_target_string_line">Juru: %1$s (S%2$d)</string>
+    <string name="live_tuner_nearest_target_pitch_line">Laɲinita: %1$s (%2$s)</string>
+    <string name="live_tuner_nearest_target_intonation_line">Kanɲɛcogo laɲinin: %1$s kɛmɛsarada</string>
+    <string name="live_tuner_nearest_target_status_line">Labɛnni cogoya: %1$s</string>
+    <string name="live_tuner_nearest_target_deviation_line">Kɛmɛtiri yɛlɛmani: %1$s kɛmɛtiri</string>
+    <string name="live_tuner_nearest_target_lever_line">Levier: %1$s</string>
+    <string name="live_tuner_nearest_target_peg_adjustment_line">Peg yɛlɛmani: %1$s kan tilancɛ(w)</string>
+    <string name="live_tuner_nearest_target_peg_adjustment_none">Peg yɛlɛmani: foyi tɛ</string>
+    <string name="live_tuner_reference_tone_title">Reference Tone (Tune ka kɛɲɛ ni kan kɛrɛnkɛrɛnnin dɔ ye)</string>
+    <string name="live_tuner_reference_tone_none">Laɲinita yɔrɔ si tɛ yen sisan sigicogo kama.</string>
+    <string name="live_tuner_reference_tone_selected_line">Sugandili: %1$s (S%2$d) %3$s</string>
+    <string name="live_tuner_reference_tone_frequency_line">Ɲɛyirali fɛ: %1$s</string>
+    <string name="live_tuner_reference_tone_action_play">Referansi kaan bɔ</string>
+    <string name="live_tuner_reference_tone_action_stop">Referansi kumakan lalɔ</string>
+    <string name="live_tuner_tip">Ladilikan: i ka pluck fanga basigi ani ka sabati walasa ka cent-nivo bɛnbaliya fisaya.</string>
+    <string name="live_tuner_save_preset_prompt_title">Yala i nisɔn ka di i ka tuning na wa?</string>
+    <string name="live_tuner_save_preset_prompt_body">A mara i n’a fɔ i ka porogramu dɔ min be sɔrɔ Presets yɔrɔ la walisa i ka se ka kɔsegi a ma wagati o wagati.</string>
+
+    <!-- Scale Calculation Engine -->
+    <string name="title_scale_calculation_engine">Sɛgɛsɛgɛli jatebɔlan</string>
+    <string name="scale_engine_quick_start_levered">Lili + hakɛ sugandi, tabali min be ni levier dɔrɔn ye, o kɔfɛ ka peg-correct plan kɛ n\'a mako be yen.</string>
+    <string name="scale_engine_quick_start_peg_tuning">Lili + hakɛ sugandi, o kɔ, i ka juru dayɛlɛninw labɛn kokura n’i be baara kɛ ni nɛgɛjuru labɛncogo tabali ye (levier tɛ yen).</string>
+
+    <string name="scale_engine_summary_scale_notes">Jateminɛ sɛbɛnw: %1$s</string>
+    <string name="scale_engine_summary_left_strings">Numunya juru (Basi -&amp;gt; Sanfɛ): %1$s</string>
+    <string name="scale_engine_summary_right_strings">Kinibolo ka juru (Basi -&amp;gt; Sanfɛ): %1$s</string>
+    <string name="scale_engine_summary_lever_only_retunes">Levier dɔrɔn lo be yɛlɛma yɛlɛma: %1$d</string>
+    <string name="scale_engine_summary_peg_adjustment_retunes">Peg-labɛnni yɛlɛmaniw: %1$d</string>
+    <string name="scale_engine_summary_peg_tuning_retunes">Ɲɛyirali fɛ: %1$d</string>
+
+    <string name="scale_engine_lever_only_table_title">Tabali min be ni levier dɔrɔn ye</string>
+    <string name="scale_engine_peg_adjustment_table_title">Retune (Peg yɛlɛmani) Tabali</string>
+    <string name="scale_engine_peg_tuning_table_title">Tabali min be yɛlɛmayɛlɛma (Levier tɛ yen)</string>
+    <string name="scale_engine_two_column_note">Kora min be yɔrɔ fila la: Numunya juru be numanbolo la, kininbolo juru be kininbolo la (u fila bɛɛ be bas ka taga sanfɛ).</string>
+
+    <string name="table_left_header">Numunya (Basi -&amp;gt; Sanfɛ)</string>
+    <string name="table_right_header">Kinibolo (Basi -&amp;gt; Sanfɛ)</string>
+
+    <string name="value_na">N/A</string>
+    <string name="value_yes">ƆNHƆN</string>
+    <string name="value_no">AYI</string>
+
+    <string name="scale_engine_lever_only_row_open_closed">Dayɛlɛnin %1$s Datugunin %2$s</string>
+    <string name="scale_engine_lever_only_row_lever_target">Levier %1$s Laɲini %2$s</string>
+    <string name="scale_engine_row_int_peg">Int %1$s c Peg %2$s</string>
+    <string name="scale_engine_peg_row_target_lever">Laɲini %1$s Levier %2$s</string>
+    <string name="scale_engine_peg_tuning_row_target">Laɲini %1$s</string>
+    <string name="scale_engine_peg_tuning_row_tune_open">Tuni dayɛlɛ %1$s</string>
+
+    <string name="scale_engine_conflicts_title">Ka kɛlɛw fɔ</string>
+    <string name="scale_engine_conflicts_none">Kɛlɛ si ma ye.</string>
+    <string name="scale_engine_conflict_line">%1$s: %2$s-fan S%3$d_&amp;gt;S%4$d (%5$s)</string>
+
+    <string name="scale_engine_suggestions_title">Ladili wɛrɛw minw be sɔrɔ kanɲɛ fɔcogo la</string>
+    <string name="scale_engine_suggestions_none">Ladili si tɛ ɲini.</string>
+    <string name="scale_engine_suggestion_line">%1$s: %2$s</string>
+
+    <!-- Instrument config: status/errors (ViewModel) -->
+    <string name="instrument_config_status_loaded_starter_profile">%1$d juruw ka daminɛ porofayili donna.</string>
+    <string name="instrument_config_status_enter_valid_before_saving">Aw ye yɔrɔ dayɛlɛninw ani intonasiyɔn santimɛtɛrɛw sɛbɛ juruw bɛɛ la sanni aw k’u mara.</string>
+    <string name="instrument_config_status_unable_save_verify_pitch">A tɛ se ka kisi. </string>
+    <string name="instrument_config_status_unable_save_verify_intonation">A tɛ se ka kisi. </string>
+    <string name="instrument_config_status_profile_saved">Minɛnw ka porofayili maranin lo.</string>
+    <string name="instrument_config_error_pitch_format">I ka baara kɛ ni sɛbɛri cogoya ye i n’a fɔ E3 wala F#4.</string>
+    <string name="instrument_config_error_cents_format">I ka baara kɛ ni santimɛtɛrɛw ye i n’a fɔ -13,7 wala 0,0.</string>
+
+    <!-- Guided Setup -->
+    <string name="title_guided_setup">Labɛn cogo min be bilasira</string>
+    <string name="guided_setup_no_steps">Tuning steps tɛ yen.</string>
+    <string name="guided_setup_step_counter">Tagamasira %1$d ka %2$d</string>
+    <string name="guided_setup_string_line">Juru: %1$s (S%2$d)</string>
+    <string name="guided_setup_target_pitch_line">Laɲinita: %1$s</string>
+    <string name="guided_setup_intonation_line">Kanɲɛcogo: %1$s kɛmɛsarada</string>
+    <string name="guided_setup_lever_line">Levier: %1$s</string>
+    <string name="guided_setup_peg_adjustment_line">Peg yɛlɛmani: %1$s kan tilancɛ(w)</string>
+    <string name="guided_setup_peg_adjustment_none">Peg yɛlɛmani: foyi tɛ</string>
+
+    <!-- Traditional Presets -->
+    <string name="title_traditional_presets">Laadakow</string>
+    <string name="traditional_presets_intro">Laada tuning preset dɔ sugandi ani k’a don yɔrɔnin kelen minɛnw ka porofayili kɔnɔ.</string>
+    <string name="traditional_presets_workflow_title">Baarakɛcogo labɛnnin ka kɔn</string>
+    <string name="traditional_presets_workflow_body">Sugandili kɛ juru jate la, preset dɔ sugandi, dayɛlɛnin/datuguninw lajɛ + santimɛtɛrɛw, ka sɔrɔ ka don.</string>
+    <string name="traditional_presets_custom_title">Ɲɛyirali minw be kɛ ka kɔn</string>
+    <string name="traditional_presets_custom_body">I ka minanw labɛncogo mara i n’a fɔ i yɛrɛ ka preset min be se ka baara kɛ n’a ye tugun.</string>
+    <string name="traditional_presets_custom_name_label">Tɔgɔ min bilara ka bila</string>
+    <string name="traditional_presets_action_save_custom">Ka kɔn ka labɛnw mara</string>
+    <string name="traditional_presets_action_delete_selected">Sugandilininw jɔsi</string>
+    <string name="traditional_presets_custom_suffix">%1$s (Laada)</string>
+    <string name="traditional_presets_open_tuning_preview">Ɲɛyirali dayɛlɛ: %1$s</string>
+    <string name="traditional_presets_selected">Sugandili</string>
+    <string name="traditional_presets_action_select_preset">Preset sugandi .</string>
+    <string name="traditional_presets_selected_strings_title">Sugandili juru minw labɛnna</string>
+    <string name="traditional_presets_selected_string_row">S%1$d | </string>
+    <string name="traditional_presets_action_load_selected">Sugandili minw tun be yen, u don</string>
+    <string name="traditional_presets_default_custom_name">Nne ka preset</string>
+    <string name="traditional_presets_user_preset_description">User preset min marala ka bɔ i ka minanw labɛnni na.</string>
+    <string name="traditional_presets_status_save_profile_first">Minɛn dɔ ka porofayili mara fɔlɔ, o kɔ, i ka labɛn dɔ labɛn.</string>
+    <string name="traditional_presets_status_enter_name">Tɔgɔ dɔ sɛbɛ min labɛnna ka bila.</string>
+    <string name="traditional_presets_status_saved_custom">Ɲɛyirali min marala, o ye \&quot;%1$s\&quot; ye.</string>
+    <string name="traditional_presets_status_select_custom_to_delete">I ka fɛn dɔ sugandi min be se ka jɔsi.</string>
+    <string name="traditional_presets_status_not_custom_preset">Preset sugandinin tɛ preset ye min be kɛ ka kɛɲɛ ni mɔgɔ sago ye.</string>
+    <string name="traditional_presets_status_deleted_custom">Ɲɛyirali fɛ, \&quot;%1$s\&quot; tun bɔra.</string>
+    <string name="traditional_presets_status_select_preset_before_loading">I ka preset dɔ sugandi sanni i k’a don.</string>
+    <string name="traditional_presets_status_loaded_preset">%1$s labɛnnin lo ka kɔn %2$d juruw ɲɛ.</string>
+
+    <!-- Scale profile status -->
+    <string name="scale_profile_status_no_saved">Porofayili maranin si ma sɔrɔ. Ka baara kɛ ni daminɛ porofayili %1$d-juru ye.</string>
+    <string name="scale_profile_status_using_saved">Ka baara kɛ ni %1$d-string porofayili maranin ye ka bɔ minanw labɛncogo la.</string>
+
+    <!-- Live tuner errors -->
+    <string name="live_tuner_error_mic_permission_required">Mikɔrɔfɔni ka yamaruya ka kan ka sɔrɔ.</string>
+    <string name="live_tuner_error_grant_permission_to_start">Aw ka sira di mikro ma ka tuning daminɛ.</string>
+    <string name="live_tuner_error_stream_failed">Tuner ka ɲɛnagwɛ ma se ka kɛ.</string>
+
+    <!-- Chords/metronome -->
+    <string name="chord_quality_major">Kunma</string>
+    <string name="chord_quality_minor">Damanseenna</string>
+    <string name="chord_quality_diminished">A dɔgɔyara</string>
+    <string name="chord_quality_half_diminished">A tilancɛ dɔgɔyara (m7b5)</string>
+    <string name="chord_quality_sus2">Sus2.</string>
+    <string name="chord_quality_sus4">Sus4.</string>
+    <string name="chord_quality_dominant7">Faaman 7nan</string>
+    <string name="chord_quality_major7">Majɛrɛ 7</string>
+    <string name="chord_quality_minor7">Misɛnnin 7</string>
+
+    <string name="metronome_sound_soft_wood">Yiri nɔgɔman</string>
+    <string name="metronome_sound_wood_block">Yiribolo</string>
+    <string name="metronome_sound_bright_click">Digi kɛnɛ kan</string>
+
+    <!-- Instant Overview -->
+    <string name="title_instant_overview">O yɔrɔnin bɛɛ lajɛ</string>
+    <string name="overview_view_diagram">Jaa</string>
+    <string name="overview_view_table">Tabaki</string>
+    <string name="overview_view_chords">Kɔridi</string>
+    <string name="overview_view_exercise">Degeli</string>
+
+    <string name="overview_action_stop_all_tones">Kankanw bɛɛ lalɔ</string>
+    <string name="overview_action_play_all_strings">Juruw bɛɛ fɔ</string>
+    <string name="overview_reference_volume_label">Referansi kaan bonya</string>
+    <string name="overview_note_letters_label">Sɛbɛnin lɛtɛrɛw yira</string>
+    <string name="action_reset">A labɛn kokura</string>
+
+    <string name="overview_diagram_title">Kora jaaw</string>
+    <string name="overview_diagram_zoom_label">Zoom: %1$s%%</string>
+    <string name="overview_diagram_tap_to_hear">I bolo digi a kan walisa ka tulon kɛ/lalɔ. </string>
+    <string name="content_desc_kora_diagram">Kora jaaw</string>
+    <string name="content_desc_chord_kora_diagram">Kɔri kora jaa</string>
+
+    <string name="overview_legend_open_lever">Levi dayɛlɛnin lo</string>
+    <string name="overview_legend_closed_lever">Levi datugunin lo</string>
+    <string name="overview_legend_peg_retune_required">Peg yɛlɛmani ka kan ka kɛ</string>
+
+    <string name="overview_table_title">Kora tabali</string>
+
+    <string name="overview_chords_title">Kɔridi</string>
+    <string name="overview_chords_subtitle">Aw ka kɔri kanw ɲini minw be se ka fɔ ka kɛɲɛ n’aw ka juru yɛlɛmani ye sisan.</string>
+    <string name="overview_chords_root_label">Kɔri lili</string>
+    <string name="overview_chords_quality_label">Kɔri ka ɲumanya</string>
+    <string name="overview_chords_notes_line">Kɔlɔsili: %1$s</string>
+    <string name="overview_chords_positions_label">Kɔri mankanw</string>
+    <string name="overview_chords_coverage_complete">A datugunin lo: a dafanin lo</string>
+    <string name="overview_chords_coverage_missing">Datugulan: %1$s tununa</string>
+    <string name="overview_chords_strings_to_play_line">Juru minw ka kan ka fɔ: %1$d ka %2$d</string>
+    <string name="overview_chords_pool_line">Juru minw be se ka fɔ: %1$d (dayɛlɛnin %2$d, datugunin %3$d, %4$d bɔnin)</string>
+    <string name="overview_chords_playback_label">Lamɛnni</string>
+    <string name="overview_chords_playback_block">Latɔn</string>
+    <string name="overview_chords_playback_broken">Karila</string>
+    <string name="overview_chords_playback_spread">Fara</string>
+    <string name="overview_chords_notes_count_chip">%1$d sɛbɛnw</string>
+    <string name="overview_chords_action_sound_chord">Mankan yɔrɔ</string>
+    <string name="overview_chords_detuned_warning">Detuned juru be baara kɛ. </string>
+    <string name="overview_chords_action_use_stable_alternative">Baara kɛ ni fɛɛrɛ wɛrɛ ye min basiginin lo</string>
+    <string name="overview_chords_exercise_note">I ka yɛlɛmaniw degi ka kɛ Exercice view kɔnɔ.</string>
+    <string name="overview_chords_diagram_label">Kɔri jaa</string>
+    <string name="overview_chords_diagram_title">Kɔri jaa</string>
+    <string name="overview_chords_closest_title">ɲɔgɔndan minw ka surun ɲɔgɔn na</string>
+    <string name="overview_chords_match_notes_play_line">Kɔlɔsili: %1$s (%2$d juru)</string>
+    <string name="overview_chords_match_includes_detuned">Juru minw tun be fɔra, u b’a la</string>
+    <string name="overview_chords_match_no_detuned">Juru detuned tɛ yen</string>
+    <string name="overview_chords_action_use">Ɲɛci</string>
+
+    <string name="overview_exercise_title">Degeli</string>
+    <string name="overview_exercise_order_note">Circle des cinquièmes de mondement: tugu lili min be tugu o la, o min yirala ka gwɛ.</string>
+    <string name="overview_exercise_start_key_label">Daminɛ butɔn</string>
+    <string name="overview_exercise_choice_mode_label">Sugandili cogoya</string>
+    <string name="overview_exercise_choice_preset">Labɛn ka kɔn</string>
+    <string name="overview_exercise_choice_random">Kuntere</string>
+    <string name="overview_exercise_diagram_title">Duurunanw ka koori</string>
+    <string name="overview_exercise_diagram_legend">Daminɛ (dayɛlɛnin), kɔfɛ (kɛrɛnkɛrɛnnin), sugandiliw (sagoya la).</string>
+    <string name="overview_exercise_next_step">O kɔfɛ: %1$s%2$s</string>
+    <string name="overview_exercise_action_next_fifth">Duurunan nata</string>
+    <string name="overview_exercise_timed_interval_label">Wagati cɛman</string>
+    <string name="overview_exercise_action_start_timed">Daminɛ wagati</string>
+    <string name="overview_exercise_action_stop_timed">Lɔ wagati</string>
+    <string name="overview_exercise_timed_note">Timed mode be kɔri nata dɔ yira min be fɔ tuma o tuma.</string>
+    <string name="overview_exercise_choice_item">%1$s_Ph_1__</string>
+
+    <string name="overview_metronome_title">Mɛtɔrɔnɔmu</string>
+    <string name="overview_metronome_bpm_line">BPM: %1$d</string>
+    <string name="overview_metronome_time_signature_label">Wagati bolonɔ</string>
+    <string name="overview_metronome_beats_to_click_label">Beats ka digi</string>
+    <string name="overview_metronome_sound_label">Mankan digi</string>
+    <string name="overview_metronome_action_start">Metronome daminɛ</string>
+    <string name="overview_metronome_action_stop">Metɔrɔnɔmu lalɔ</string>
+
+    <string name="value_none_found">Mɔgɔ si ma sɔrɔ</string>
+    <string name="value_detuned">A bɔra</string>
+
+    <!-- Top bar / overflow menu -->
+    <string name="app_top_bar_title">Kora yɛlɛmani</string>
+    <string name="menu_settings">Paramɛtiriw</string>
+    <string name="menu_about">Kan</string>
+
+    <!-- Settings dialog -->
+    <string name="settings_title">Paramɛtiriw</string>
+    <string name="settings_theme_label">App barokun</string>
+    <string name="settings_theme_system">Ka tugu sisitɛmu kɔ</string>
+    <string name="settings_theme_light">Fɛgɛman</string>
+    <string name="settings_theme_dark">Dibi</string>
+
+    <!-- Language picker -->
+    <string name="settings_language_label">App kan</string>
+    <string name="settings_language_system">Ka tugu sisitɛmu kɔ</string>
+
+    <!-- About dialog -->
+    <string name="about_title">Kan</string>
+    <string name="about_description">Tuning teri min be kora 21 ani 22 la, o be sɛgɛsɛgɛri kɛ ni sɛgɛsɛgɛri ye, ka kɔri fɔ, ka tuning ɲɛminɛ ani ka fɔcogo lɔn.</string>
+    <string name="about_version">Ɲɛyirali %1$s</string>
+    <string name="about_privacy_policy">Kunnafoniw maracogo</string>
+
+    <!-- Diagram lock toggle -->
+    <string name="overview_diagram_locked">A datugunin lo</string>
+    <string name="overview_diagram_free">Hɔɔrɔn</string>
+</resources>

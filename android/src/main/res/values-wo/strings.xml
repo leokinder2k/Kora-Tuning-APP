@@ -1,0 +1,371 @@
+<resources>
+    <string name="app_name">Kora tuning àndado</string>
+
+    <!-- Navigation -->
+    <string name="nav_instrument_label">Jumtukaay</string>
+    <string name="nav_instrument_short">I</string>
+    <string name="nav_scale_label">Natt</string>
+    <string name="nav_scale_short">S</string>
+    <string name="nav_guided_label">Guidé</string>
+    <string name="nav_guided_short">G</string>
+    <string name="nav_overview_label">Résumé</string>
+    <string name="nav_overview_short">O</string>
+    <string name="nav_tuner_label">Tuner</string>
+    <string name="nav_tuner_short">T</string>
+    <string name="nav_presets_label">Preset</string>
+    <string name="nav_presets_short">P</string>
+
+    <!-- Common -->
+    <string name="strings_count">%1$d</string>
+    <string name="quick_start_title">Tàmbali bu gaaw</string>
+    <string name="action_start">Doon naa nekk</string>
+    <string name="action_stop">Dakkal dal</string>
+    <string name="action_previous">Bi jiitu</string>
+    <string name="action_next">Bi ci topp</string>
+    <string name="action_grant_mic_short">Grant Mic</string>
+    <string name="action_grant_microphone_permission">May ndigalu Mikro</string>
+
+    <!-- Instrument Configuration -->
+    <string name="title_instrument_configuration">Tabbu jumtukaay</string>
+    <string name="instrument_config_section_strings">Chaînes</string>
+    <string name="instrument_config_description_levered">Defar tuning bu ubbeeku ci buum bu nekk. </string>
+    <string name="instrument_config_description_peg_tuning">Mode tuning peg (amul kromatik): sa kora amul levier. </string>
+    <string name="instrument_config_section_instrument_type">Xeetu jumtukaay</string>
+    <string name="instrument_type_levers">Leviers (kromatik)</string>
+    <string name="instrument_type_pegs">Tuning peg</string>
+    <string name="instrument_config_quick_start_step_1">1. Tannal 21 wala 22 buum.</string>
+    <string name="instrument_config_quick_start_step_2">2. Bindal ton bu ubbeeku bi ak offset cent yi nga mëna tànn ci buum bu nekk.</string>
+    <string name="instrument_config_quick_start_step_3">3. Sanc sa profil, nga jëfandikoo Escale/Overview ak def liggéeyu Tuner biñ boole.</string>
+    <string name="instrument_config_auto_save_note">Notu string yi ak santim yi dañuy denc seen bopp sudee dugal yi baaxnañu.</string>
+    <string name="instrument_config_action_load_starter_profile">Sargal Profaalu ndoorte li</string>
+    <string name="instrument_config_action_save_profile">Sanc Profaalu jumtukaay bi</string>
+    <string name="instrument_preset_manual">Bu loxo defar</string>
+
+    <string name="instrument_tuning_assistant_title">Jàppalekatu tuning jumtukaay</string>
+    <string name="instrument_tuning_assistant_subtitle">Tannal benn buum nga méngale ton bi nga jëfandikoo note/cent yi nga bëgga jëfandikoo ak làmp status yi.</string>
+    <string name="instrument_tuning_assistant_controls_title">Kontrolu tuner</string>
+    <string name="instrument_tuning_assistant_target_line">Biñu bëgga: %1$s (%2$s c)</string>
+    <string name="instrument_tuning_assistant_target_hz_line">Hz biñ bëgga am: %1$s</string>
+    <string name="instrument_tuning_assistant_detected_hz_line">ñu gis ko: %1$s</string>
+    <string name="instrument_tuning_assistant_deviation_line">Deviation: %1$s c (%2$s)</string>
+    <string name="instrument_tuning_assistant_deviation_none">Deviation: --</string>
+    <string name="instrument_tuning_assistant_left_side">Side gauche (Bass -&amp;gt; Kawe)</string>
+    <string name="instrument_tuning_assistant_right_side">Ci wetu ndeyjoor (Bass -&amp;gt; Kawe)</string>
+    <string name="instrument_tuning_assistant_string_chip">S%1$d%2$s</string>
+
+    <string name="tuning_flat">Tàcc</string>
+    <string name="tuning_in_tune">In Tune</string>
+    <string name="tuning_sharp">Ñaw</string>
+
+    <string name="instrument_config_string_title">chaîne %1$d</string>
+    <string name="instrument_config_open_pitch_label">Terrain bu ubbeeku</string>
+    <string name="instrument_config_open_pitch_placeholder">E3</string>
+    <string name="instrument_config_closed_pitch_supporting">Terrain fermé: %1$s</string>
+    <string name="instrument_config_open_pitch_supporting">Bindal ton bu ubbeeku ngir xayma ton bu tëju.</string>
+    <string name="instrument_config_open_pitch_supporting_peg">Modu tuning peg: ton ouverte kese (amul levier).</string>
+    <string name="instrument_config_open_cents_label">cents yu ubbeeku</string>
+    <string name="instrument_config_closed_cents_label">Cent yu tëju</string>
+    <string name="instrument_config_cents_placeholder">0.0</string>
+
+    <!-- Live tuner mode labels (used in multiple screens) -->
+    <string name="live_tuner_mode_realtime_label">Ci jamono dëgg</string>
+    <string name="live_tuner_mode_precision_label">Precision</string>
+    <string name="live_tuner_mode_realtime_summary">Latency bu woyof, precision bu woyof.</string>
+    <string name="live_tuner_mode_precision_summary">Precision bu gëna rëy, latency bu gëna rëy.</string>
+
+    <!-- Scale selection (shared) -->
+    <string name="scale_root_note_label">Notu root</string>
+    <string name="scale_type_label">Xeetu balans</string>
+    <string name="scale_family_label">famiy scale</string>
+    <string name="scale_label">Natt</string>
+
+    <string name="scale_family_modes">Modes</string>
+    <string name="scale_family_pentatonic">pentatonik</string>
+    <string name="scale_family_blues">Blues</string>
+    <string name="scale_family_kora_scales">Balance Kora</string>
+    <string name="scale_family_hexatonic">Heksatonik</string>
+    <string name="scale_family_beebop">Bibop</string>
+    <string name="scale_family_diminished">Wàññeeku</string>
+    <string name="scale_family_other">Beneen</string>
+
+    <string name="scale_type_major">Major (heptatonik)</string>
+    <string name="scale_type_natural_minor">Minor naturel (heptatonik)</string>
+    <string name="scale_type_harmonic_minor">Armonik mineur (heptatonik)</string>
+    <string name="scale_type_melodic_minor">Melodique Minor (Heptatonik)</string>
+
+    <string name="scale_type_ionian">ionien (mode 1)</string>
+    <string name="scale_type_dorian">Dorian (Mode 2)</string>
+    <string name="scale_type_phrygian">Frigien (Mode 3)</string>
+    <string name="scale_type_lydian">Lydien (Mode 4)</string>
+    <string name="scale_type_mixolydian">Mixolidien (Mode 5)</string>
+    <string name="scale_type_aeolian">éolien (mode 6)</string>
+    <string name="scale_type_locrian">Lokrien (Mode 7)</string>
+
+    <string name="scale_type_major_pentatonic">Pentatonik bu mag</string>
+    <string name="scale_type_minor_pentatonic">Pentatonik bu ndaw</string>
+
+    <string name="scale_type_major_hexatonic">Hexatonik bu mag</string>
+    <string name="scale_type_minor_hexatonic">Hexatonik bu ndaw</string>
+    <string name="scale_type_whole_tone">Ton lëmm (hexatonik)</string>
+    <string name="scale_type_major_blues">Blues bu mag (hexatonik)</string>
+    <string name="scale_type_minor_blues">Blues bu ndaw (hexatonik)</string>
+
+    <string name="scale_type_beebop_major">Beebop bu mag</string>
+    <string name="scale_type_beebop_dominant">Beebop mooy gëna am doole</string>
+    <string name="scale_type_beebop_dorian">Dorian</string>
+
+    <string name="scale_type_diminished_whole_half">genn-wàll gi wàññeeku (octatonic)</string>
+    <string name="scale_type_diminished_half_whole">Genn-wàll gi wàññeeku (Octatonic)</string>
+
+    <string name="scale_type_chromatic">Kromatik</string>
+
+    <!-- Live Tuner -->
+    <string name="title_live_tuner">Tuner en direct</string>
+    <string name="live_tuner_quick_start_step_1">1. Tannal mode: Realtime ngir tontu, Njàngale ngir cent njub.</string>
+    <string name="live_tuner_quick_start_step_2">2. Jox mikro bi dugg te tàmbali tuner bi.</string>
+    <string name="live_tuner_quick_start_step_3">3. Dagg benn buum bu set nga méngale deviation cent bi ak 0.</string>
+    <string name="live_tuner_peg_tuning_note">Modu tuning peg: làmp statut yi dañuy jëfandikoo ±1 ton (±200 santim) tolerans te levier yi duñu ci bàyyi xel.</string>
+    <string name="live_tuner_section_microphone">Mikro</string>
+    <string name="live_tuner_microphone_mode_label">Mode</string>
+    <string name="live_tuner_action_start">Tambalil Tuner ci saasi</string>
+    <string name="live_tuner_action_stop">Taxawal Tuner ci saasi</string>
+    <string name="live_tuner_section_detection">Gis</string>
+    <string name="live_tuner_detected_pitch_line">Ton biñ gis: %1$s</string>
+    <string name="live_tuner_confidence_line">Woolu sa bopp: %1$s</string>
+    <string name="live_tuner_signal_rms_line">Niveau signal (RMS): %1$s</string>
+    <string name="live_tuner_section_nearest_target">Bind bi gëna jege</string>
+    <string name="live_tuner_nearest_target_no_match">Amagul match. </string>
+    <string name="live_tuner_nearest_target_string_line">Chaîne: %1$s (S%2$d)</string>
+    <string name="live_tuner_nearest_target_pitch_line">Ton biñ bëgga yegg: %1$s (%2$s)</string>
+    <string name="live_tuner_nearest_target_intonation_line">Intonaasioŋ biñ bëgga wax: %1$s santim</string>
+    <string name="live_tuner_nearest_target_status_line">%1$s</string>
+    <string name="live_tuner_nearest_target_deviation_line">Deviation santim: %1$s santim</string>
+    <string name="live_tuner_nearest_target_lever_line">Levier: %1$s</string>
+    <string name="live_tuner_nearest_target_peg_adjustment_line">Reglage de peg: %1$s demi-ton(s)</string>
+    <string name="live_tuner_nearest_target_peg_adjustment_none">Peg réglage: amul</string>
+    <string name="live_tuner_reference_tone_title">Tone de referansi (Tune ci ton bu amul benn werante)</string>
+    <string name="live_tuner_reference_tone_none">Amul ay terrain yuñ jagleel ngir tabb fi mu nekk nii.</string>
+    <string name="live_tuner_reference_tone_selected_line">Tann: %1$s (S%2$d) %3$s</string>
+    <string name="live_tuner_reference_tone_frequency_line">Fréquence de royuwaay: %1$s</string>
+    <string name="live_tuner_reference_tone_action_play">Delloosi Tonu Royuwaay</string>
+    <string name="live_tuner_reference_tone_action_stop">Arrêt Tone Royuwaay</string>
+    <string name="live_tuner_tip">Tip: dakkal dooley pluck bi nga tëye ko ngir gëna baaxal niveau cent bi.</string>
+    <string name="live_tuner_save_preset_prompt_title">Kontaan nga ci sa tuning?</string>
+    <string name="live_tuner_save_preset_prompt_body">Sanc ko ni preset buñ jagleel ci onglet Presets suko defee nga mëna ko dellusi saa yu la neexee.</string>
+
+    <!-- Scale Calculation Engine -->
+    <string name="title_scale_calculation_engine">Motëru xayma balans</string>
+    <string name="scale_engine_quick_start_levered">Tannal root + scale, xoolaat tablo bi am levier kese, ba noppi nga jëfandikoo peg-correct plan su ko jaree.</string>
+    <string name="scale_engine_quick_start_peg_tuning">Tannal root + scale, nga daal di defaraat buum yi ubbeeku ci tablo tuning peg (amul levier).</string>
+
+    <string name="scale_engine_summary_scale_notes">Notu eskaal bi: %1$s</string>
+    <string name="scale_engine_summary_left_strings">Cordes gauches (Bass -&amp;_gt; Kawe): %1$s</string>
+    <string name="scale_engine_summary_right_strings">Cordes de droite (Bass -&amp;_gt; Kawe): %1$s</string>
+    <string name="scale_engine_summary_lever_only_retunes">Levier bi kese moo koy defar: %1$d</string>
+    <string name="scale_engine_summary_peg_adjustment_retunes">Peg-ajustement: %1$d</string>
+    <string name="scale_engine_summary_peg_tuning_retunes">%1$d</string>
+
+    <string name="scale_engine_lever_only_table_title">Tablo bu am levier kese</string>
+    <string name="scale_engine_peg_adjustment_table_title">Retune (Reglage Peg) Tablo</string>
+    <string name="scale_engine_peg_tuning_table_title">Tablo d\'accordage à piches (sans leviers)</string>
+    <string name="scale_engine_two_column_note">Kora bu am ñaari kolon: Corde yu cammoy yi ci cammoy bi, Corde yu ndeyjoor yi ci ndeyjoor ji (ñaari bass ba high).</string>
+
+    <string name="table_left_header">Cammoy (Bass -&amp;gt; Kawe)</string>
+    <string name="table_right_header">Ndeyjoor (Bass -&amp;gt; Kawe)</string>
+
+    <string name="value_na">N/A</string>
+    <string name="value_yes">WAAW</string>
+    <string name="value_no">DÉEDÉET</string>
+
+    <string name="scale_engine_lever_only_row_open_closed">Ubbi %1$s Tëju %2$s</string>
+    <string name="scale_engine_lever_only_row_lever_target">Levier %1$s Cible %2$s</string>
+    <string name="scale_engine_row_int_peg">Int %1$s c Peg %2$s</string>
+    <string name="scale_engine_peg_row_target_lever">%1$s Levier %2$s</string>
+    <string name="scale_engine_peg_tuning_row_target">%1$s</string>
+    <string name="scale_engine_peg_tuning_row_tune_open">%1$s</string>
+
+    <string name="scale_engine_conflicts_title">Baatu xeex</string>
+    <string name="scale_engine_conflicts_none">Amul benn xeex buñu gis.</string>
+    <string name="scale_engine_conflict_line">%1$s: %2$s-ci wetu S%3$d_____________gt; S%4$d (%5$s)</string>
+
+    <string name="scale_engine_suggestions_title">Xeetu xalaat yu wuute</string>
+    <string name="scale_engine_suggestions_none">Amul benn xalaat buñu soxla.</string>
+    <string name="scale_engine_suggestion_line">%1$s: %2$s</string>
+
+    <!-- Instrument config: status/errors (ViewModel) -->
+    <string name="instrument_config_status_loaded_starter_profile">Profaalu tàmbalikaay biñ sarse ngir chaîne %1$d.</string>
+    <string name="instrument_config_status_enter_valid_before_saving">Bindal ton yu ubbeeku yi ak santim intonaasioŋ yi baax ci buum yépp balaa ngay denc.</string>
+    <string name="instrument_config_status_unable_save_verify_pitch">Mënu ñu denc. </string>
+    <string name="instrument_config_status_unable_save_verify_intonation">Mënu ñu denc. </string>
+    <string name="instrument_config_status_profile_saved">Dañu denc profilu jumtukaay bi.</string>
+    <string name="instrument_config_error_pitch_format">Jëfandikool formaa bu melni E3 wala F#4.</string>
+    <string name="instrument_config_error_cents_format">Jëfandikool cent yu melni -13.7 wala 0.0.</string>
+
+    <!-- Guided Setup -->
+    <string name="title_guided_setup">Modu tabb buñ teg loxo</string>
+    <string name="guided_setup_no_steps">Amul ay jéego ngir aju.</string>
+    <string name="guided_setup_step_counter">Jéego %1$d ci %2$d</string>
+    <string name="guided_setup_string_line">Chaîne: %1$s (S%2$d)</string>
+    <string name="guided_setup_target_pitch_line">Ton biñ bëgga wax: %1$s</string>
+    <string name="guided_setup_intonation_line">Intonaasioŋ: %1$s santim</string>
+    <string name="guided_setup_lever_line">Levier: %1$s</string>
+    <string name="guided_setup_peg_adjustment_line">Reglage de peg: %1$s demi-ton(s)</string>
+    <string name="guided_setup_peg_adjustment_none">Peg réglage: amul</string>
+
+    <!-- Traditional Presets -->
+    <string name="title_traditional_presets">Preset yu cosaan</string>
+    <string name="traditional_presets_intro">Tannal benn preset tuning buñ miin nga dugal ko ci saasi ci profilu jumtukaay biy dox.</string>
+    <string name="traditional_presets_workflow_title">Flux de travail</string>
+    <string name="traditional_presets_workflow_body">Tannal limu buum yi, tannal benn preset, xoolaat pitch yu ubbeeku/tëju + santim, ba noppi sarse.</string>
+    <string name="traditional_presets_custom_title">Preset yuñ personaalise</string>
+    <string name="traditional_presets_custom_body">Sanc sa tuning instrument bi ngay def ci sa preset boo mëna jëfandikoowaat.</string>
+    <string name="traditional_presets_custom_name_label">Tur buñ tànn</string>
+    <string name="traditional_presets_action_save_custom">Sanc Preset Personnalisé</string>
+    <string name="traditional_presets_action_delete_selected">efaase liñ tànn</string>
+    <string name="traditional_presets_custom_suffix">%1$s (Personalisée)</string>
+    <string name="traditional_presets_open_tuning_preview">Ubbi xoolaat bi: %1$s</string>
+    <string name="traditional_presets_selected">Tann</string>
+    <string name="traditional_presets_action_select_preset">Tannal Preset</string>
+    <string name="traditional_presets_selected_strings_title">Chaînes yiñ tànn</string>
+    <string name="traditional_presets_selected_string_row">S%1$d </string>
+    <string name="traditional_presets_action_load_selected">Sargal Preset biñ tànn</string>
+    <string name="traditional_presets_default_custom_name">Sama preset</string>
+    <string name="traditional_presets_user_preset_description">Preset jëfandikukat bi denc ci sa tuning jumtukaay.</string>
+    <string name="traditional_presets_status_save_profile_first">Dangay njëkka denc ab profilu jumtukaay, ba noppi nga sos preset bu la mëna tànn.</string>
+    <string name="traditional_presets_status_enter_name">Bindal benn tur buñ tànn bu njëkk.</string>
+    <string name="traditional_presets_status_saved_custom">Dañu denc \&quot;%1$s\&quot;.</string>
+    <string name="traditional_presets_status_select_custom_to_delete">Tannal benn preset boo bëgga efaase.</string>
+    <string name="traditional_presets_status_not_custom_preset">Preset biñ tànn du preset buñ jagleel.</string>
+    <string name="traditional_presets_status_deleted_custom">efaase nañu tànneef yiñ jagleel \&quot;%1$s\&quot;.</string>
+    <string name="traditional_presets_status_select_preset_before_loading">Tannal benn preset balaa ngay yobbu.</string>
+    <string name="traditional_presets_status_loaded_preset">Sarge %1$s ngir %2$d buum yi.</string>
+
+    <!-- Scale profile status -->
+    <string name="scale_profile_status_no_saved">Gisu ñu benn profil buñ denc. Jëfandikoo profilu tàmbalikaay bi %1$d-buum.</string>
+    <string name="scale_profile_status_using_saved">Jëfandikoo %1$d-profil string buñ denc ci Tabbu Jumtukaay bi.</string>
+
+    <!-- Live tuner errors -->
+    <string name="live_tuner_error_mic_permission_required">Dañuy laaj ndigalu mikro.</string>
+    <string name="live_tuner_error_grant_permission_to_start">May mikro bi ndigalu tàmbali akorde.</string>
+    <string name="live_tuner_error_stream_failed">Stream tuner en direct bi defa lajj.</string>
+
+    <!-- Chords/metronome -->
+    <string name="chord_quality_major">Raw</string>
+    <string name="chord_quality_minor">Bu ndaw</string>
+    <string name="chord_quality_diminished">Wàññeeku</string>
+    <string name="chord_quality_half_diminished">Genn-wàññi (m7b5)</string>
+    <string name="chord_quality_sus2">Sus2</string>
+    <string name="chord_quality_sus4">Sus4</string>
+    <string name="chord_quality_dominant7">Dominant 7</string>
+    <string name="chord_quality_major7">Major 7</string>
+    <string name="chord_quality_minor7">Minor 7</string>
+
+    <string name="metronome_sound_soft_wood">Bois bu nooy</string>
+    <string name="metronome_sound_wood_block">Blok bois</string>
+    <string name="metronome_sound_bright_click">Klik bu leer</string>
+
+    <!-- Instant Overview -->
+    <string name="title_instant_overview">Xoolaat ci saasi</string>
+    <string name="overview_view_diagram">Semaa</string>
+    <string name="overview_view_table">Taabal</string>
+    <string name="overview_view_chords">Akord</string>
+    <string name="overview_view_exercise">Tàggat tàggatu</string>
+
+    <string name="overview_action_stop_all_tones">Taxawal bépp ton</string>
+    <string name="overview_action_play_all_strings">jouer les cordes</string>
+    <string name="overview_reference_volume_label">Volume tonu royuwaay</string>
+    <string name="overview_note_letters_label">Waneel arafu notu</string>
+    <string name="action_reset">Reset</string>
+
+    <string name="overview_diagram_title">Semaawu Kora</string>
+    <string name="overview_diagram_zoom_label">Zoom: %1$s%%</string>
+    <string name="overview_diagram_tap_to_hear">Bësal ngir jouer/dakkal. </string>
+    <string name="content_desc_kora_diagram">Semaawu Kora</string>
+    <string name="content_desc_chord_kora_diagram">diagram kora akord</string>
+
+    <string name="overview_legend_open_lever">Levier ubbeeku</string>
+    <string name="overview_legend_closed_lever">Levier bi dafa tëju</string>
+    <string name="overview_legend_peg_retune_required">Peg retune lañu soxla</string>
+
+    <string name="overview_table_title">Tablo Kora</string>
+
+    <string name="overview_chords_title">Akord</string>
+    <string name="overview_chords_subtitle">Wut kàddu akord yuñ mëna jouer bu sukkandiko ci sa akorde corde bi fi nekk.</string>
+    <string name="overview_chords_root_label">Racine akord</string>
+    <string name="overview_chords_quality_label">Kalite akord</string>
+    <string name="overview_chords_notes_line">Saaga yi: %1$s</string>
+    <string name="overview_chords_positions_label">Tonu akord</string>
+    <string name="overview_chords_coverage_complete">Couverture: matt</string>
+    <string name="overview_chords_coverage_missing">Couverture: manque %1$s</string>
+    <string name="overview_chords_strings_to_play_line">Cordes de jouer: %1$d de %2$d</string>
+    <string name="overview_chords_pool_line">Cordes yuñ mëna jouer: %1$d (ubbeeku %2$d, tëju %3$d, dindi %4$d)</string>
+    <string name="overview_chords_playback_label">Leer</string>
+    <string name="overview_chords_playback_block">Tabax</string>
+    <string name="overview_chords_playback_broken">Bu damm</string>
+    <string name="overview_chords_playback_spread">Law</string>
+    <string name="overview_chords_notes_count_chip">%1$d</string>
+    <string name="overview_chords_action_sound_chord">Akor son</string>
+    <string name="overview_chords_detuned_warning">Detuned cordes utilisées. </string>
+    <string name="overview_chords_action_use_stable_alternative">Jëfandikool beneen anam bu dëgër</string>
+    <string name="overview_chords_exercise_note">Jàngaleel coppite akord yi ci wàllu Tàggat yaram.</string>
+    <string name="overview_chords_diagram_label">diagramu akord</string>
+    <string name="overview_chords_diagram_title">diagram akord</string>
+    <string name="overview_chords_closest_title">match yi gëna jege</string>
+    <string name="overview_chords_match_notes_play_line">Saaga yi: %1$s (%2$d chaînes)</string>
+    <string name="overview_chords_match_includes_detuned">Dafa amaale ay corde yuñ defar</string>
+    <string name="overview_chords_match_no_detuned">Amul benn buum buñu detuned</string>
+    <string name="overview_chords_action_use">Jëfandikoo xaalis</string>
+
+    <string name="overview_exercise_title">Tàggat tàggatu</string>
+    <string name="overview_exercise_order_note">Jëfandikool cercle de fifths: topp root bi ci topp biñ teral.</string>
+    <string name="overview_exercise_start_key_label">Caabi tàmbali</string>
+    <string name="overview_exercise_choice_mode_label">Modu tànneef</string>
+    <string name="overview_exercise_choice_preset">Preset</string>
+    <string name="overview_exercise_choice_random">Yenn saa</string>
+    <string name="overview_exercise_diagram_title">Circle de Cinquième</string>
+    <string name="overview_exercise_diagram_legend">Tàmbali (ubbi), ci topp (tegal), tànneef (taamu).</string>
+    <string name="overview_exercise_next_step">Bi ci topp: %1$s%2$s</string>
+    <string name="overview_exercise_action_next_fifth">Juroom bi ci topp</string>
+    <string name="overview_exercise_timed_interval_label">Diggante biñ tëral</string>
+    <string name="overview_exercise_action_start_timed">Waxtu tàmbali</string>
+    <string name="overview_exercise_action_stop_timed">waxtu taxaw</string>
+    <string name="overview_exercise_timed_note">Mode Timed dafay wane akord bi ci topp ci diggante beat yu yàgg.</string>
+    <string name="overview_exercise_choice_item">%1$s%2$s</string>
+
+    <string name="overview_metronome_title">Metronom</string>
+    <string name="overview_metronome_bpm_line">BPM: %1$d</string>
+    <string name="overview_metronome_time_signature_label">Signature waxtu</string>
+    <string name="overview_metronome_beats_to_click_label">Beats ngir klike</string>
+    <string name="overview_metronome_sound_label">Bësal son</string>
+    <string name="overview_metronome_action_start">Tambali Metronom</string>
+    <string name="overview_metronome_action_stop">Metronom biy taxawal</string>
+
+    <string name="value_none_found">Gisu ñu benn</string>
+    <string name="value_detuned">Detuned</string>
+
+    <!-- Top bar / overflow menu -->
+    <string name="app_top_bar_title">Kora according</string>
+    <string name="menu_settings">Jekkal</string>
+    <string name="menu_about">Lu jëm ci</string>
+
+    <!-- Settings dialog -->
+    <string name="settings_title">Jekkal</string>
+    <string name="settings_theme_label">Tema aplikaasioŋ</string>
+    <string name="settings_theme_system">Toppal sistem bi</string>
+    <string name="settings_theme_light">Leer</string>
+    <string name="settings_theme_dark">Lëmësu</string>
+
+    <!-- Language picker -->
+    <string name="settings_language_label">Làkku app</string>
+    <string name="settings_language_system">Toppal sistem bi</string>
+
+    <!-- About dialog -->
+    <string name="about_title">Lu jëm ci</string>
+    <string name="about_description">Kompañi tuning ngir kora bu am 21 ak 22 corde, muur jàngat eskaal bi, kàddu akord yi, tuning buñ teg loxo, ak gis ton bi ci saasi.</string>
+    <string name="about_version">Wersioŋ %1$s</string>
+    <string name="about_privacy_policy">Politigu sutura</string>
+
+    <!-- Diagram lock toggle -->
+    <string name="overview_diagram_locked">tëju</string>
+    <string name="overview_diagram_free">Fees</string>
+</resources>

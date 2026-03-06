@@ -1,0 +1,364 @@
+<resources>
+    <string name="app_name">Compagnon d\'accordage de kora</string>
+
+    <!-- Navigation -->
+    <string name="nav_instrument_label">Instrument</string>
+    <string name="nav_instrument_short">I</string>
+    <string name="nav_scale_label">Gamme</string>
+    <string name="nav_scale_short">S</string>
+    <string name="nav_guided_label">Guidé</string>
+    <string name="nav_guided_short">G</string>
+    <string name="nav_overview_label">Aperçu</string>
+    <string name="nav_overview_short">O</string>
+    <string name="nav_tuner_label">Accordeur</string>
+    <string name="nav_tuner_short">T</string>
+    <string name="nav_presets_label">Préréglages</string>
+    <string name="nav_presets_short">P</string>
+
+    <!-- Common -->
+    <string name="strings_count">%1$d cordes</string>
+    <string name="quick_start_title">Démarrage rapide</string>
+    <string name="action_start">Démarrer</string>
+    <string name="action_stop">Arrêter</string>
+    <string name="action_previous">Précédent</string>
+    <string name="action_next">Suivant</string>
+    <string name="action_grant_mic_short">Autoriser micro</string>
+    <string name="action_grant_microphone_permission">Autoriser l\'accès au microphone</string>
+
+    <!-- Instrument Configuration -->
+    <string name="title_instrument_configuration">Configuration de l\'instrument</string>
+    <string name="instrument_config_section_strings">Cordes</string>
+    <string name="instrument_config_description_levered">Définissez l\'accordage ouvert de chaque corde. La hauteur fermée est calculée automatiquement (+1 demi-ton). Vous pouvez aussi saisir des écarts d\'intonation ouverts/fermés en cents.</string>
+    <string name="instrument_config_description_peg_tuning">Mode accordage par chevilles (non chromatique) : votre kora n\'a pas de leviers. Définissez l\'accordage ouvert de chaque corde et (facultativement) les décalages en cents (ouverts).</string>
+    <string name="instrument_config_section_instrument_type">Type d\'instrument</string>
+    <string name="instrument_type_levers">Leviers (chromatique)</string>
+    <string name="instrument_type_pegs">Accordage par chevilles</string>
+    <string name="instrument_config_quick_start_step_1">1. Choisissez 21 ou 22 cordes.</string>
+    <string name="instrument_config_quick_start_step_2">2. Saisissez la hauteur ouverte et, si besoin, le décalage en cents pour chaque corde.</string>
+    <string name="instrument_config_quick_start_step_3">3. Enregistrez le profil, puis utilisez les onglets Gamme/Guidé/Aperçu/Accordeur.</string>
+    <string name="instrument_config_auto_save_note">Les notes de corde et les cents sont enregistrés automatiquement lorsque les entrées sont valides.</string>
+    <string name="instrument_config_action_load_starter_profile">Charger un profil de départ</string>
+    <string name="instrument_config_action_save_profile">Enregistrer le profil d\'instrument</string>
+
+    <string name="instrument_tuning_assistant_title">Assistant d\'accordage</string>
+    <string name="instrument_tuning_assistant_subtitle">Sélectionnez une corde et accordez sa hauteur ouverte en utilisant la note/cents cible et les voyants d\'état.</string>
+    <string name="instrument_tuning_assistant_controls_title">Commandes de l\'accordeur</string>
+    <string name="instrument_tuning_assistant_target_line">Cible : %1$s (%2$s c)</string>
+    <string name="instrument_tuning_assistant_target_hz_line">Hz cible : %1$s</string>
+    <string name="instrument_tuning_assistant_detected_hz_line">Détecté : %1$s</string>
+    <string name="instrument_tuning_assistant_deviation_line">Écart : %1$s c (%2$s)</string>
+    <string name="instrument_tuning_assistant_deviation_none">Écart : --</string>
+    <string name="instrument_tuning_assistant_left_side">Côté gauche (Basse -&gt; Aigu)</string>
+    <string name="instrument_tuning_assistant_right_side">Côté droit (Basse -&gt; Aigu)</string>
+    <string name="instrument_tuning_assistant_string_chip">S%1$d %2$s</string>
+
+    <string name="tuning_flat">Trop bas</string>
+    <string name="tuning_in_tune">Juste</string>
+    <string name="tuning_sharp">Trop haut</string>
+
+    <string name="instrument_config_string_title">Corde %1$d</string>
+    <string name="instrument_config_open_pitch_label">Hauteur ouverte</string>
+    <string name="instrument_config_open_pitch_placeholder">E3</string>
+    <string name="instrument_config_closed_pitch_supporting">Hauteur fermée : %1$s</string>
+    <string name="instrument_config_open_pitch_supporting">Saisissez la hauteur ouverte pour calculer la hauteur fermée.</string>
+    <string name="instrument_config_open_pitch_supporting_peg">Mode accordage par chevilles : hauteur ouverte uniquement (pas de leviers).</string>
+    <string name="instrument_config_open_cents_label">Cents (ouvert)</string>
+    <string name="instrument_config_closed_cents_label">Cents (fermé)</string>
+    <string name="instrument_config_cents_placeholder">0.0</string>
+
+    <!-- Live tuner mode labels (used in multiple screens) -->
+    <string name="live_tuner_mode_realtime_label">Temps réel</string>
+    <string name="live_tuner_mode_precision_label">Précision</string>
+    <string name="live_tuner_mode_realtime_summary">Latence plus faible, précision réduite.</string>
+    <string name="live_tuner_mode_precision_summary">Précision plus élevée, latence accrue.</string>
+
+    <!-- Scale selection (shared) -->
+    <string name="scale_root_note_label">Note fondamentale</string>
+    <string name="scale_type_label">Type de gamme</string>
+    <string name="scale_family_label">Famille de gammes</string>
+    <string name="scale_label">Gamme</string>
+
+    <string name="scale_family_modes">Modes</string>
+    <string name="scale_family_pentatonic">Pentatonique</string>
+    <string name="scale_family_blues">Blues</string>
+    <string name="scale_family_kora_scales">Gammes de kora</string>
+    <string name="scale_family_hexatonic">Hexatonique</string>
+    <string name="scale_family_beebop">Beebop</string>
+    <string name="scale_family_diminished">Diminuée</string>
+    <string name="scale_family_other">Autre</string>
+
+    <string name="scale_type_major">Majeure (Heptatonique)</string>
+    <string name="scale_type_natural_minor">Mineure naturelle (Heptatonique)</string>
+    <string name="scale_type_harmonic_minor">Mineure harmonique (Heptatonique)</string>
+    <string name="scale_type_melodic_minor">Mineure mélodique (Heptatonique)</string>
+
+    <string name="scale_type_ionian">Ionien (Mode 1)</string>
+    <string name="scale_type_dorian">Dorien (Mode 2)</string>
+    <string name="scale_type_phrygian">Phrygien (Mode 3)</string>
+    <string name="scale_type_lydian">Lydien (Mode 4)</string>
+    <string name="scale_type_mixolydian">Mixolydien (Mode 5)</string>
+    <string name="scale_type_aeolian">Éolien (Mode 6)</string>
+    <string name="scale_type_locrian">Locrien (Mode 7)</string>
+
+    <string name="scale_type_major_pentatonic">Pentatonique majeure</string>
+    <string name="scale_type_minor_pentatonic">Pentatonique mineure</string>
+
+    <string name="scale_type_major_hexatonic">Hexatonique majeure</string>
+    <string name="scale_type_minor_hexatonic">Hexatonique mineure</string>
+    <string name="scale_type_whole_tone">Tons entiers (Hexatonique)</string>
+    <string name="scale_type_major_blues">Blues majeur (Hexatonique)</string>
+    <string name="scale_type_minor_blues">Blues mineur (Hexatonique)</string>
+
+    <string name="scale_type_beebop_major">Beebop majeur</string>
+    <string name="scale_type_beebop_dominant">Beebop dominant</string>
+    <string name="scale_type_beebop_dorian">Beebop dorien</string>
+
+    <string name="scale_type_diminished_whole_half">Diminuée ton-demi-ton (Octatonique)</string>
+    <string name="scale_type_diminished_half_whole">Diminuée demi-ton-ton (Octatonique)</string>
+
+    <string name="scale_type_chromatic">Chromatique</string>
+
+    <!-- Live Tuner -->
+    <string name="title_live_tuner">Accordeur en direct</string>
+    <string name="live_tuner_quick_start_step_1">1. Sélectionnez un mode : Temps réel pour la réactivité, Précision pour l\'exactitude en cents.</string>
+    <string name="live_tuner_quick_start_step_2">2. Autorisez l\'accès au microphone et démarrez l\'accordeur.</string>
+    <string name="live_tuner_quick_start_step_3">3. Pincez une corde proprement et ramenez l\'écart en cents à 0.</string>
+    <string name="live_tuner_peg_tuning_note">Mode accordage par chevilles : les voyants utilisent une tolérance de ±1 ton (±200 cents) et les leviers sont ignorés.</string>
+    <string name="live_tuner_section_microphone">Microphone</string>
+    <string name="live_tuner_microphone_mode_label">Mode</string>
+    <string name="live_tuner_action_start">Démarrer l\'accordeur</string>
+    <string name="live_tuner_action_stop">Arrêter l\'accordeur</string>
+    <string name="live_tuner_section_detection">Détection</string>
+    <string name="live_tuner_detected_pitch_line">Hauteur détectée : %1$s</string>
+    <string name="live_tuner_confidence_line">Confiance : %1$s</string>
+    <string name="live_tuner_signal_rms_line">Niveau du signal (RMS) : %1$s</string>
+    <string name="live_tuner_section_nearest_target">Cible la plus proche</string>
+    <string name="live_tuner_nearest_target_no_match">Pas encore de correspondance. Démarrez l\'accordeur et jouez une corde.</string>
+    <string name="live_tuner_nearest_target_string_line">Corde : %1$s (S%2$d)</string>
+    <string name="live_tuner_nearest_target_pitch_line">Hauteur cible : %1$s (%2$s)</string>
+    <string name="live_tuner_nearest_target_intonation_line">Intonation cible : %1$s cent</string>
+    <string name="live_tuner_nearest_target_status_line">Statut d\'accordage : %1$s</string>
+    <string name="live_tuner_nearest_target_deviation_line">Écart en cents : %1$s cent</string>
+    <string name="live_tuner_nearest_target_lever_line">Levier : %1$s</string>
+    <string name="live_tuner_nearest_target_peg_adjustment_line">Ajustement de cheville : %1$s demi-ton(s)</string>
+    <string name="live_tuner_nearest_target_peg_adjustment_none">Ajustement de cheville : aucun</string>
+    <string name="live_tuner_reference_tone_title">Tonalité de référence (accorder sur une hauteur précise)</string>
+    <string name="live_tuner_reference_tone_none">Aucune hauteur cible disponible pour la configuration actuelle.</string>
+    <string name="live_tuner_reference_tone_selected_line">Sélectionné : %1$s (S%2$d) %3$s</string>
+    <string name="live_tuner_reference_tone_frequency_line">Fréquence de référence : %1$s</string>
+    <string name="live_tuner_reference_tone_action_play">Jouer la tonalité de référence</string>
+    <string name="live_tuner_reference_tone_action_stop">Arrêter la tonalité de référence</string>
+    <string name="live_tuner_tip">Astuce : stabilisez la force du pincement et le sustain pour améliorer la régularité au cent près.</string>
+
+    <!-- Scale Calculation Engine -->
+    <string name="title_scale_calculation_engine">Moteur de calcul de gamme</string>
+    <string name="scale_engine_quick_start_levered">Choisissez la fondamentale + la gamme, consultez le tableau « leviers uniquement », puis appliquez le plan de correction par chevilles si nécessaire.</string>
+    <string name="scale_engine_quick_start_peg_tuning">Choisissez la fondamentale + la gamme, puis réaccordez les cordes ouvertes avec le tableau d\'accordage par chevilles (sans leviers).</string>
+
+    <string name="scale_engine_summary_scale_notes">Notes de la gamme : %1$s</string>
+    <string name="scale_engine_summary_left_strings">Cordes gauche (Basse -&gt; Aigu) : %1$s</string>
+    <string name="scale_engine_summary_right_strings">Cordes droite (Basse -&gt; Aigu) : %1$s</string>
+    <string name="scale_engine_summary_lever_only_retunes">Réaccordages « leviers uniquement » : %1$d</string>
+    <string name="scale_engine_summary_peg_adjustment_retunes">Réaccordages avec ajustement de cheville : %1$d</string>
+    <string name="scale_engine_summary_peg_tuning_retunes">Réaccordages en accordage par chevilles : %1$d</string>
+
+    <string name="scale_engine_lever_only_table_title">Tableau « leviers uniquement »</string>
+    <string name="scale_engine_peg_adjustment_table_title">Tableau de réaccordage (ajustement de cheville)</string>
+    <string name="scale_engine_peg_tuning_table_title">Tableau d\'accordage par chevilles (sans leviers)</string>
+    <string name="scale_engine_two_column_note">Vue kora à deux colonnes : cordes gauche à gauche, cordes droite à droite (toutes de basse à aigu).</string>
+
+    <string name="table_left_header">Gauche (Basse -&gt; Aigu)</string>
+    <string name="table_right_header">Droite (Basse -&gt; Aigu)</string>
+
+    <string name="value_na">N/D</string>
+    <string name="value_yes">OUI</string>
+    <string name="value_no">NON</string>
+
+    <string name="scale_engine_lever_only_row_open_closed">Ouvert %1$s  Fermé %2$s</string>
+    <string name="scale_engine_lever_only_row_lever_target">Levier %1$s  Cible %2$s</string>
+    <string name="scale_engine_row_int_peg">Int %1$s c  Cheville %2$s</string>
+    <string name="scale_engine_peg_row_target_lever">Cible %1$s  Levier %2$s</string>
+    <string name="scale_engine_peg_tuning_row_target">Cible %1$s</string>
+    <string name="scale_engine_peg_tuning_row_tune_open">Accorder ouvert %1$s</string>
+
+    <string name="scale_engine_conflicts_title">Conflits de voicing</string>
+    <string name="scale_engine_conflicts_none">Aucun conflit détecté.</string>
+    <string name="scale_engine_conflict_line">%1$s : côté %2$s S%3$d-&gt;S%4$d (%5$s)</string>
+
+    <string name="scale_engine_suggestions_title">Suggestions de voicing alternatives</string>
+    <string name="scale_engine_suggestions_none">Aucune suggestion requise.</string>
+    <string name="scale_engine_suggestion_line">%1$s : %2$s</string>
+
+    <!-- Instrument config: status/errors (ViewModel) -->
+    <string name="instrument_config_status_loaded_starter_profile">Profil de départ chargé pour %1$d cordes.</string>
+    <string name="instrument_config_status_enter_valid_before_saving">Saisissez des hauteurs ouvertes valides et des cents d\'intonation pour toutes les cordes avant d\'enregistrer.</string>
+    <string name="instrument_config_status_unable_save_verify_pitch">Impossible d\'enregistrer. Veuillez vérifier vos hauteurs.</string>
+    <string name="instrument_config_status_unable_save_verify_intonation">Impossible d\'enregistrer. Veuillez vérifier vos valeurs d\'intonation.</string>
+    <string name="instrument_config_status_profile_saved">Profil d\'instrument enregistré.</string>
+    <string name="instrument_config_error_pitch_format">Utilisez un format comme E3 ou F#4.</string>
+    <string name="instrument_config_error_cents_format">Utilisez des cents comme -13.7 ou 0.0.</string>
+
+    <!-- Guided Setup -->
+    <string name="title_guided_setup">Mode de configuration guidée</string>
+    <string name="guided_setup_no_steps">Aucune étape d\'accordage disponible.</string>
+    <string name="guided_setup_step_counter">Étape %1$d sur %2$d</string>
+    <string name="guided_setup_string_line">Corde : %1$s (S%2$d)</string>
+    <string name="guided_setup_target_pitch_line">Hauteur cible : %1$s</string>
+    <string name="guided_setup_intonation_line">Intonation : %1$s cent</string>
+    <string name="guided_setup_lever_line">Levier : %1$s</string>
+    <string name="guided_setup_peg_adjustment_line">Ajustement de cheville : %1$s demi-ton(s)</string>
+    <string name="guided_setup_peg_adjustment_none">Ajustement de cheville : aucun</string>
+
+    <!-- Traditional Presets -->
+    <string name="title_traditional_presets">Préréglages traditionnels</string>
+    <string name="traditional_presets_intro">Sélectionnez un préréglage d\'accordage traditionnel et chargez-le directement dans le profil d\'instrument actif.</string>
+    <string name="traditional_presets_workflow_title">Flux de travail</string>
+    <string name="traditional_presets_workflow_body">Choisissez le nombre de cordes, sélectionnez un préréglage, vérifiez les hauteurs ouvertes/fermées + les cents, puis chargez.</string>
+    <string name="traditional_presets_custom_title">Préréglages personnalisés</string>
+    <string name="traditional_presets_custom_body">Enregistrez l\'accordage actif de votre instrument comme préréglage réutilisable.</string>
+    <string name="traditional_presets_custom_name_label">Nom du préréglage</string>
+    <string name="traditional_presets_action_save_custom">Enregistrer le préréglage personnalisé</string>
+    <string name="traditional_presets_action_delete_selected">Supprimer la sélection</string>
+    <string name="traditional_presets_custom_suffix">%1$s (Personnalisé)</string>
+    <string name="traditional_presets_open_tuning_preview">Aperçu de l\'accordage ouvert : %1$s</string>
+    <string name="traditional_presets_selected">Sélectionné</string>
+    <string name="traditional_presets_action_select_preset">Sélectionner le préréglage</string>
+    <string name="traditional_presets_selected_strings_title">Cordes du préréglage sélectionné</string>
+    <string name="traditional_presets_selected_string_row">S%1$d | Ouvert %2$s (%3$s c) | Fermé %4$s (%5$s c)</string>
+    <string name="traditional_presets_action_load_selected">Charger le préréglage sélectionné</string>
+    <string name="traditional_presets_default_custom_name">Mon préréglage</string>
+    <string name="traditional_presets_user_preset_description">Préréglage utilisateur enregistré à partir de l\'accordage de votre instrument.</string>
+    <string name="traditional_presets_status_save_profile_first">Enregistrez d\'abord un profil d\'instrument, puis créez un préréglage personnalisé.</string>
+    <string name="traditional_presets_status_enter_name">Saisissez un nom de préréglage.</string>
+    <string name="traditional_presets_status_saved_custom">Préréglage personnalisé \"%1$s\" enregistré.</string>
+    <string name="traditional_presets_status_select_custom_to_delete">Sélectionnez un préréglage personnalisé à supprimer.</string>
+    <string name="traditional_presets_status_not_custom_preset">Le préréglage sélectionné n\'est pas un préréglage personnalisé.</string>
+    <string name="traditional_presets_status_deleted_custom">Préréglage personnalisé \"%1$s\" supprimé.</string>
+    <string name="traditional_presets_status_select_preset_before_loading">Sélectionnez un préréglage avant de charger.</string>
+    <string name="traditional_presets_status_loaded_preset">Préréglage %1$s chargé pour %2$d cordes.</string>
+
+    <!-- Scale profile status -->
+    <string name="scale_profile_status_no_saved">Aucun profil enregistré. Utilisation du profil de départ à %1$d cordes.</string>
+    <string name="scale_profile_status_using_saved">Utilisation du profil enregistré à %1$d cordes depuis la configuration de l\'instrument.</string>
+
+    <!-- Live tuner errors -->
+    <string name="live_tuner_error_mic_permission_required">Autorisation du microphone requise.</string>
+    <string name="live_tuner_error_grant_permission_to_start">Autorisez le microphone pour démarrer l\'accordage.</string>
+    <string name="live_tuner_error_stream_failed">Le flux de l\'accordeur a échoué.</string>
+
+    <!-- Chords/metronome -->
+    <string name="chord_quality_major">Majeur</string>
+    <string name="chord_quality_minor">Mineur</string>
+    <string name="chord_quality_diminished">Diminué</string>
+    <string name="chord_quality_half_diminished">Semi-diminué (m7b5)</string>
+    <string name="chord_quality_sus2">Sus2</string>
+    <string name="chord_quality_sus4">Sus4</string>
+    <string name="chord_quality_dominant7">Dominante 7</string>
+    <string name="chord_quality_major7">Majeur 7</string>
+    <string name="chord_quality_minor7">Mineur 7</string>
+
+    <string name="metronome_sound_soft_wood">Bois doux</string>
+    <string name="metronome_sound_wood_block">Bloc de bois</string>
+    <string name="metronome_sound_bright_click">Clic brillant</string>
+
+    <!-- Instant Overview -->
+    <string name="title_instant_overview">Aperçu instantané</string>
+    <string name="overview_view_diagram">Diagramme</string>
+    <string name="overview_view_table">Tableau</string>
+    <string name="overview_view_chords">Accords</string>
+    <string name="overview_view_exercise">Exercice</string>
+
+    <string name="overview_action_stop_all_tones">Arrêter tous les sons</string>
+    <string name="overview_action_play_all_strings">Jouer toutes les cordes</string>
+    <string name="action_reset">Réinitialiser</string>
+
+    <string name="overview_diagram_title">Diagramme de kora</string>
+    <string name="overview_diagram_zoom_label">Zoom : %1$s%%</string>
+    <string name="overview_diagram_tap_to_hear">Touchez une corde pour entendre sa tonalité (double appui pour arrêter).</string>
+    <string name="content_desc_kora_diagram">Diagramme de kora</string>
+    <string name="content_desc_chord_kora_diagram">Diagramme d\'accord de kora</string>
+
+    <string name="overview_legend_open_lever">Levier ouvert</string>
+    <string name="overview_legend_closed_lever">Levier fermé</string>
+    <string name="overview_legend_peg_retune_required">Réaccordage de cheville requis</string>
+
+    <string name="overview_table_title">Tableau de kora</string>
+
+    <string name="overview_chords_title">Accords</string>
+    <string name="overview_chords_subtitle">Trouvez des positions d\'accord jouables selon l\'accordage actuel des cordes.</string>
+    <string name="overview_chords_root_label">Racine de l\'accord</string>
+    <string name="overview_chords_quality_label">Qualité de l\'accord</string>
+    <string name="overview_chords_notes_line">Notes : %1$s</string>
+    <string name="overview_chords_positions_label">Tons de l\'accord</string>
+    <string name="overview_chords_coverage_complete">Couverture : complète</string>
+    <string name="overview_chords_coverage_missing">Couverture : manque %1$s</string>
+    <string name="overview_chords_strings_to_play_line">Cordes à jouer : %1$d sur %2$d</string>
+    <string name="overview_chords_pool_line">Cordes jouables : %1$d (ouvertes %2$d, fermées %3$d, désaccordées %4$d)</string>
+    <string name="overview_chords_playback_label">Lecture</string>
+    <string name="overview_chords_playback_block">Bloc</string>
+    <string name="overview_chords_playback_broken">Arpégé</string>
+    <string name="overview_chords_playback_spread">Étalé</string>
+    <string name="overview_chords_notes_count_chip">%1$d notes</string>
+    <string name="overview_chords_action_sound_chord">Jouer l\'accord</string>
+    <string name="overview_chords_detuned_warning">Cordes désaccordées utilisées. Alternative stable : %1$s</string>
+    <string name="overview_chords_action_use_stable_alternative">Utiliser l\'alternative stable</string>
+    <string name="overview_chords_exercise_note">Entraînez-vous aux changements d\'accords dans la vue Exercice.</string>
+    <string name="overview_chords_diagram_label">Diagramme d\'accord</string>
+    <string name="overview_chords_diagram_title">Diagramme d\'accord</string>
+    <string name="overview_chords_closest_title">Correspondances les plus proches</string>
+    <string name="overview_chords_match_notes_play_line">Notes : %1$s (%2$d cordes)</string>
+    <string name="overview_chords_match_includes_detuned">Inclut des cordes désaccordées</string>
+    <string name="overview_chords_match_no_detuned">Aucune corde désaccordée</string>
+    <string name="overview_chords_action_use">Utiliser</string>
+
+    <string name="overview_exercise_title">Exercice</string>
+    <string name="overview_exercise_order_note">Exercice cercle des quintes : suivez la racine suivante surlignée.</string>
+    <string name="overview_exercise_start_key_label">Tonalité de départ</string>
+    <string name="overview_exercise_choice_mode_label">Mode de choix</string>
+    <string name="overview_exercise_choice_preset">Préréglé</string>
+    <string name="overview_exercise_choice_random">Aléatoire</string>
+    <string name="overview_exercise_diagram_title">Cercle des quintes</string>
+    <string name="overview_exercise_diagram_legend">Départ (ouvert), suivant (surligné), choix (optionnels).</string>
+    <string name="overview_exercise_next_step">Suivant : %1$s %2$s</string>
+    <string name="overview_exercise_action_next_fifth">Quinte suivante</string>
+    <string name="overview_exercise_timed_interval_label">Intervalle chronométré</string>
+    <string name="overview_exercise_action_start_timed">Démarrer le mode chronométré</string>
+    <string name="overview_exercise_action_stop_timed">Arrêter le mode chronométré</string>
+    <string name="overview_exercise_timed_note">Le mode chronométré met en évidence un accord suggéré à intervalle régulier.</string>
+    <string name="overview_exercise_choice_item">%1$s %2$s</string>
+
+    <string name="overview_metronome_title">Métronome</string>
+    <string name="overview_metronome_bpm_line">BPM : %1$d</string>
+    <string name="overview_metronome_time_signature_label">Mesure</string>
+    <string name="overview_metronome_beats_to_click_label">Temps à cliquer</string>
+    <string name="overview_metronome_sound_label">Son du clic</string>
+    <string name="overview_metronome_action_start">Démarrer le métronome</string>
+    <string name="overview_metronome_action_stop">Arrêter le métronome</string>
+
+    <string name="value_none_found">Aucun</string>
+    <string name="value_detuned">Désaccordé</string>
+
+    <string name="overview_reference_volume_label">Volume du ton de référence</string>
+    <string name="overview_note_letters_label">Afficher les noms des notes</string>
+
+    <string name="app_top_bar_title">Accordage Kora</string>
+    <string name="menu_settings">Paramètres</string>
+    <string name="menu_about">À propos</string>
+    <string name="settings_title">Paramètres</string>
+    <string name="settings_theme_label">Thème de l\'application</string>
+    <string name="settings_theme_system">Suivre le système</string>
+    <string name="settings_theme_light">Clair</string>
+    <string name="settings_theme_dark">Sombre</string>
+    <string name="settings_language_label">Langue de l\'application</string>
+    <string name="settings_language_system">Suivre le système</string>
+    <string name="about_title">À propos</string>
+    <string name="about_description">Un compagnon d\'accordage pour la kora à 21 et 22 cordes, couvrant l\'analyse des gammes, le voicing des accords, l\'accordage guidé et la détection de hauteur en direct.</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_privacy_policy">Politique de confidentialité</string>
+    <string name="overview_diagram_locked">Verrouillé</string>
+    <string name="overview_diagram_free">Libre</string>
+</resources>
+
+
+
+
