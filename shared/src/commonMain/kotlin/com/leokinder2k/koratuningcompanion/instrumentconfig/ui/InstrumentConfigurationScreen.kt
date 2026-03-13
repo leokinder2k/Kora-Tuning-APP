@@ -55,6 +55,7 @@ import com.leokinder2k.koratuningcompanion.generated.resources.*
 import com.leokinder2k.koratuningcompanion.instrumentconfig.data.DataStoreInstrumentConfigRepository
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringLayout
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
 import com.leokinder2k.koratuningcompanion.livetuner.model.TunerTargetMatcher
 import com.leokinder2k.koratuningcompanion.livetuner.model.TuningFeedbackClassifier
@@ -82,11 +83,14 @@ fun InstrumentConfigurationRoute(modifier: Modifier = Modifier) {
         tunerUiState = tunerUiState,
         onStringCountSelected = configViewModel::onStringCountSelected,
         onTuningModeSelected = configViewModel::onTuningModeSelected,
+        onRootNoteSelected = configViewModel::onRootNoteSelected,
         onOpenPitchChanged = configViewModel::onOpenPitchChanged,
         onOpenIntonationChanged = configViewModel::onOpenIntonationChanged,
         onClosedIntonationChanged = configViewModel::onClosedIntonationChanged,
         onLoadStarterProfile = configViewModel::loadStarterProfile,
         onSaveProfile = configViewModel::saveProfile,
+        onSetCurrentAsHome = configViewModel::setCurrentAsBase,
+        onRestoreToHome = configViewModel::restoreToBase,
         onAudioPermissionChanged = tunerViewModel::onAudioPermissionChanged,
         onPerformanceModeSelected = tunerViewModel::onPerformanceModeSelected,
         onStartListening = tunerViewModel::startListening,
@@ -102,11 +106,14 @@ fun InstrumentConfigurationScreen(
     tunerUiState: LiveTunerUiState,
     onStringCountSelected: (Int) -> Unit,
     onTuningModeSelected: (KoraTuningMode) -> Unit,
+    onRootNoteSelected: (NoteName) -> Unit,
     onOpenPitchChanged: (rowIndex: Int, value: String) -> Unit,
     onOpenIntonationChanged: (rowIndex: Int, value: String) -> Unit,
     onClosedIntonationChanged: (rowIndex: Int, value: String) -> Unit,
     onLoadStarterProfile: () -> Unit,
     onSaveProfile: () -> Unit,
+    onSetCurrentAsHome: () -> Unit,
+    onRestoreToHome: () -> Unit,
     onAudioPermissionChanged: (Boolean) -> Unit,
     onPerformanceModeSelected: (LiveTunerPerformanceMode) -> Unit,
     onStartListening: () -> Unit,
@@ -225,6 +232,32 @@ fun InstrumentConfigurationScreen(
             }
 
             item {
+                Text(
+                    text = stringResource(Res.string.instrument_config_section_root_note),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+
+            item {
+                Text(
+                    text = stringResource(Res.string.instrument_config_description_instrument_key),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            item {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(NoteName.entries) { note ->
+                        FilterChip(
+                            selected = uiState.rootNote == note,
+                            onClick = { onRootNoteSelected(note) },
+                            label = { Text(note.symbol) }
+                        )
+                    }
+                }
+            }
+
+            item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         modifier = Modifier
@@ -296,6 +329,14 @@ fun InstrumentConfigurationScreen(
             }
 
             item {
+                HomeTuningCard(
+                    basePitchInputs = uiState.basePitchInputs,
+                    onSetCurrentAsHome = onSetCurrentAsHome,
+                    onRestoreToHome = onRestoreToHome
+                )
+            }
+
+            item {
                 OutlinedButton(
                     onClick = onLoadStarterProfile,
                     modifier = Modifier.fillMaxWidth()
@@ -326,6 +367,83 @@ fun InstrumentConfigurationScreen(
 
             item {
                 Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeTuningCard(
+    basePitchInputs: List<String>,
+    onSetCurrentAsHome: () -> Unit,
+    onRestoreToHome: () -> Unit
+) {
+    val allValid = basePitchInputs.all { Pitch.parse(it) != null }
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = stringResource(Res.string.instrument_config_section_home_tuning),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = stringResource(Res.string.instrument_config_home_tuning_description),
+                style = MaterialTheme.typography.bodySmall
+            )
+            if (allValid) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    itemsIndexed(basePitchInputs) { index, pitch ->
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        ) {
+                            Text(
+                                text = stringResource(
+                                    Res.string.instrument_config_home_tuning_string_chip,
+                                    index + 1,
+                                    pitch
+                                ),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+                }
+            } else {
+                Text(
+                    text = stringResource(Res.string.instrument_config_home_not_set),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onSetCurrentAsHome,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.instrument_config_action_set_current_as_home),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+                OutlinedButton(
+                    onClick = onRestoreToHome,
+                    enabled = allValid,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.instrument_config_action_restore_to_home),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
             }
         }
     }
@@ -751,13 +869,22 @@ private fun centsDeviation(
     return 1200.0 * (ln(detectedFrequencyHz / targetFrequencyHz) / ln(2.0))
 }
 
+private fun formatDouble2(value: Double): String {
+    val abs = kotlin.math.abs(value)
+    val rounded = kotlin.math.round(abs * 100.0)
+    val whole = rounded / 100
+    val dec = rounded % 100
+    return "$whole.${dec.toString().padStart(2, '0')}"
+}
+
 private fun formatFrequency(frequencyHz: Double?): String {
     return if (frequencyHz == null || !frequencyHz.isFinite()) "--"
-    else "%.2f Hz".format(frequencyHz)
+    else "${formatDouble2(frequencyHz)} Hz"
 }
 
 private fun signed(value: Double): String {
-    return if (value >= 0.0) "+${"%.2f".format(value)}" else "%.2f".format(value)
+    val formatted = formatDouble2(kotlin.math.abs(value))
+    return if (value >= 0.0) "+$formatted" else "-$formatted"
 }
 
 private fun tuningStateColor(state: TuningFeedbackState): Color {

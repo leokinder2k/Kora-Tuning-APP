@@ -2,6 +2,7 @@ package com.leokinder2k.koratuningcompanion.navigation
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Piano
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -31,11 +33,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +57,7 @@ import com.leokinder2k.koratuningcompanion.generated.resources.*
 import com.leokinder2k.koratuningcompanion.instrumentconfig.ui.InstrumentConfigurationRoute
 import com.leokinder2k.koratuningcompanion.instrumentconfig.ui.TraditionalPresetsRoute
 import com.leokinder2k.koratuningcompanion.livetuner.ui.LiveTunerRoute
+import com.leokinder2k.koratuningcompanion.notation.ui.KoraNotationRoute
 import com.leokinder2k.koratuningcompanion.platform.changeLocale
 import com.leokinder2k.koratuningcompanion.platform.getCurrentLocaleTag
 import com.leokinder2k.koratuningcompanion.platform.openUrl
@@ -85,35 +89,8 @@ fun KoraAuthorityApp(
     var showSettings by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
 
-    NavigationSuiteScaffold(
-        modifier = modifier.fillMaxSize(),
-        navigationSuiteItems = {
-            destinations.forEachIndexed { index, destination ->
-                item(
-                    icon = {
-                        Icon(
-                            imageVector = destination.icon,
-                            contentDescription = stringResource(destination.labelRes)
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = stringResource(destination.labelRes),
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    selected = index == pagerState.currentPage,
-                    onClick = {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(index)
-                        }
-                    }
-                )
-            }
-        }
-    ) {
+    Column(modifier = modifier.fillMaxSize()) {
+        Box(modifier = Modifier.weight(1f)) {
         Scaffold(
             contentWindowInsets = WindowInsets(0),
             topBar = {
@@ -153,24 +130,51 @@ fun KoraAuthorityApp(
                     AppDestination.INSTRUMENT_CONFIG -> InstrumentConfigurationRoute()
                     AppDestination.SCALE_ENGINE -> ScaleCalculationScreen(
                         uiState = scaleUiState,
-                        onRootNoteSelected = scaleViewModel::onRootNoteSelected,
-                        onScaleTypeSelected = scaleViewModel::onScaleTypeSelected
+                        onRootNoteSelected = scaleViewModel::onScaleRootNoteSelected,
+                        onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
+                        onScaleRootReferenceSelected = scaleViewModel::onScaleRootReferenceSelected
                     )
                     AppDestination.INSTANT_OVERVIEW -> InstantOverviewScreen(
                         uiState = scaleUiState,
-                        onRootNoteSelected = scaleViewModel::onRootNoteSelected,
                         onScaleTypeSelected = scaleViewModel::onScaleTypeSelected
                     )
                     AppDestination.LIVE_TUNER -> LiveTunerRoute(
                         scaleUiState = scaleUiState,
-                        onRootNoteSelected = scaleViewModel::onRootNoteSelected,
                         onScaleTypeSelected = scaleViewModel::onScaleTypeSelected
                     )
                     AppDestination.PRESETS -> TraditionalPresetsRoute()
+                    AppDestination.NOTATION -> KoraNotationRoute(modifier = Modifier.fillMaxSize())
                 }
             }
         }
-    }
+        } // end Box
+        NavigationBar {
+            destinations.forEachIndexed { index, destination ->
+                NavigationBarItem(
+                    icon = {
+                        Icon(
+                            imageVector = destination.icon,
+                            contentDescription = stringResource(destination.labelRes)
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = stringResource(destination.labelRes),
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    selected = index == pagerState.currentPage,
+                    onClick = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(index)
+                        }
+                    }
+                )
+            }
+        }
+    } // end Column
 
     if (showSettings) {
         var currentLocaleTag by remember(showSettings) {
@@ -338,4 +342,5 @@ private enum class AppDestination(
     INSTANT_OVERVIEW(Res.string.nav_overview_label, Icons.Default.GridView),
     LIVE_TUNER(Res.string.nav_tuner_label, Icons.Default.GraphicEq),
     PRESETS(Res.string.nav_presets_label, Icons.Default.LibraryMusic),
+    NOTATION(Res.string.nav_notation_label, Icons.Default.Piano),
 }

@@ -1,5 +1,6 @@
 package com.leokinder2k.koratuningcompanion.livetuner.detection
 
+import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.cos
@@ -144,7 +145,7 @@ class AutocorrelationPitchDetector(
         val windowed = DoubleArray(size)
         val denominator = (size - 1).toDouble()
         for (index in signal.indices) {
-            val weight = 0.5 * (1.0 - cos((2.0 * Math.PI * index) / denominator))
+            val weight = 0.5 * (1.0 - cos((2.0 * PI * index) / denominator))
             windowed[index] = signal[index] * weight
         }
         return windowed
@@ -188,7 +189,7 @@ class AutocorrelationPitchDetector(
             return 0.0
         }
 
-        val angularStep = (2.0 * Math.PI * frequencyHz) / sampleRate.toDouble()
+        val angularStep = (2.0 * PI * frequencyHz) / sampleRate.toDouble()
         var cosAccumulator = 0.0
         var sinAccumulator = 0.0
         for (index in signal.indices) {

@@ -17,7 +17,7 @@ enum class NoteName(val semitone: Int, val symbol: String) {
 
     companion object {
         fun fromSemitone(value: Int): NoteName {
-            val normalized = Math.floorMod(value, SEMITONES_PER_OCTAVE)
+            val normalized = value.mod(SEMITONES_PER_OCTAVE)
             return entries.first { it.semitone == normalized }
         }
     }
@@ -30,7 +30,7 @@ data class Pitch(
     fun plusSemitones(semitones: Int): Pitch {
         val total = octave * SEMITONES_PER_OCTAVE + note.semitone + semitones
         val normalizedNote = NoteName.fromSemitone(total)
-        val normalizedOctave = Math.floorDiv(total, SEMITONES_PER_OCTAVE)
+        val normalizedOctave = total.floorDiv(SEMITONES_PER_OCTAVE)
         return Pitch(note = normalizedNote, octave = normalizedOctave)
     }
 

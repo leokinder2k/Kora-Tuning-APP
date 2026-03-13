@@ -1,5 +1,8 @@
+@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
+
 package com.leokinder2k.koratuningcompanion.livetuner.audio
 
+import kotlinx.cinterop.get
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -14,7 +17,6 @@ class IosAudioFrameSource : AudioFrameSource {
         val session = AVAudioSession.sharedInstance()
         session.setCategory(AVAudioSessionCategoryRecord, error = null)
         session.setMode(AVAudioSessionModeMeasurement, error = null)
-        session.setActive(true, error = null)
 
         val engine = AVAudioEngine()
         val inputNode = engine.inputNode
@@ -42,7 +44,6 @@ class IosAudioFrameSource : AudioFrameSource {
         awaitClose {
             inputNode.removeTapOnBus(0u)
             engine.stop()
-            session.setActive(false, error = null)
         }
     }
 }

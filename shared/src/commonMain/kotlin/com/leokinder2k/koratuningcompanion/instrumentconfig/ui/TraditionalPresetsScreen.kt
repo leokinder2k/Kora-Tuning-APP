@@ -252,5 +252,10 @@ fun TraditionalPresetsScreen(
 }
 
 private fun signed(value: Double): String {
-    return if (value >= 0.0) "+${"%.1f".format(value)}" else "%.1f".format(value)
+    val abs = kotlin.math.abs(value)
+    val rounded = kotlin.math.round(abs * 10.0)
+    val whole = rounded / 10
+    val dec = rounded % 10
+    val formatted = "$whole.$dec"
+    return if (value >= 0.0) "+$formatted" else "-$formatted"
 }

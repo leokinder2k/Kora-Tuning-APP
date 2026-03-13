@@ -65,7 +65,6 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun LiveTunerRoute(
     scaleUiState: ScaleCalculationUiState,
-    onRootNoteSelected: (NoteName) -> Unit,
     onScaleTypeSelected: (ScaleType) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -75,7 +74,6 @@ fun LiveTunerRoute(
     LiveTunerScreen(
         scaleUiState = scaleUiState,
         tunerUiState = tunerUiState,
-        onRootNoteSelected = onRootNoteSelected,
         onScaleTypeSelected = onScaleTypeSelected,
         onAudioPermissionChanged = viewModel::onAudioPermissionChanged,
         onPerformanceModeSelected = viewModel::onPerformanceModeSelected,
@@ -90,7 +88,6 @@ fun LiveTunerRoute(
 fun LiveTunerScreen(
     scaleUiState: ScaleCalculationUiState,
     tunerUiState: LiveTunerUiState,
-    onRootNoteSelected: (NoteName) -> Unit,
     onScaleTypeSelected: (ScaleType) -> Unit,
     onAudioPermissionChanged: (Boolean) -> Unit,
     onPerformanceModeSelected: (LiveTunerPerformanceMode) -> Unit,
@@ -194,7 +191,6 @@ fun LiveTunerScreen(
             SelectionControls(
                 rootNote = scaleUiState.rootNote,
                 scaleType = scaleUiState.scaleType,
-                onRootNoteSelected = onRootNoteSelected,
                 onScaleTypeSelected = onScaleTypeSelected
             )
 
@@ -276,7 +272,7 @@ fun LiveTunerScreen(
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = stringResource(Res.string.live_tuner_signal_rms_line, "%.4f".format(tunerUiState.rms)),
+                        text = stringResource(Res.string.live_tuner_signal_rms_line, formatDouble4(tunerUiState.rms)),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -436,20 +432,10 @@ private fun GuidedTuningCard(
 private fun SelectionControls(
     rootNote: NoteName,
     scaleType: ScaleType,
-    onRootNoteSelected: (NoteName) -> Unit,
     onScaleTypeSelected: (ScaleType) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = stringResource(Res.string.scale_root_note_label), style = MaterialTheme.typography.titleMedium)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(NoteName.entries) { note ->
-                FilterChip(
-                    selected = note == rootNote,
-                    onClick = { onRootNoteSelected(note) },
-                    label = { Text(note.symbol) }
-                )
-            }
-        }
+        Text(text = stringResource(Res.string.scale_root_note_label) + ": ${rootNote.symbol}", style = MaterialTheme.typography.titleMedium)
         Text(text = stringResource(Res.string.scale_type_label), style = MaterialTheme.typography.titleMedium)
         ScaleTypeDropdownMenus(selectedScaleType = scaleType, onScaleTypeSelected = onScaleTypeSelected)
     }
@@ -515,20 +501,40 @@ private fun ReferenceToneCard(
     }
 }
 
+private fun formatDouble2(value: Double): String {
+    val abs = kotlin.math.abs(value)
+    val rounded = kotlin.math.round(abs * 100.0)
+    val whole = rounded / 100
+    val dec = rounded % 100
+    return "$whole.${dec.toString().padStart(2, '0')}"
+}
+
+private fun formatDouble4(value: Double): String {
+    val abs = kotlin.math.abs(value)
+    val rounded = kotlin.math.round(abs * 10000.0)
+    val whole = rounded / 10000
+    val dec = rounded % 10000
+    return "$whole.${dec.toString().padStart(4, '0')}"
+}
+
 private fun formatFrequency(frequencyHz: Double?): String {
-    return if (frequencyHz == null || !frequencyHz.isFinite()) "--" else "%.2f Hz".format(frequencyHz)
+    return if (frequencyHz == null || !frequencyHz.isFinite()) "--" else "${formatDouble2(frequencyHz)} Hz"
 }
 
 private fun formatPercent(value: Double): String {
     val safe = value.coerceIn(0.0, 1.0) * 100.0
-    return "%.1f%%".format(safe)
+    val rounded = kotlin.math.round(safe * 10.0)
+    val whole = rounded / 10
+    val dec = rounded % 10
+    return "$whole.$dec%"
 }
 
 private fun signedInt(value: Int): String = if (value >= 0) "+$value" else value.toString()
 
 private fun signedDouble(value: Double): String {
     val rounded = if (abs(value) < 0.05) 0.0 else value
-    return if (rounded >= 0.0) "+${"%.2f".format(rounded)}" else "%.2f".format(rounded)
+    val formatted = formatDouble2(kotlin.math.abs(rounded))
+    return if (rounded >= 0.0) "+$formatted" else "-$formatted"
 }
 
 private fun tuningStateColor(state: TuningFeedbackState): Color {
