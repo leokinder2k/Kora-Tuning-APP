@@ -24,6 +24,8 @@
     <string name="action_next">Next</string>
     <string name="action_grant_mic_short">Grant Mic</string>
     <string name="action_grant_microphone_permission">Grant Microphone Permission</string>
+    <string name="action_mute">Mute audio</string>
+    <string name="action_unmute">Unmute audio</string>
 
     <!-- Instrument Configuration -->
     <string name="title_instrument_configuration">Instrument Configuration</string>
@@ -31,6 +33,8 @@
     <string name="instrument_config_description_levered">Set open tuning for each string. Closed pitch is calculated automatically (+1 semitone). You can also enter open/closed intonation offsets in cents.</string>
     <string name="instrument_config_description_peg_tuning">Peg tuning mode (non-chromatic): your kora has no levers. Set open tuning for each string and (optionally) open cents offsets.</string>
     <string name="instrument_config_section_instrument_type">Instrument type</string>
+    <string name="instrument_config_section_root_note">Instrument key</string>
+    <string name="instrument_config_description_instrument_key">The key your kora is physically built and tuned in (all levers at rest). Changing this transposes all string pitches to match the new key. Use the Scale tab to choose a different root note for scale calculations.</string>
     <string name="instrument_type_levers">Levers (chromatic)</string>
     <string name="instrument_type_pegs">Peg tuning</string>
     <string name="instrument_config_quick_start_step_1">1. Choose 21 or 22 strings.</string>
@@ -40,6 +44,14 @@
     <string name="instrument_config_action_load_starter_profile">Load Starter Profile</string>
     <string name="instrument_config_action_save_profile">Save Instrument Profile</string>
     <string name="instrument_preset_manual">Manual</string>
+
+    <!-- Home / Base Tuning -->
+    <string name="instrument_config_section_home_tuning">Home Tuning (Levers Down)</string>
+    <string name="instrument_config_home_tuning_description">The physical tuning of your kora when all levers are at rest (down). Retune instructions in the Scale tab show peg adjustments relative to these home pitches.</string>
+    <string name="instrument_config_home_tuning_string_chip">S%1$d: %2$s</string>
+    <string name="instrument_config_action_set_current_as_home">Snapshot as Home Tuning</string>
+    <string name="instrument_config_action_restore_to_home">Restore to Home Tuning</string>
+    <string name="instrument_config_home_not_set">Home tuning not yet set — tap \'Snapshot as Home Tuning\' to save the current pitches.</string>
 
     <string name="instrument_tuning_assistant_title">Instrument Tuning Assistant</string>
     <string name="instrument_tuning_assistant_subtitle">Select a string and tune its open pitch using target note/cents and status lights.</string>
@@ -77,6 +89,12 @@
 
     <!-- Scale selection -->
     <string name="scale_root_note_label">Root note</string>
+    <string name="scale_root_reference_label">Scale from string</string>
+    <string name="scale_root_reference_left_1">1st left</string>
+    <string name="scale_root_reference_left_2">2nd left</string>
+    <string name="scale_root_reference_left_3">3rd left</string>
+    <string name="scale_root_reference_left_4">4th left</string>
+    <string name="scale_root_reference_right_1">1st right</string>
     <string name="scale_type_label">Scale type</string>
     <string name="scale_family_label">Scale family</string>
     <string name="scale_label">Scale</string>
@@ -185,6 +203,7 @@
     <string name="scale_engine_peg_row_target_lever">Target %1$s  Lever %2$s</string>
     <string name="scale_engine_peg_tuning_row_target">Target %1$s</string>
     <string name="scale_engine_peg_tuning_row_tune_open">Tune open %1$s</string>
+    <string name="scale_engine_peg_row_from_home">From home %1$s st</string>
 
     <string name="scale_engine_conflicts_title">Voicing Conflicts</string>
     <string name="scale_engine_conflicts_none">No conflicts detected.</string>
@@ -285,9 +304,10 @@
     <string name="content_desc_kora_diagram">Kora diagram</string>
     <string name="content_desc_chord_kora_diagram">Chord kora diagram</string>
 
-    <string name="overview_legend_open_lever">Lever open</string>
-    <string name="overview_legend_closed_lever">Lever closed</string>
-    <string name="overview_legend_peg_retune_required">Peg retune required</string>
+    <string name="overview_legend_open_lever">Lever open (no action)</string>
+    <string name="overview_legend_closed_lever">Close lever</string>
+    <string name="overview_legend_peg_retune_required">Retune peg</string>
+    <string name="overview_legend_both_lever_and_peg">Close lever + retune peg</string>
 
     <string name="overview_table_title">Kora Table</string>
 
@@ -375,4 +395,31 @@
 
     <!-- Action OK -->
     <string name="action_ok">OK</string>
+
+    <!-- Notation tab -->
+    <string name="nav_notation_label">Notation</string>
+    <string name="notation_upload_title">Import Score</string>
+    <string name="notation_upload_hint">Open a MusicXML, MXL, or MIDI file to convert it to kora tablature.</string>
+    <string name="notation_pick_file">Open file…</string>
+    <string name="notation_processing">Processing score…</string>
+    <string name="notation_difficulty">Difficulty: %1$d%%</string>
+    <string name="notation_diagram_title">Kora Diagram</string>
+    <string name="notation_retune_title">Retune Instructions</string>
+    <string name="notation_transpose_title">Edit / Transpose</string>
+    <string name="notation_export_title">Export</string>
+    <string name="notation_play_kora">Play Kora</string>
+    <string name="notation_play_original">Play Original</string>
+    <string name="notation_desktop_title">Kora Notation</string>
+    <string name="notation_desktop_body">Open the web version in your browser to convert scores on desktop.</string>
+    <string name="notation_ios_loading">Loading score engine…</string>
+    <string name="notation_ios_picker_hint">Select a MusicXML, MXL, or MIDI file from Files.</string>
+
+    <plurals name="overview_exercise_suggested_next">
+        <item quantity="one">Next: %1$s %2$s in %3$d beat (beat %4$d)</item>
+        <item quantity="other">Next: %1$s %2$s in %3$d beats (beat %4$d)</item>
+    </plurals>
+    <plurals name="overview_exercise_interval_chip">
+        <item quantity="one">%d beat</item>
+        <item quantity="other">%d beats</item>
+    </plurals>
 </resources>

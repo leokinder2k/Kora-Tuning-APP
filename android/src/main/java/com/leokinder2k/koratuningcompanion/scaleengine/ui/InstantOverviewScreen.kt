@@ -109,7 +109,9 @@ import com.leokinder2k.koratuningcompanion.scaleengine.model.PegCorrectStringRes
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
 import com.leokinder2k.koratuningcompanion.scaleengine.model.StringSide
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraClosedLeverColor
+import com.leokinder2k.koratuningcompanion.ui.theme.KoraCombinedChangesColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraDetunedColor
+import com.leokinder2k.koratuningcompanion.ui.theme.KoraLeverClosedStringColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraOpenLeverColor
 import java.io.File
 import java.io.FileOutputStream
@@ -165,8 +167,8 @@ private data class DiagramStringSegment(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 fun InstantOverviewScreen(
     uiState: ScaleCalculationUiState,
-    onRootNoteSelected: (NoteName) -> Unit,
     onScaleTypeSelected: (ScaleType) -> Unit,
+    isMuted: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val showLeverInfo = uiState.result.request.instrumentProfile.tuningMode == KoraTuningMode.LEVERED
@@ -637,7 +639,6 @@ fun InstantOverviewScreen(
             OverviewSelectionControls(
                 rootNote = uiState.rootNote,
                 scaleType = uiState.scaleType,
-                onRootNoteSelected = onRootNoteSelected,
                 onScaleTypeSelected = onScaleTypeSelected
             )
 
@@ -892,23 +893,13 @@ fun InstantOverviewScreen(
 private fun OverviewSelectionControls(
     rootNote: NoteName,
     scaleType: ScaleType,
-    onRootNoteSelected: (NoteName) -> Unit,
     onScaleTypeSelected: (ScaleType) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = stringResource(R.string.scale_root_note_label),
+            text = stringResource(R.string.scale_root_note_label) + ": ${rootNote.symbol}",
             style = MaterialTheme.typography.titleMedium
         )
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(NoteName.entries) { note ->
-                FilterChip(
-                    selected = note == rootNote,
-                    onClick = { onRootNoteSelected(note) },
-                    label = { Text(note.symbol) }
-                )
-            }
-        }
 
         Text(
             text = stringResource(R.string.scale_type_label),
@@ -1359,16 +1350,19 @@ private fun DrawScope.drawStringSet(
         // Bass strings (ratio=0) at top → long; high strings (ratio=1) near bottom → short
         val pegY    = lerp(start = pegTopY, stop = pegBottomY,    fraction = ratio)
         val bridgeX = lerp(start = bridgeBassX, stop = bridgeTrebleX, fraction = ratio)
+        val closedLever = row.selectedLeverState == LeverState.CLOSED
         val leverColor = if (showLeverInfo) {
-            when (row.selectedLeverState) {
-                LeverState.OPEN -> KoraOpenLeverColor
-                LeverState.CLOSED -> KoraClosedLeverColor
+            when {
+                closedLever && row.pegRetuneRequired -> KoraCombinedChangesColor  // purple: both
+                row.pegRetuneRequired                -> KoraDetunedColor           // blue: peg only
+                closedLever                          -> KoraLeverClosedStringColor // amber: lever only
+                else                                 -> KoraOpenLeverColor         // green: no action
             }
         } else {
             colors.outline
         }
         val isActive = row.stringNumber in activeStringNumbers
-        val baseStrokeWidth = if (row.pegRetuneRequired) {
+        val baseStrokeWidth = if (row.pegRetuneRequired || closedLever) {
             width * 0.0058f
         } else {
             width * 0.004f
@@ -1420,9 +1414,15 @@ private fun DrawScope.drawStringSet(
             )
         }
 
+        val pegDotColor = when {
+            closedLever && row.pegRetuneRequired -> KoraCombinedChangesColor
+            row.pegRetuneRequired                -> KoraDetunedColor
+            closedLever                          -> KoraLeverClosedStringColor
+            else                                 -> colors.outline
+        }
         drawCircle(
-            color = (if (row.pegRetuneRequired) KoraDetunedColor else colors.outline).copy(alpha = depthAlpha),
-            radius = if (row.pegRetuneRequired) width * 0.010f else width * 0.007f,
+            color = pegDotColor.copy(alpha = depthAlpha),
+            radius = if (row.pegRetuneRequired || closedLever) width * 0.010f else width * 0.007f,
             center = Offset(pegX, pegY)
         )
 
@@ -1690,14 +1690,23 @@ private fun DiagramLegend(showLeverInfo: Boolean) {
                 text = stringResource(R.string.overview_legend_open_lever)
             )
             LegendItem(
-                color = KoraClosedLeverColor,
+                color = KoraLeverClosedStringColor,
                 text = stringResource(R.string.overview_legend_closed_lever)
             )
+            LegendItem(
+                color = KoraDetunedColor,
+                text = stringResource(R.string.overview_legend_peg_retune_required)
+            )
+            LegendItem(
+                color = KoraCombinedChangesColor,
+                text = stringResource(R.string.overview_legend_both_lever_and_peg)
+            )
+        } else {
+            LegendItem(
+                color = KoraDetunedColor,
+                text = stringResource(R.string.overview_legend_peg_retune_required)
+            )
         }
-        LegendItem(
-            color = KoraDetunedColor,
-            text = stringResource(R.string.overview_legend_peg_retune_required)
-        )
     }
 }
 
@@ -2612,10 +2621,12 @@ private fun ChordSideCell(
     modifier: Modifier = Modifier
 ) {
     val baseColor = when {
+        row.pegRetuneRequired && row.selectedLeverState == LeverState.CLOSED ->
+            KoraCombinedChangesColor.copy(alpha = 0.22f)
         row.pegRetuneRequired -> KoraDetunedColor.copy(alpha = 0.24f)
         !showLeverInfo -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
         row.selectedLeverState == LeverState.OPEN -> KoraOpenLeverColor.copy(alpha = 0.22f)
-        else -> KoraClosedLeverColor.copy(alpha = 0.22f)
+        else -> KoraLeverClosedStringColor.copy(alpha = 0.22f)
     }
     val containerColor = if (isSounding) {
         MaterialTheme.colorScheme.secondaryContainer

@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -97,7 +98,9 @@ import com.leokinder2k.koratuningcompanion.scaleengine.model.PegCorrectStringRes
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
 import com.leokinder2k.koratuningcompanion.scaleengine.model.StringSide
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraClosedLeverColor
+import com.leokinder2k.koratuningcompanion.ui.theme.KoraCombinedChangesColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraDetunedColor
+import com.leokinder2k.koratuningcompanion.ui.theme.KoraLeverClosedStringColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraOpenLeverColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -131,8 +134,8 @@ private data class DiagramStringSegment(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 fun InstantOverviewScreen(
     uiState: ScaleCalculationUiState,
-    onRootNoteSelected: (NoteName) -> Unit,
     onScaleTypeSelected: (ScaleType) -> Unit,
+    isMuted: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val showLeverInfo = uiState.result.request.instrumentProfile.tuningMode == KoraTuningMode.LEVERED
@@ -187,6 +190,15 @@ fun InstantOverviewScreen(
     val coroutineScope = rememberCoroutineScope()
     val playGenerationByString = remember { mutableStateMapOf<Int, Int>() }
 
+    LaunchedEffect(isMuted) {
+        if (isMuted) {
+            tonePlayer.stopAll()
+            metronomePlayer.stopAll()
+            playingStringNumbers = emptySet()
+            playGenerationByString.clear()
+            isMetronomeRunning = false
+        }
+    }
     LaunchedEffect(uiState.rootNote, uiState.scaleType, uiState.result.request.instrumentProfile.stringCount) {
         playingStringNumbers = emptySet()
         playGenerationByString.clear()
@@ -208,7 +220,7 @@ fun InstantOverviewScreen(
             beat = if (beat >= metronomeTimeSignature.numerator) 1 else beat + 1
             metronomeCurrentBeat = beat
             metronomeTick += 1L
-            if (beat in metronomeEnabledBeats) {
+            if (beat in metronomeEnabledBeats && !isMuted) {
                 metronomePlayer.play(sound = metronomeSound, accent = beat == 1, volumeScale = metronomeVolumePercent / 100f)
             }
             delay(stepDelayMs)
@@ -236,6 +248,7 @@ fun InstantOverviewScreen(
     }
 
     fun playString(stringNumber: Int, pitch: Pitch, centsOffset: Double) {
+        if (isMuted) return
         val frequency = TunerTargetMatcher.pitchToFrequencyHz(pitch = pitch, centsOffset = centsOffset)
         tonePlayer.play(stringNumber = stringNumber, frequencyHz = frequency)
         playingStringNumbers = playingStringNumbers + stringNumber
@@ -379,7 +392,6 @@ fun InstantOverviewScreen(
             OverviewSelectionControls(
                 rootNote = uiState.rootNote,
                 scaleType = uiState.scaleType,
-                onRootNoteSelected = onRootNoteSelected,
                 onScaleTypeSelected = onScaleTypeSelected
             )
 
@@ -523,16 +535,10 @@ fun InstantOverviewScreen(
 private fun OverviewSelectionControls(
     rootNote: NoteName,
     scaleType: ScaleType,
-    onRootNoteSelected: (NoteName) -> Unit,
     onScaleTypeSelected: (ScaleType) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = stringResource(Res.string.scale_root_note_label), style = MaterialTheme.typography.titleMedium)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(NoteName.entries) { note ->
-                FilterChip(selected = note == rootNote, onClick = { onRootNoteSelected(note) }, label = { Text(note.symbol) })
-            }
-        }
+        Text(text = stringResource(Res.string.scale_root_note_label) + ": ${rootNote.symbol}", style = MaterialTheme.typography.titleMedium)
         Text(text = stringResource(Res.string.scale_type_label), style = MaterialTheme.typography.titleMedium)
         ScaleTypeDropdownMenus(selectedScaleType = scaleType, onScaleTypeSelected = onScaleTypeSelected)
     }
@@ -582,7 +588,7 @@ private fun DiagramOverview(
                 Text(text = stringResource(Res.string.overview_diagram_title), style = MaterialTheme.typography.titleMedium)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = stringResource(Res.string.overview_diagram_zoom_label, "%.0f".format(diagramZoom * 100f)),
+                        text = stringResource(Res.string.overview_diagram_zoom_label, (diagramZoom * 100f).toInt().toString()),
                         style = MaterialTheme.typography.bodySmall
                     )
                     OutlinedButton(onClick = { onDiagramZoomChanged((diagramZoom - 0.2f).coerceAtLeast(1f)) }, enabled = diagramZoom > 1f) { Text("-") }
@@ -663,6 +669,7 @@ private fun DiagramOverview(
 
 private fun DrawScope.drawKoraBody(colors: ColorScheme) {
     val w = size.width; val h = size.height
+    if (w <= 0f || h <= 0f) return
     val bg0 = colors.background
     val isDark = (bg0.red * 0.299f + bg0.green * 0.587f + bg0.blue * 0.114f) < 0.5f
     val bg = if (isDark) Color(0xFF0F0A05) else Color(0xFFF5F0E8)
@@ -727,6 +734,7 @@ private fun DrawScope.drawKoraDiagram(
     vibrationPhase: Float = 0f,
     textMeasurer: TextMeasurer? = null
 ) {
+    if (size.width <= 0f || size.height <= 0f) return
     val bridgeCenterY = size.height * 0.60f
     val bridgeTop = bridgeCenterY - (size.height * 0.17f)
     val bridgeBottom = bridgeCenterY + (size.height * 0.17f)
@@ -761,14 +769,17 @@ private fun DrawScope.drawStringSet(
         val ratio = index.toFloat() / maxIndex.toFloat()
         val pegY = lerp(pegTopY, pegBottomY, ratio)
         val bridgeX = lerp(bridgeBassX, bridgeTrebleX, ratio)
+        val closedLever = row.selectedLeverState == LeverState.CLOSED
         val leverColor = if (showLeverInfo) {
-            when (row.selectedLeverState) {
-                LeverState.OPEN -> KoraOpenLeverColor
-                LeverState.CLOSED -> KoraClosedLeverColor
+            when {
+                closedLever && row.pegRetuneRequired -> KoraCombinedChangesColor  // purple: both
+                row.pegRetuneRequired                -> KoraDetunedColor           // blue: peg only
+                closedLever                          -> KoraLeverClosedStringColor // amber: lever only
+                else                                 -> KoraOpenLeverColor         // green: no action
             }
         } else colors.outline
         val isActive = row.stringNumber in activeStringNumbers
-        val baseStrokeWidth = if (row.pegRetuneRequired) width * 0.0058f else width * 0.004f
+        val baseStrokeWidth = if (row.pegRetuneRequired || closedLever) width * 0.0058f else width * 0.004f
         val depthThickness = (1.55f - (0.75f * ratio)).coerceIn(0.80f, 1.55f)
         val depthAlpha = 0.60f + 0.40f * (1f - ratio)
         val strokeWidth = (if (isActive) baseStrokeWidth * 1.8f else baseStrokeWidth) * depthThickness
@@ -791,7 +802,13 @@ private fun DrawScope.drawStringSet(
             drawPath(Path().apply { moveTo(pegX, pegY); quadraticTo(midX + staticBendX, midY, bridgeX, bridgeY) }, color = stringColor, style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
         }
 
-        drawCircle(color = (if (row.pegRetuneRequired) KoraDetunedColor else colors.outline).copy(alpha = depthAlpha), radius = if (row.pegRetuneRequired) width * 0.010f else width * 0.007f, center = Offset(pegX, pegY))
+        val pegDotColor = when {
+            closedLever && row.pegRetuneRequired -> KoraCombinedChangesColor
+            row.pegRetuneRequired                -> KoraDetunedColor
+            closedLever                          -> KoraLeverClosedStringColor
+            else                                 -> colors.outline
+        }
+        drawCircle(color = pegDotColor.copy(alpha = depthAlpha), radius = if (row.pegRetuneRequired || closedLever) width * 0.010f else width * 0.007f, center = Offset(pegX, pegY))
         drawCircle(color = stringColor, radius = if (isActive) width * 0.0082f else width * 0.006f, center = Offset(bridgeX, bridgeY))
 
         if (noteLabelsVisible && textMeasurer != null) {
@@ -867,9 +884,12 @@ private fun DiagramLegend(showLeverInfo: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (showLeverInfo) {
             LegendItem(color = KoraOpenLeverColor, text = stringResource(Res.string.overview_legend_open_lever))
-            LegendItem(color = KoraClosedLeverColor, text = stringResource(Res.string.overview_legend_closed_lever))
+            LegendItem(color = KoraLeverClosedStringColor, text = stringResource(Res.string.overview_legend_closed_lever))
         }
         LegendItem(color = KoraDetunedColor, text = stringResource(Res.string.overview_legend_peg_retune_required))
+        if (showLeverInfo) {
+            LegendItem(color = KoraCombinedChangesColor, text = stringResource(Res.string.overview_legend_both_lever_and_peg))
+        }
     }
 }
 
@@ -1189,10 +1209,15 @@ private fun CircleOfFifthsExerciseDiagram(startRoot: NoteName, nextRoot: NoteNam
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(text = stringResource(Res.string.overview_exercise_diagram_title), style = MaterialTheme.typography.bodySmall)
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Canvas(
-                modifier = Modifier.fillMaxWidth().aspectRatio(1f)
+                modifier = Modifier
+                    .sizeIn(maxWidth = 380.dp, maxHeight = 380.dp)
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
                     .pointerInput(startRoot, nextRoot, choiceRoots) { consumeAllTouches() }
             ) {
+                if (size.minDimension <= 0f) return@Canvas
                 val center = Offset(size.width * 0.5f, size.height * 0.5f)
                 val ringRadius = size.minDimension * 0.38f
                 drawCircle(color = colorScheme.outlineVariant, radius = ringRadius, center = center, style = Stroke(width = size.minDimension * 0.006f))
@@ -1212,6 +1237,7 @@ private fun CircleOfFifthsExerciseDiagram(startRoot: NoteName, nextRoot: NoteNam
                     drawText(textResult, topLeft = Offset(markerCenter.x - textResult.size.width / 2f, markerCenter.y - textResult.size.height / 2f))
                 }
             }
+            } // end Box
             Text(text = stringResource(Res.string.overview_exercise_diagram_legend), style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -1268,10 +1294,11 @@ private fun DrawScope.drawChordMarkers(segments: List<DiagramStringSegment>, cho
 @Composable
 private fun ChordSideCell(row: PegCorrectStringResult, pitchShiftByString: Map<Int, Int>, shouldPlay: Boolean, isSounding: Boolean, onStringTouched: (PegCorrectStringResult) -> Unit, showLeverInfo: Boolean, modifier: Modifier = Modifier) {
     val baseColor = when {
+        row.selectedLeverState == LeverState.CLOSED && row.pegRetuneRequired -> KoraCombinedChangesColor.copy(alpha = 0.24f)
         row.pegRetuneRequired -> KoraDetunedColor.copy(alpha = 0.24f)
         !showLeverInfo -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-        row.selectedLeverState == LeverState.OPEN -> KoraOpenLeverColor.copy(alpha = 0.22f)
-        else -> KoraClosedLeverColor.copy(alpha = 0.22f)
+        row.selectedLeverState == LeverState.CLOSED -> KoraLeverClosedStringColor.copy(alpha = 0.22f)
+        else -> KoraOpenLeverColor.copy(alpha = 0.22f)
     }
     Card(
         modifier = modifier.clickable { onStringTouched(row) },
@@ -1326,14 +1353,6 @@ private fun TableOverview(rows: List<PegCorrectStringResult>, pitchShiftByString
 }
 
 @Composable
-private fun SideColumnHeader() {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = stringResource(Res.string.table_left_header), style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
-        Text(text = stringResource(Res.string.table_right_header), style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
-    }
-}
-
-@Composable
 private fun SideCell(text: String, isActive: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.clickable(onClick = onClick),
@@ -1358,7 +1377,6 @@ private fun formatOverviewRow(row: PegCorrectStringResult, showLeverInfo: Boolea
 }
 
 private fun signed(value: Int): String = if (value >= 0) "+$value" else value.toString()
-private fun signed(value: Double): String = if (value >= 0.0) "+${"%.1f".format(value)}" else "%.1f".format(value)
 
 private fun displayPitchLabel(effectivePitch: Pitch, semitoneShift: Int, includeOctave: Boolean): String {
     val shift = semitoneShift.coerceIn(-1, 1)

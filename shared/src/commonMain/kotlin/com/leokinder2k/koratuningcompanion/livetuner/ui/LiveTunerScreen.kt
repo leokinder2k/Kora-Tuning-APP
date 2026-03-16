@@ -66,6 +66,7 @@ import org.jetbrains.compose.resources.stringResource
 fun LiveTunerRoute(
     scaleUiState: ScaleCalculationUiState,
     onScaleTypeSelected: (ScaleType) -> Unit,
+    isMuted: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val viewModel: LiveTunerViewModel = viewModel { LiveTunerViewModel() }
@@ -79,6 +80,7 @@ fun LiveTunerRoute(
         onPerformanceModeSelected = viewModel::onPerformanceModeSelected,
         onStartListening = viewModel::startListening,
         onStopListening = viewModel::stopListening,
+        isMuted = isMuted,
         modifier = modifier
     )
 }
@@ -93,6 +95,7 @@ fun LiveTunerScreen(
     onPerformanceModeSelected: (LiveTunerPerformanceMode) -> Unit,
     onStartListening: () -> Unit,
     onStopListening: () -> Unit,
+    isMuted: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val permissionLauncher = rememberMicPermissionLauncher(onResult = onAudioPermissionChanged)
@@ -100,6 +103,9 @@ fun LiveTunerScreen(
 
     LaunchedEffect(isGranted) {
         onAudioPermissionChanged(isGranted)
+    }
+    LaunchedEffect(isMuted) {
+        if (isMuted) onStopListening()
     }
 
     val guidedSteps = scaleUiState.result.pegCorrectTable
@@ -147,11 +153,12 @@ fun LiveTunerScreen(
     val referenceTonePlayer = remember { ReferenceTonePlayer() }
     var isReferenceTonePlaying by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(isReferenceTonePlaying, selectedTarget?.stringNumber) {
-        if (isReferenceTonePlaying && selectedTarget != null) {
+    LaunchedEffect(isReferenceTonePlaying, selectedTarget?.stringNumber, isMuted) {
+        if (isReferenceTonePlaying && selectedTarget != null && !isMuted) {
             referenceTonePlayer.play(selectedTarget.targetFrequencyHz * REFERENCE_TONE_OCTAVE_MULTIPLIER)
         } else {
             referenceTonePlayer.stop()
+            if (isMuted) isReferenceTonePlaying = false
         }
     }
 

@@ -72,7 +72,7 @@ import org.jetbrains.compose.resources.stringResource
 import kotlin.math.ln
 
 @Composable
-fun InstrumentConfigurationRoute(modifier: Modifier = Modifier) {
+fun InstrumentConfigurationRoute(isMuted: Boolean = false, modifier: Modifier = Modifier) {
     val configViewModel: InstrumentConfigurationViewModel = viewModel { InstrumentConfigurationViewModel() }
     val tunerViewModel: LiveTunerViewModel = viewModel { LiveTunerViewModel() }
     val uiState by configViewModel.uiState.collectAsStateWithLifecycle()
@@ -95,6 +95,7 @@ fun InstrumentConfigurationRoute(modifier: Modifier = Modifier) {
         onPerformanceModeSelected = tunerViewModel::onPerformanceModeSelected,
         onStartListening = tunerViewModel::startListening,
         onStopListening = tunerViewModel::stopListening,
+        isMuted = isMuted,
         modifier = modifier
     )
 }
@@ -118,10 +119,15 @@ fun InstrumentConfigurationScreen(
     onPerformanceModeSelected: (LiveTunerPerformanceMode) -> Unit,
     onStartListening: () -> Unit,
     onStopListening: () -> Unit,
+    isMuted: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val permissionLauncher = rememberMicPermissionLauncher(onResult = onAudioPermissionChanged)
     val isGranted = isMicPermissionGranted()
+
+    androidx.compose.runtime.LaunchedEffect(isMuted) {
+        if (isMuted) onStopListening()
+    }
     LaunchedEffect(isGranted) {
         onAudioPermissionChanged(isGranted)
     }

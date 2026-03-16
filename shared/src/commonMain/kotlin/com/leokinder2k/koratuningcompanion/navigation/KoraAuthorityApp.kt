@@ -25,6 +25,8 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Piano
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -44,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,6 +88,7 @@ fun KoraAuthorityApp(
     )
     val coroutineScope = rememberCoroutineScope()
 
+    var isMuted by rememberSaveable { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
@@ -97,6 +101,14 @@ fun KoraAuthorityApp(
                 TopAppBar(
                     title = { Text(stringResource(Res.string.app_top_bar_title)) },
                     actions = {
+                        IconButton(onClick = { isMuted = !isMuted }) {
+                            Icon(
+                                imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                                contentDescription = stringResource(if (isMuted) Res.string.action_unmute else Res.string.action_mute),
+                                tint = if (isMuted) androidx.compose.material3.MaterialTheme.colorScheme.error
+                                       else androidx.compose.ui.graphics.Color.Unspecified
+                            )
+                        }
                         IconButton(onClick = { showOverflowMenu = true }) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
@@ -127,7 +139,7 @@ fun KoraAuthorityApp(
                     .padding(innerPadding)
             ) { page ->
                 when (destinations[page]) {
-                    AppDestination.INSTRUMENT_CONFIG -> InstrumentConfigurationRoute()
+                    AppDestination.INSTRUMENT_CONFIG -> InstrumentConfigurationRoute(isMuted = isMuted)
                     AppDestination.SCALE_ENGINE -> ScaleCalculationScreen(
                         uiState = scaleUiState,
                         onRootNoteSelected = scaleViewModel::onScaleRootNoteSelected,
@@ -136,11 +148,13 @@ fun KoraAuthorityApp(
                     )
                     AppDestination.INSTANT_OVERVIEW -> InstantOverviewScreen(
                         uiState = scaleUiState,
-                        onScaleTypeSelected = scaleViewModel::onScaleTypeSelected
+                        onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
+                        isMuted = isMuted
                     )
                     AppDestination.LIVE_TUNER -> LiveTunerRoute(
                         scaleUiState = scaleUiState,
-                        onScaleTypeSelected = scaleViewModel::onScaleTypeSelected
+                        onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
+                        isMuted = isMuted
                     )
                     AppDestination.PRESETS -> TraditionalPresetsRoute()
                     AppDestination.NOTATION -> KoraNotationRoute(modifier = Modifier.fillMaxSize())

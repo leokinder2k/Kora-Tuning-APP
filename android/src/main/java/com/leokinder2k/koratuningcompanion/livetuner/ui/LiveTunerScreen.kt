@@ -69,8 +69,8 @@ import kotlin.math.abs
 @Composable
 fun LiveTunerRoute(
     scaleUiState: ScaleCalculationUiState,
-    onRootNoteSelected: (NoteName) -> Unit,
     onScaleTypeSelected: (ScaleType) -> Unit,
+    isMuted: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current.applicationContext
@@ -82,7 +82,6 @@ fun LiveTunerRoute(
     LiveTunerScreen(
         scaleUiState = scaleUiState,
         tunerUiState = tunerUiState,
-        onRootNoteSelected = onRootNoteSelected,
         onScaleTypeSelected = onScaleTypeSelected,
         onAudioPermissionChanged = viewModel::onAudioPermissionChanged,
         onPerformanceModeSelected = viewModel::onPerformanceModeSelected,
@@ -97,7 +96,6 @@ fun LiveTunerRoute(
 fun LiveTunerScreen(
     scaleUiState: ScaleCalculationUiState,
     tunerUiState: LiveTunerUiState,
-    onRootNoteSelected: (NoteName) -> Unit,
     onScaleTypeSelected: (ScaleType) -> Unit,
     onAudioPermissionChanged: (Boolean) -> Unit,
     onPerformanceModeSelected: (LiveTunerPerformanceMode) -> Unit,
@@ -213,7 +211,6 @@ fun LiveTunerScreen(
             SelectionControls(
                 rootNote = scaleUiState.rootNote,
                 scaleType = scaleUiState.scaleType,
-                onRootNoteSelected = onRootNoteSelected,
                 onScaleTypeSelected = onScaleTypeSelected
             )
 
@@ -600,23 +597,13 @@ private fun GuidedTuningCard(
 private fun SelectionControls(
     rootNote: NoteName,
     scaleType: ScaleType,
-    onRootNoteSelected: (NoteName) -> Unit,
     onScaleTypeSelected: (ScaleType) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = stringResource(R.string.scale_root_note_label),
+            text = stringResource(R.string.scale_root_note_label) + ": ${rootNote.symbol}",
             style = MaterialTheme.typography.titleMedium
         )
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(NoteName.entries) { note ->
-                FilterChip(
-                    selected = note == rootNote,
-                    onClick = { onRootNoteSelected(note) },
-                    label = { Text(note.symbol) }
-                )
-            }
-        }
 
         Text(
             text = stringResource(R.string.scale_type_label),
