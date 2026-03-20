@@ -17,9 +17,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -48,7 +46,6 @@ fun TraditionalPresetsRoute(modifier: Modifier = Modifier) {
 }
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
 fun TraditionalPresetsScreen(
     uiState: TraditionalPresetsUiState,
     onStringCountSelected: (Int) -> Unit,
@@ -59,26 +56,63 @@ fun TraditionalPresetsScreen(
     onApplyPreset: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.title_traditional_presets)) }
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
             Text(
                 text = stringResource(Res.string.traditional_presets_intro),
                 style = MaterialTheme.typography.bodyMedium
             )
+
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Common Instrument Tunings",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "Standard reference tunings for common instruments. Select a note on the Chromatic Tuner tab to tune string by string.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    listOf(
+                        "Guitar (Standard)" to "E2 – A2 – D3 – G3 – B3 – E4",
+                        "Guitar (Drop D)" to "D2 – A2 – D3 – G3 – B3 – E4",
+                        "Ukulele (Standard)" to "G4 – C4 – E4 – A4",
+                        "Ukulele (Baritone)" to "D3 – G3 – B3 – E4",
+                        "Banjo (5-string Open G)" to "G4 – D3 – G3 – B3 – D4",
+                        "Banjo (4-string Tenor)" to "C3 – G3 – D4 – A4",
+                        "Bass (Standard 4-str)" to "E1 – A1 – D2 – G2",
+                        "Mandolin / Violin" to "G3 – D4 – A4 – E5",
+                        "Cello" to "C2 – G2 – D3 – A3",
+                        "Viola" to "C3 – G3 – D4 – A4",
+                    ).forEach { (name, tuning) ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = tuning,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
 
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
@@ -99,6 +133,11 @@ fun TraditionalPresetsScreen(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = uiState.stringCount == 19,
+                    onClick = { onStringCountSelected(19) },
+                    label = { Text("Kadanu") }
+                )
                 FilterChip(
                     selected = uiState.stringCount == 21,
                     onClick = { onStringCountSelected(21) },
@@ -247,7 +286,6 @@ fun TraditionalPresetsScreen(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-        }
     }
 }
 
