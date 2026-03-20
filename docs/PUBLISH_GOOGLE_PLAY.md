@@ -21,24 +21,21 @@ You must do these steps yourself (requires your Google account):
 
 1. Place your service account key at:
    - `.local-signing/play-service-account.json`
-2. Build + publish:
+2. Build + publish (**requires PowerShell 7 / `pwsh`** — not Windows PowerShell 5.1):
 
 ```powershell
-$ErrorActionPreference = 'Stop'
-
-# Load signing env vars for release signing
-Get-Content '.local-signing/release-signing.env' |
-  Where-Object { $_ -match '^[A-Z0-9_]+=.*$' } |
-  ForEach-Object {
-    $parts = $_ -split '=',2
-    Set-Item -Path "Env:$($parts[0])" -Value $parts[1]
-  }
-
-./gradlew.bat :app:publishReleaseBundle --no-daemon
+pwsh -ExecutionPolicy Bypass -File scripts\publish_internal_with_symbols.ps1
 ```
 
+> **Note:** The upload script uses `RSA.ImportFromPem()` which requires .NET 5+.
+> Always use `pwsh` (PowerShell 7+), never `powershell.exe` (5.1 / .NET Framework).
+
 Notes:
-- Versioning is controlled by env vars or Gradle properties:
+- Versioning now defaults from `release-version.properties`
+- `scripts/publish_internal_with_symbols.ps1` auto-increments the next release:
+  - `1.0.12` -> `1.0.13`
+  - `30000012` -> `30000013`
+- Manual override is still possible with env vars or Gradle properties:
   - `VERSION_CODE` (int), `VERSION_NAME` (string)
 - First upload for a new app can be slow because Play Console checks are stricter.
 
@@ -46,4 +43,3 @@ Notes:
 
 If you want GitHub Actions to publish to Play on tag pushes, add a repo secret with the service account JSON
 and update `.github/workflows/release.yml` accordingly.
-

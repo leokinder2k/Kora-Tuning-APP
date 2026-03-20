@@ -28,11 +28,16 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -40,11 +45,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.leokinder2k.koratuningcompanion.livetuner.audio.ReferenceTonePlayer
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Brush
@@ -56,6 +66,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.R
@@ -76,7 +89,12 @@ import com.leokinder2k.koratuningcompanion.ui.theme.KoraTuningSystemTheme
 import kotlin.math.ln
 
 @Composable
-fun InstrumentConfigurationRoute(isMuted: Boolean = false, modifier: Modifier = Modifier) {
+fun InstrumentConfigurationRoute(
+    isMuted: Boolean = false,
+    onToggleMute: () -> Unit = {},
+    isActive: Boolean = true,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current.applicationContext
     val configViewModel: InstrumentConfigurationViewModel = viewModel(
         factory = InstrumentConfigurationViewModel.factory(context)
@@ -104,6 +122,9 @@ fun InstrumentConfigurationRoute(isMuted: Boolean = false, modifier: Modifier = 
         onPerformanceModeSelected = tunerViewModel::onPerformanceModeSelected,
         onStartListening = tunerViewModel::startListening,
         onStopListening = tunerViewModel::stopListening,
+        isMuted = isMuted,
+        onToggleMute = onToggleMute,
+        isActive = isActive,
         modifier = modifier
     )
 }
@@ -127,6 +148,9 @@ fun InstrumentConfigurationScreen(
     onPerformanceModeSelected: (LiveTunerPerformanceMode) -> Unit,
     onStartListening: () -> Unit,
     onStopListening: () -> Unit,
+    isMuted: Boolean = false,
+    onToggleMute: () -> Unit = {},
+    isActive: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -138,8 +162,35 @@ fun InstrumentConfigurationScreen(
         context,
         Manifest.permission.RECORD_AUDIO
     ) == PackageManager.PERMISSION_GRANTED
+
+    LaunchedEffect(isMuted) {
+        if (isMuted) onStopListening()
+    }
     LaunchedEffect(isGranted) {
         onAudioPermissionChanged(isGranted)
+    }
+
+    val referenceTonePlayer = remember { ReferenceTonePlayer() }
+    var isReferenceTonePlaying by remember { mutableStateOf(false) }
+    var isPlayingAll by remember { mutableStateOf(false) }
+    DisposableEffect(Unit) { onDispose { referenceTonePlayer.release() } }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var isAppPaused by remember { mutableStateOf(false) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            isAppPaused = event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(isActive, isAppPaused) {
+        if (!isActive || isAppPaused) {
+            isPlayingAll = false
+            isReferenceTonePlaying = false
+            referenceTonePlayer.stop()
+        }
     }
 
     var selectedTuningRowIndex by rememberSaveable(uiState.stringCount) { mutableIntStateOf(0) }
@@ -167,6 +218,35 @@ fun InstrumentConfigurationScreen(
     } else {
         null
     }
+    LaunchedEffect(isReferenceTonePlaying, selectedTargetFrequencyHz, isMuted) {
+        if (isReferenceTonePlaying && !isPlayingAll && selectedTargetFrequencyHz != null && !isMuted) {
+            referenceTonePlayer.play(selectedTargetFrequencyHz * 2.0)
+        } else if (!isReferenceTonePlaying || isMuted) {
+            referenceTonePlayer.stop()
+            if (isMuted) { isReferenceTonePlaying = false; isPlayingAll = false }
+        }
+    }
+
+    val allRows = uiState.rows.sortedBy { it.stringNumber }
+    LaunchedEffect(isPlayingAll, isMuted, isActive) {
+        if (!isPlayingAll || isMuted || !isActive) return@LaunchedEffect
+        isReferenceTonePlaying = true
+        for (row in allRows) {
+            if (!isPlayingAll || isMuted || !isActive) break
+            val pitch = Pitch.parse(row.openPitchInput)
+            val cents = row.openIntonationInput.toDoubleOrNull()
+            if (pitch != null && cents != null) {
+                val freq = TunerTargetMatcher.pitchToFrequencyHz(pitch = pitch, centsOffset = cents)
+                selectedTuningRowIndex = uiState.rows.indexOf(row).coerceAtLeast(0)
+                referenceTonePlayer.play(freq * 2.0)
+            }
+            delay(3000L)
+        }
+        isPlayingAll = false
+        isReferenceTonePlaying = false
+        referenceTonePlayer.stop()
+    }
+
     val inTuneThresholdCents = when (uiState.tuningMode) {
         KoraTuningMode.LEVERED -> TuningFeedbackClassifier.DEFAULT_IN_TUNE_THRESHOLD_CENTS
         KoraTuningMode.PEG_TUNING -> PEG_TUNING_IN_TUNE_THRESHOLD_CENTS
@@ -182,7 +262,17 @@ fun InstrumentConfigurationScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.title_instrument_configuration)) }
+                title = { Text(stringResource(R.string.title_instrument_configuration)) },
+                actions = {
+                    IconButton(onClick = onToggleMute) {
+                        Icon(
+                            imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                            contentDescription = null,
+                            tint = if (isMuted) MaterialTheme.colorScheme.error
+                                   else androidx.compose.ui.graphics.Color.Unspecified
+                        )
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -313,7 +403,20 @@ fun InstrumentConfigurationScreen(
                     InstrumentTuningAssistantCard(
                         rows = uiState.rows,
                         selectedRowIndex = selectedTuningRowIndex,
-                        onSelectedRowIndexChanged = { index -> selectedTuningRowIndex = index },
+                        onSelectedRowIndexChanged = { index ->
+                            when {
+                                (isReferenceTonePlaying || isPlayingAll) && index == selectedTuningRowIndex -> {
+                                    isPlayingAll = false
+                                    isReferenceTonePlaying = false
+                                }
+                                isPlayingAll -> {
+                                    isPlayingAll = false
+                                    selectedTuningRowIndex = index
+                                    isReferenceTonePlaying = true
+                                }
+                                else -> selectedTuningRowIndex = index
+                            }
+                        },
                         selectedPitchLabel = selectedPitch?.asText(),
                         selectedOpenCents = selectedOpenCents,
                         selectedTargetFrequencyHz = selectedTargetFrequencyHz,
@@ -321,6 +424,13 @@ fun InstrumentConfigurationScreen(
                         selectedCentsDeviation = selectedCentsDeviation,
                         tuningState = tuningState,
                         tunerUiState = tunerUiState,
+                        isReferenceTonePlaying = isReferenceTonePlaying || isPlayingAll,
+                        isPlayingAll = isPlayingAll,
+                        onPlayAll = { isPlayingAll = true },
+                        onStopReferenceTone = {
+                            isPlayingAll = false
+                            isReferenceTonePlaying = false
+                        },
                         onRequestPermission = {
                             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         },
@@ -481,6 +591,10 @@ private fun InstrumentTuningAssistantCard(
     selectedCentsDeviation: Double?,
     tuningState: TuningFeedbackState?,
     tunerUiState: LiveTunerUiState,
+    isReferenceTonePlaying: Boolean,
+    isPlayingAll: Boolean,
+    onPlayAll: () -> Unit,
+    onStopReferenceTone: () -> Unit,
     onRequestPermission: () -> Unit,
     onPerformanceModeSelected: (LiveTunerPerformanceMode) -> Unit,
     onStartListening: () -> Unit,
@@ -626,6 +740,32 @@ private fun InstrumentTuningAssistantCard(
                 selectedCentsDeviation = selectedCentsDeviation,
                 showActiveIndicators = showActiveTuningIndicators
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isReferenceTonePlaying) {
+                    OutlinedButton(
+                        onClick = onStopReferenceTone,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.live_tuner_reference_tone_action_stop))
+                    }
+                } else {
+                    Button(
+                        onClick = onPlayAll,
+                        enabled = rows.any { row ->
+                            Pitch.parse(row.openPitchInput) != null &&
+                                row.openIntonationInput.toDoubleOrNull() != null
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.instrument_config_action_play_all_strings))
+                    }
+                }
+            }
 
             CompactStringSelectorRow(
                 sideLabel = "L",

@@ -37,7 +37,7 @@ class MetronomeClickPlayer(
         val track = AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build()
             )
@@ -116,7 +116,7 @@ class MetronomeClickPlayer(
             MetronomeSoundOption.WOOD_BLOCK -> 0.24
             MetronomeSoundOption.WOOD_CLICK -> 0.32
         }
-        val amplitude = (if (accent) 0.48 else 0.34) * volumeScale
+        val amplitude = (if (accent) 0.672 else 0.476) * volumeScale
         val attackSamples = (sampleRateHz * 0.0018).toInt().coerceAtLeast(1)
         val samples = ShortArray(sampleCount)
 

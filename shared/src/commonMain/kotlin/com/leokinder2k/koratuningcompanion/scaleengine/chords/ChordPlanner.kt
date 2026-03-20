@@ -196,7 +196,7 @@ object ChordPlanner {
     ): List<PegCorrectStringResult> {
         val normalizedOffsets = toneOffsetsToInclude
             .ifEmpty { definition.quality.tones.map { tone -> tone.semitoneOffset }.toSet() }
-            .map { offset -> Math.floorMod(offset, 12) }
+            .map { offset -> offset.mod(12) }
             .toSet()
         val allowedNotes = normalizedOffsets
             .map { offset -> NoteName.fromSemitone(definition.root.semitone + offset) }

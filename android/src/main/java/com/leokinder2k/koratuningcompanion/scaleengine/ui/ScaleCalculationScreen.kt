@@ -2,6 +2,8 @@ package com.leokinder2k.koratuningcompanion.scaleengine.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -31,6 +33,7 @@ import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverOnlyStringResult
 import com.leokinder2k.koratuningcompanion.scaleengine.model.PegCorrectStringResult
+import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleRootReference
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
 import com.leokinder2k.koratuningcompanion.scaleengine.model.StringSide
 import com.leokinder2k.koratuningcompanion.scaleengine.model.VoicingConflict
@@ -46,8 +49,9 @@ fun ScaleCalculationRoute(modifier: Modifier = Modifier) {
 
     ScaleCalculationScreen(
         uiState = uiState,
-        onRootNoteSelected = viewModel::onRootNoteSelected,
+        onRootNoteSelected = viewModel::onScaleRootNoteSelected,
         onScaleTypeSelected = viewModel::onScaleTypeSelected,
+        onScaleRootReferenceSelected = viewModel::onScaleRootReferenceSelected,
         modifier = modifier
     )
 }
@@ -58,6 +62,7 @@ fun ScaleCalculationScreen(
     uiState: ScaleCalculationUiState,
     onRootNoteSelected: (NoteName) -> Unit,
     onScaleTypeSelected: (ScaleType) -> Unit,
+    onScaleRootReferenceSelected: (ScaleRootReference) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val tuningMode = uiState.result.request.instrumentProfile.tuningMode
@@ -106,12 +111,25 @@ fun ScaleCalculationScreen(
                 }
             }
 
-            SelectionSection(
-                title = stringResource(R.string.scale_root_note_label),
-                options = NoteName.entries,
-                selected = uiState.rootNote,
-                optionLabel = { note -> note.symbol },
-                onOptionSelected = onRootNoteSelected
+            Text(
+                text = stringResource(R.string.scale_root_note_label),
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(NoteName.entries) { note ->
+                    FilterChip(
+                        selected = uiState.rootNote == note,
+                        onClick = { onRootNoteSelected(note) },
+                        label = { Text(note.symbol) }
+                    )
+                }
+            }
+
+            ScaleRootReferenceSection(
+                selected = uiState.scaleRootReference,
+                allowRight1 = uiState.allowRight1,
+                onSelected = onScaleRootReferenceSelected
             )
 
             ScaleTypeDropdownMenus(
@@ -140,6 +158,50 @@ fun ScaleCalculationScreen(
             PegCorrectTableCard(rows = uiState.result.pegCorrectTable, showLeverInfo = showLeverInfo)
             ConflictCard(conflicts = uiState.result.conflicts)
             SuggestionCard(suggestions = uiState.result.suggestions)
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ScaleRootReferenceSection(
+    selected: ScaleRootReference,
+    allowRight1: Boolean,
+    onSelected: (ScaleRootReference) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.scale_root_reference_label),
+            style = MaterialTheme.typography.titleMedium
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = selected == ScaleRootReference.LEFT_1,
+                onClick = { onSelected(ScaleRootReference.LEFT_1) },
+                label = { Text(stringResource(R.string.scale_root_reference_left_1)) }
+            )
+            FilterChip(
+                selected = selected == ScaleRootReference.LEFT_2,
+                onClick = { onSelected(ScaleRootReference.LEFT_2) },
+                label = { Text(stringResource(R.string.scale_root_reference_left_2)) }
+            )
+            FilterChip(
+                selected = selected == ScaleRootReference.LEFT_3,
+                onClick = { onSelected(ScaleRootReference.LEFT_3) },
+                label = { Text(stringResource(R.string.scale_root_reference_left_3)) }
+            )
+            FilterChip(
+                selected = selected == ScaleRootReference.LEFT_4,
+                onClick = { onSelected(ScaleRootReference.LEFT_4) },
+                label = { Text(stringResource(R.string.scale_root_reference_left_4)) }
+            )
+            if (allowRight1) {
+                FilterChip(
+                    selected = selected == ScaleRootReference.RIGHT_1,
+                    onClick = { onSelected(ScaleRootReference.RIGHT_1) },
+                    label = { Text(stringResource(R.string.scale_root_reference_right_1)) }
+                )
+            }
         }
     }
 }
@@ -388,6 +450,7 @@ private fun formatPegCorrectRow(row: PegCorrectStringResult, showLeverInfo: Bool
     } else {
         row.pegRetuneSemitones.toString()
     }
+    val fromHomeLabel = if (row.fromBaseSemitones >= 0) "+${row.fromBaseSemitones}" else row.fromBaseSemitones.toString()
     return buildString {
         append("${row.role.asLabel()} (S${row.stringNumber})\n")
         if (showLeverInfo) {
@@ -414,6 +477,8 @@ private fun formatPegCorrectRow(row: PegCorrectStringResult, showLeverInfo: Bool
             append("\n")
         }
         append(stringResource(R.string.scale_engine_row_int_peg, signed(row.selectedIntonationCents), retuneLabel))
+        append("  ")
+        append(stringResource(R.string.scale_engine_peg_row_from_home, fromHomeLabel))
     }
 }
 

@@ -15,6 +15,9 @@ targets:
     deploymentTarget: "16.0"
     sources:
       - path: iosApp
+      - path: kora_engine
+        buildPhase: resources
+        type: folder
     info:
       path: iosApp/Info.plist
     settings:

@@ -134,12 +134,17 @@ fun KoraAuthorityApp(
         ) { innerPadding ->
             HorizontalPager(
                 state = pagerState,
+                beyondViewportPageCount = 1,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
             ) { page ->
                 when (destinations[page]) {
-                    AppDestination.INSTRUMENT_CONFIG -> InstrumentConfigurationRoute(isMuted = isMuted)
+                    AppDestination.INSTRUMENT_CONFIG -> InstrumentConfigurationRoute(
+                        isMuted = isMuted,
+                        onToggleMute = { isMuted = !isMuted },
+                        isActive = page == pagerState.currentPage
+                    )
                     AppDestination.SCALE_ENGINE -> ScaleCalculationScreen(
                         uiState = scaleUiState,
                         onRootNoteSelected = scaleViewModel::onScaleRootNoteSelected,
@@ -149,12 +154,14 @@ fun KoraAuthorityApp(
                     AppDestination.INSTANT_OVERVIEW -> InstantOverviewScreen(
                         uiState = scaleUiState,
                         onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
-                        isMuted = isMuted
+                        isMuted = isMuted,
+                        onToggleMute = { isMuted = !isMuted }
                     )
                     AppDestination.LIVE_TUNER -> LiveTunerRoute(
                         scaleUiState = scaleUiState,
                         onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
-                        isMuted = isMuted
+                        isMuted = isMuted,
+                        onToggleMute = { isMuted = !isMuted }
                     )
                     AppDestination.PRESETS -> TraditionalPresetsRoute()
                     AppDestination.NOTATION -> KoraNotationRoute(modifier = Modifier.fillMaxSize())

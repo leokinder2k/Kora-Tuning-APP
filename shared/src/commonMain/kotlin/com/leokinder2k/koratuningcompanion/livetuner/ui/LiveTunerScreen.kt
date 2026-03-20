@@ -17,16 +17,25 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -35,9 +44,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -45,6 +60,8 @@ import com.leokinder2k.koratuningcompanion.generated.resources.Res
 import com.leokinder2k.koratuningcompanion.generated.resources.*
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
+import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverState
 import com.leokinder2k.koratuningcompanion.livetuner.audio.ReferenceTonePlayer
 import com.leokinder2k.koratuningcompanion.livetuner.model.TunerTarget
 import com.leokinder2k.koratuningcompanion.livetuner.model.TunerTargetMatcher
@@ -59,7 +76,10 @@ import com.leokinder2k.koratuningcompanion.scaleengine.ui.ScaleTypeDropdownMenus
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraFlatColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraInTuneColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraSharpColor
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -67,6 +87,7 @@ fun LiveTunerRoute(
     scaleUiState: ScaleCalculationUiState,
     onScaleTypeSelected: (ScaleType) -> Unit,
     isMuted: Boolean = false,
+    onToggleMute: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val viewModel: LiveTunerViewModel = viewModel { LiveTunerViewModel() }
@@ -81,6 +102,7 @@ fun LiveTunerRoute(
         onStartListening = viewModel::startListening,
         onStopListening = viewModel::stopListening,
         isMuted = isMuted,
+        onToggleMute = onToggleMute,
         modifier = modifier
     )
 }
@@ -96,6 +118,7 @@ fun LiveTunerScreen(
     onStartListening: () -> Unit,
     onStopListening: () -> Unit,
     isMuted: Boolean = false,
+    onToggleMute: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val permissionLauncher = rememberMicPermissionLauncher(onResult = onAudioPermissionChanged)
@@ -181,7 +204,17 @@ fun LiveTunerScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(Res.string.title_live_tuner)) }
+                title = { Text(stringResource(Res.string.title_live_tuner)) },
+                actions = {
+                    IconButton(onClick = onToggleMute) {
+                        Icon(
+                            imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                            contentDescription = null,
+                            tint = if (isMuted) MaterialTheme.colorScheme.error
+                                   else androidx.compose.ui.graphics.Color.Unspecified
+                        )
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -285,6 +318,11 @@ fun LiveTunerScreen(
                 }
             }
 
+            ChromaticTunerCard(
+                detectedFrequencyHz = tunerUiState.detectedFrequencyHz,
+                isListening = tunerUiState.isListening
+            )
+
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -373,6 +411,228 @@ fun LiveTunerScreen(
             }
         }
     }
+}
+
+@Composable
+private fun ChromaticTunerCard(
+    detectedFrequencyHz: Double?,
+    isListening: Boolean
+) {
+    val allTargets = remember {
+        NoteName.entries.flatMap { note ->
+            (2..6).map { octave ->
+                val pitch = Pitch(note, octave)
+                TunerTarget(
+                    stringNumber = note.semitone * 10 + octave,
+                    roleLabel = pitch.asText(),
+                    targetPitch = pitch,
+                    targetFrequencyHz = TunerTargetMatcher.pitchToFrequencyHz(pitch),
+                    requiredLeverState = LeverState.OPEN,
+                    pegRetuneSemitones = 0
+                )
+            }
+        }
+    }
+
+    var lockedNote by remember { mutableStateOf<NoteName?>(null) }
+    val activeTargets = if (lockedNote != null) {
+        allTargets.filter { it.targetPitch.note == lockedNote }
+    } else {
+        allTargets
+    }
+
+    val match = if (isListening && detectedFrequencyHz != null) {
+        TunerTargetMatcher.matchNearestTarget(detectedFrequencyHz, activeTargets)
+    } else null
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Chromatic Tuner", style = MaterialTheme.typography.titleMedium)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                item {
+                    FilterChip(
+                        selected = lockedNote == null,
+                        onClick = { lockedNote = null },
+                        label = { Text("Auto") }
+                    )
+                }
+                items(NoteName.entries) { note ->
+                    FilterChip(
+                        selected = lockedNote == note,
+                        onClick = { lockedNote = if (lockedNote == note) null else note },
+                        label = { Text(note.chromaticChipName()) }
+                    )
+                }
+            }
+            ChromaticTunerDial(
+                centsDeviation = match?.centsDeviation,
+                noteDisplayName = (lockedNote ?: match?.target?.targetPitch?.note)
+                    ?.chromaticDisplayName() ?: "–",
+                subtitleText = match?.let {
+                    "Octave ${it.target.targetPitch.octave}  •  ${formatFrequency(it.target.targetFrequencyHz)}"
+                } ?: if (isListening) "Listening…" else "Start tuner to detect pitch",
+                isActive = isListening && match != null
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChromaticTunerDial(
+    centsDeviation: Double?,
+    noteDisplayName: String,
+    subtitleText: String,
+    isActive: Boolean
+) {
+    val needleFraction by animateFloatAsState(
+        targetValue = if (isActive && centsDeviation != null)
+            ((centsDeviation.coerceIn(-50.0, 50.0) + 50.0) / 100.0).toFloat()
+        else 0.5f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "chromatic_needle"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp)
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val cx = size.width / 2f
+            val cy = size.height * 0.88f
+            val radius = size.width * 0.46f
+            val center = Offset(cx, cy)
+
+            // Black background circle
+            drawCircle(color = Color.Black, radius = radius, center = center)
+
+            // Colored arc segments (startAngle 180°=flat-left → 360°=sharp-right, center=270°=top)
+            val arcR = radius * 0.74f
+            val arcStroke = radius * 0.22f
+            val arcTL = Offset(cx - arcR, cy - arcR)
+            val arcSz = Size(arcR * 2f, arcR * 2f)
+            listOf(
+                Triple(180f, 22f, Color(0xFFBB0000)),
+                Triple(202f, 20f, Color(0xFFEE1100)),
+                Triple(222f, 20f, Color(0xFFFF4400)),
+                Triple(242f, 14f, Color(0xFFFF9900)),
+                Triple(256f,  8f, Color(0xFFFFDD00)),
+                Triple(264f, 12f, Color(0xFF33CC00)),
+                Triple(276f,  8f, Color(0xFFFFDD00)),
+                Triple(284f, 14f, Color(0xFFFF9900)),
+                Triple(298f, 20f, Color(0xFFFF4400)),
+                Triple(318f, 20f, Color(0xFFEE1100)),
+                Triple(338f, 22f, Color(0xFFBB0000)),
+            ).forEach { (start, sweep, color) ->
+                drawArc(
+                    color = color,
+                    startAngle = start,
+                    sweepAngle = sweep,
+                    useCenter = false,
+                    topLeft = arcTL,
+                    size = arcSz,
+                    style = Stroke(width = arcStroke)
+                )
+            }
+
+            // Tick marks (11 ticks across 180°)
+            val outerTickR = arcR + arcStroke * 0.55f
+            val innerTickR = arcR - arcStroke * 0.6f
+            val innerMajorR = arcR - arcStroke * 1.1f
+            for (i in 0..10) {
+                val angleDeg = 180f + i / 10f * 180f
+                val angleRad = (angleDeg / 180.0 * PI).toFloat()
+                val isMajor = i == 5
+                val tickInner = if (isMajor) innerMajorR else innerTickR
+                drawLine(
+                    color = Color.White.copy(alpha = if (isMajor) 1f else 0.55f),
+                    start = Offset(cx + tickInner * cos(angleRad), cy + tickInner * sin(angleRad)),
+                    end = Offset(cx + outerTickR * cos(angleRad), cy + outerTickR * sin(angleRad)),
+                    strokeWidth = if (isMajor) 3f else 1.5f
+                )
+            }
+
+            // Needle
+            val needleAngleDeg = 180f + needleFraction * 180f
+            val needleAngleRad = (needleAngleDeg / 180.0 * PI).toFloat()
+            val needleLen = arcR - arcStroke * 0.25f
+            val needleEnd = Offset(
+                cx + needleLen * cos(needleAngleRad),
+                cy + needleLen * sin(needleAngleRad)
+            )
+            val needleAlpha = if (isActive) 1f else 0.25f
+            drawLine(
+                color = Color.Black.copy(alpha = 0.35f),
+                start = Offset(cx + 2f, cy + 2f),
+                end = Offset(needleEnd.x + 2f, needleEnd.y + 2f),
+                strokeWidth = 5f,
+                cap = StrokeCap.Round
+            )
+            drawLine(
+                color = Color.White.copy(alpha = needleAlpha),
+                start = center,
+                end = needleEnd,
+                strokeWidth = 4f,
+                cap = StrokeCap.Round
+            )
+            drawCircle(Color.White.copy(alpha = needleAlpha), radius = 7f, center = center)
+        }
+
+        // Note name text overlaid in the lower portion of the dial circle
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 14.dp),
+            verticalArrangement = Arrangement.Bottom,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = noteDisplayName,
+                style = MaterialTheme.typography.headlineLarge,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = subtitleText,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.75f)
+            )
+        }
+    }
+}
+
+private fun NoteName.chromaticDisplayName(): String = when (this) {
+    NoteName.C       -> "C"
+    NoteName.C_SHARP -> "C♯ / D♭"
+    NoteName.D       -> "D"
+    NoteName.D_SHARP -> "D♯ / E♭"
+    NoteName.E       -> "E"
+    NoteName.F       -> "F"
+    NoteName.F_SHARP -> "F♯ / G♭"
+    NoteName.G       -> "G"
+    NoteName.G_SHARP -> "G♯ / A♭"
+    NoteName.A       -> "A"
+    NoteName.A_SHARP -> "A♯ / B♭"
+    NoteName.B       -> "B"
+}
+
+private fun NoteName.chromaticChipName(): String = when (this) {
+    NoteName.C       -> "C"
+    NoteName.C_SHARP -> "C♯"
+    NoteName.D       -> "D"
+    NoteName.D_SHARP -> "D♯"
+    NoteName.E       -> "E"
+    NoteName.F       -> "F"
+    NoteName.F_SHARP -> "F♯"
+    NoteName.G       -> "G"
+    NoteName.G_SHARP -> "G♯"
+    NoteName.A       -> "A"
+    NoteName.A_SHARP -> "A♯"
+    NoteName.B       -> "B"
 }
 
 @Composable
@@ -473,7 +733,13 @@ private fun ReferenceToneCard(
                 items(items = leftTargets, key = { it.stringNumber }) { target ->
                     FilterChip(
                         selected = target.stringNumber == selectedTargetStringNumber,
-                        onClick = { onTargetSelected(target.stringNumber) },
+                        onClick = {
+                            if (target.stringNumber == selectedTargetStringNumber && isReferenceTonePlaying) {
+                                onStop()
+                            } else {
+                                onTargetSelected(target.stringNumber)
+                            }
+                        },
                         label = { Text("${target.roleLabel} ${target.targetPitch.asText()}") }
                     )
                 }
@@ -483,7 +749,13 @@ private fun ReferenceToneCard(
                 items(items = rightTargets, key = { it.stringNumber }) { target ->
                     FilterChip(
                         selected = target.stringNumber == selectedTargetStringNumber,
-                        onClick = { onTargetSelected(target.stringNumber) },
+                        onClick = {
+                            if (target.stringNumber == selectedTargetStringNumber && isReferenceTonePlaying) {
+                                onStop()
+                            } else {
+                                onTargetSelected(target.stringNumber)
+                            }
+                        },
                         label = { Text("${target.roleLabel} ${target.targetPitch.asText()}") }
                     )
                 }

@@ -7,6 +7,7 @@ import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringSide
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.StringTuning
 import com.leokinder2k.koratuningcompanion.scaleengine.model.EngineMode
+import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleRootReference
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverOnlyStringResult
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverState
 import com.leokinder2k.koratuningcompanion.scaleengine.model.PegCorrectStringResult
@@ -74,8 +75,17 @@ class ScaleCalculationEngine {
                 includeClosedLever = includeClosedLever
             )
 
+            // Base pitch for this string — physical home tuning before any peg adjustment.
+            // The engine transposes all strings by profileTransposeSemitones for root anchoring,
+            // so we subtract that offset to get the actual physical peg target relative to home.
+            val baseAbsolute = request.instrumentProfile.basePitches
+                .getOrNull(string.stringNumber - 1)?.absoluteSemitone()
+                ?: (string.openPitch.absoluteSemitone() - profileTransposeSemitones)
+
             val leverOnlyOption = selectLeverOnlyOption(options)
             if (leverOnlyOption != null) {
+                // No peg retune needed; physical peg stays at working-open pitch.
+                val physicalOpenAbsolute = string.openPitch.absoluteSemitone() - profileTransposeSemitones
                 PegCorrectStringResult(
                     stringNumber = string.stringNumber,
                     role = role,
@@ -87,7 +97,8 @@ class ScaleCalculationEngine {
                     selectedPitch = leverOnlyOption.pitch,
                     pegRetuneSemitones = 0,
                     pegRetuneRequired = false,
-                    selectedIntonationCents = leverOnlyOption.intonationCents
+                    selectedIntonationCents = leverOnlyOption.intonationCents,
+                    fromBaseSemitones = physicalOpenAbsolute - baseAbsolute
                 )
             } else {
                 val retune = selectBestRetune(
@@ -102,6 +113,8 @@ class ScaleCalculationEngine {
                 } else {
                     retunedClosed
                 }
+                // Physical target = transposed target minus the global transpose offset.
+                val physicalRetunedAbsolute = retune.retunedOpenAbsolute - profileTransposeSemitones
 
                 PegCorrectStringResult(
                     stringNumber = string.stringNumber,
@@ -114,7 +127,8 @@ class ScaleCalculationEngine {
                     selectedPitch = selectedPitch,
                     pegRetuneSemitones = retune.retunedOpenAbsolute - string.openPitch.absoluteSemitone(),
                     pegRetuneRequired = retune.retunedOpenAbsolute != string.openPitch.absoluteSemitone(),
-                    selectedIntonationCents = 0.0
+                    selectedIntonationCents = 0.0,
+                    fromBaseSemitones = physicalRetunedAbsolute - baseAbsolute
                 )
             }
         }
@@ -322,17 +336,25 @@ class ScaleCalculationEngine {
     private fun transposeSemitonesForRootAnchoredKora(
         request: ScaleCalculationRequest
     ): Int {
-        val leftBassStringNumber = KoraStringLayout.leftOrder(request.instrumentProfile.stringCount)
-            .firstOrNull()
-            ?: 1
-        val leftBassPitch = request.instrumentProfile.strings
-            .firstOrNull { string -> string.stringNumber == leftBassStringNumber }
-            ?.openPitch
-            ?: request.instrumentProfile.strings.firstOrNull()?.openPitch
+        val stringCount = request.instrumentProfile.stringCount
+        val leftOrder = KoraStringLayout.leftOrder(stringCount)
+        val referenceStringNumber = when (request.scaleRootReference) {
+            ScaleRootReference.LEFT_1 -> leftOrder.getOrNull(0) ?: 1
+            ScaleRootReference.LEFT_2 -> leftOrder.getOrNull(1) ?: leftOrder.firstOrNull() ?: 1
+            ScaleRootReference.LEFT_3 -> leftOrder.getOrNull(2) ?: leftOrder.firstOrNull() ?: 1
+            ScaleRootReference.LEFT_4 -> leftOrder.getOrNull(3) ?: leftOrder.firstOrNull() ?: 1
+            ScaleRootReference.RIGHT_1 -> KoraStringLayout.rightOrder(stringCount).getOrNull(0) ?: 1
+        }
+        // Use the physical home tuning (basePitches) of the reference string so that
+        // the root-anchor calculation is always relative to the unmodified instrument,
+        // regardless of any working transposition already applied to openPitches.
+        val referencePitch = request.instrumentProfile.basePitches
+            .getOrNull(referenceStringNumber - 1)
+            ?: request.instrumentProfile.basePitches.firstOrNull()
             ?: return 0
 
-        val rawDelta = request.rootNote.semitone - leftBassPitch.note.semitone
-        val normalizedDelta = Math.floorMod(rawDelta, 12)
+        val rawDelta = request.rootNote.semitone - referencePitch.note.semitone
+        val normalizedDelta = rawDelta.mod(12)
         return if (normalizedDelta > 6) {
             normalizedDelta - 12
         } else {
@@ -407,7 +429,7 @@ class ScaleCalculationEngine {
 
     private fun pitchFromAbsoluteSemitone(value: Int): Pitch {
         val note = NoteName.fromSemitone(value)
-        val octave = Math.floorDiv(value, 12)
+        val octave = value.floorDiv(12)
         return Pitch(note = note, octave = octave)
     }
 

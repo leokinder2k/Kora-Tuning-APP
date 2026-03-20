@@ -5,11 +5,12 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 class ReferenceTonePlayer(
     private val sampleRateHz: Int = 44_100,
-    private val amplitude: Double = 0.25
+    private val amplitude: Double = 0.35
 ) {
 
     private var track: AudioTrack? = null
@@ -42,7 +43,7 @@ class ReferenceTonePlayer(
         val newTrack = AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build()
             )
@@ -97,12 +98,14 @@ class ReferenceTonePlayer(
     }
 
     private fun createSineWave(frequencyHz: Double): ShortArray {
-        val sampleCount = sampleRateHz
+        // Choose enough complete cycles (~100 ms) so the loop seam is phase-seamless,
+        // eliminating the click artifact and ensuring the detected pitch is exact.
+        val cycles = (frequencyHz * 0.1).roundToInt().coerceAtLeast(1)
+        val sampleCount = (cycles.toDouble() * sampleRateHz / frequencyHz).roundToInt().coerceAtLeast(1)
         val samples = ShortArray(sampleCount)
         for (index in 0 until sampleCount) {
-            val angle = (2.0 * PI * frequencyHz * index) / sampleRateHz
-            val value = sin(angle) * amplitude
-            samples[index] = (value * Short.MAX_VALUE).toInt().toShort()
+            val angle = 2.0 * PI * frequencyHz * index / sampleRateHz
+            samples[index] = (sin(angle) * amplitude * Short.MAX_VALUE).toInt().toShort()
         }
         return samples
     }

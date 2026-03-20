@@ -131,16 +131,21 @@ fun KoraAuthorityApp(
             contentWindowInsets = WindowInsets(0),
             topBar = {
                 TopAppBar(
-                    title = { Text(stringResource(R.string.app_top_bar_title)) },
-                    actions = {
-                        IconButton(onClick = { isMuted = !isMuted }) {
-                            Icon(
-                                imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
-                                contentDescription = stringResource(if (isMuted) R.string.action_unmute else R.string.action_mute),
-                                tint = if (isMuted) MaterialTheme.colorScheme.error
-                                       else androidx.compose.ui.graphics.Color.Unspecified
-                            )
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(stringResource(R.string.app_top_bar_title))
+                            Spacer(Modifier.width(4.dp))
+                            IconButton(onClick = { isMuted = !isMuted }) {
+                                Icon(
+                                    imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                                    contentDescription = stringResource(if (isMuted) R.string.action_unmute else R.string.action_mute),
+                                    tint = if (isMuted) MaterialTheme.colorScheme.error
+                                           else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
+                    },
+                    actions = {
                         IconButton(onClick = { showOverflowMenu = true }) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
@@ -166,12 +171,17 @@ fun KoraAuthorityApp(
         ) { innerPadding ->
             HorizontalPager(
                 state = pagerState,
+                beyondViewportPageCount = 0,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
             ) { page ->
                 when (destinations[page]) {
-                    AppDestination.INSTRUMENT_CONFIG -> InstrumentConfigurationRoute(isMuted = isMuted)
+                    AppDestination.INSTRUMENT_CONFIG -> InstrumentConfigurationRoute(
+                        isMuted = isMuted,
+                        onToggleMute = { isMuted = !isMuted },
+                        isActive = page == pagerState.currentPage
+                    )
                     AppDestination.SCALE_ENGINE -> ScaleCalculationScreen(
                         uiState = scaleUiState,
                         onRootNoteSelected = scaleViewModel::onScaleRootNoteSelected,
@@ -181,12 +191,14 @@ fun KoraAuthorityApp(
                     AppDestination.INSTANT_OVERVIEW -> InstantOverviewScreen(
                         uiState = scaleUiState,
                         onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
-                        isMuted = isMuted
+                        isMuted = isMuted,
+                        onToggleMute = { isMuted = !isMuted }
                     )
                     AppDestination.LIVE_TUNER -> LiveTunerRoute(
                         scaleUiState = scaleUiState,
                         onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
-                        isMuted = isMuted
+                        isMuted = isMuted,
+                        onToggleMute = { isMuted = !isMuted }
                     )
                     AppDestination.PRESETS -> TraditionalPresetsRoute()
                     AppDestination.NOTATION -> KoraNotationRoute()

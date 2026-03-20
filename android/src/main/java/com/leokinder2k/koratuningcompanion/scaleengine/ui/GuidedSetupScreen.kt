@@ -6,14 +6,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -38,7 +35,6 @@ import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
 @OptIn(ExperimentalMaterial3Api::class)
 fun GuidedSetupScreen(
     uiState: ScaleCalculationUiState,
-    onRootNoteSelected: (NoteName) -> Unit,
     onScaleTypeSelected: (ScaleType) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -82,7 +78,6 @@ fun GuidedSetupScreen(
             SelectionControls(
                 rootNote = uiState.rootNote,
                 scaleType = uiState.scaleType,
-                onRootNoteSelected = onRootNoteSelected,
                 onScaleTypeSelected = onScaleTypeSelected
             )
 
@@ -204,23 +199,13 @@ private fun GuidedStepCard(
 private fun SelectionControls(
     rootNote: NoteName,
     scaleType: ScaleType,
-    onRootNoteSelected: (NoteName) -> Unit,
     onScaleTypeSelected: (ScaleType) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = stringResource(R.string.scale_root_note_label),
+            text = stringResource(R.string.scale_root_note_label) + ": ${rootNote.symbol}",
             style = MaterialTheme.typography.titleMedium
         )
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(NoteName.entries) { note ->
-                FilterChip(
-                    selected = note == rootNote,
-                    onClick = { onRootNoteSelected(note) },
-                    label = { Text(note.symbol) }
-                )
-            }
-        }
 
         Text(
             text = stringResource(R.string.scale_type_label),

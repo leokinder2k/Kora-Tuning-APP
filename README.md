@@ -98,6 +98,10 @@ Version can be provided via:
 - Gradle properties: `-PVERSION_NAME`, `-PVERSION_CODE`
 - Environment: `VERSION_NAME`, `VERSION_CODE`
 
+Default release versioning now comes from `release-version.properties`.
+The Play publish scripts auto-increment from that file using a sequential
+non-date-based scheme that stays above the older date-based Play uploads.
+
 Release signing env vars:
 
 - `ANDROID_SIGNING_STORE_FILE`
@@ -119,6 +123,7 @@ See:
 
 - `docs/PUBLISH_GOOGLE_PLAY.md`
 - `docs/CI_RELEASE_SETUP.md`
+- `docs/CODEX_CLAUDE_WORKFLOW.md`
 
 ## Localization
 

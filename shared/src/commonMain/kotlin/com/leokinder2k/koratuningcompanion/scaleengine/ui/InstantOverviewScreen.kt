@@ -37,8 +37,13 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -54,6 +59,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -136,6 +142,7 @@ fun InstantOverviewScreen(
     uiState: ScaleCalculationUiState,
     onScaleTypeSelected: (ScaleType) -> Unit,
     isMuted: Boolean = false,
+    onToggleMute: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val showLeverInfo = uiState.result.request.instrumentProfile.tuningMode == KoraTuningMode.LEVERED
@@ -250,7 +257,7 @@ fun InstantOverviewScreen(
     fun playString(stringNumber: Int, pitch: Pitch, centsOffset: Double) {
         if (isMuted) return
         val frequency = TunerTargetMatcher.pitchToFrequencyHz(pitch = pitch, centsOffset = centsOffset)
-        tonePlayer.play(stringNumber = stringNumber, frequencyHz = frequency)
+        tonePlayer.play(stringNumber = stringNumber, frequencyHz = frequency * 2.0)
         playingStringNumbers = playingStringNumbers + stringNumber
         val playGeneration = (playGenerationByString[stringNumber] ?: 0) + 1
         playGenerationByString[stringNumber] = playGeneration
@@ -357,7 +364,21 @@ fun InstantOverviewScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { TopAppBar(title = { Text(stringResource(Res.string.title_instant_overview)) }) }
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(Res.string.title_instant_overview)) },
+                actions = {
+                    IconButton(onClick = onToggleMute) {
+                        Icon(
+                            imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                            contentDescription = null,
+                            tint = if (isMuted) MaterialTheme.colorScheme.error
+                                   else androidx.compose.ui.graphics.Color.Unspecified
+                        )
+                    }
+                }
+            )
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -568,6 +589,10 @@ private fun DiagramOverview(
     val density = LocalDensity.current
     val maxTapDistancePx = with(density) { 20.dp.toPx() }
     var diagramSize by remember { mutableStateOf(IntSize.Zero) }
+    // rememberUpdatedState ensures the pointerInput coroutine always calls the latest
+    // onStringTouched lambda even when pointerInput keys haven't changed (e.g. after
+    // playingStringNumbers updates on the first tap).
+    val currentOnStringTouched by rememberUpdatedState(onStringTouched)
     val textMeasurer = rememberTextMeasurer()
 
     val infiniteTransition = rememberInfiniteTransition(label = "string_vibration")
@@ -626,7 +651,7 @@ private fun DiagramOverview(
                                         val prevString = activeStringByPointer[change.id.value]
                                         if (newString != null && newString != prevString) {
                                             activeStringByPointer[change.id.value] = newString
-                                            onStringTouched(hit)
+                                            currentOnStringTouched(hit)
                                         } else if (newString == null) {
                                             activeStringByPointer.remove(change.id.value)
                                         }

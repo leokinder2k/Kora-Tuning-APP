@@ -46,6 +46,14 @@ enum class ScaleType(
     }
 }
 
+enum class ScaleRootReference {
+    LEFT_1,
+    LEFT_2,
+    LEFT_3,
+    LEFT_4,
+    RIGHT_1
+}
+
 enum class StringSide(val shortLabel: String) {
     LEFT("L"),
     RIGHT("R")
@@ -70,8 +78,9 @@ data class ScaleStringRole(
 
 data class ScaleCalculationRequest(
     val instrumentProfile: InstrumentProfile,
-    val rootNote: NoteName,
-    val scaleType: ScaleType
+    val scaleType: ScaleType,
+    val rootNote: NoteName = instrumentProfile.rootNote,
+    val scaleRootReference: ScaleRootReference = ScaleRootReference.LEFT_1
 )
 
 data class LeverOnlyStringResult(
@@ -96,7 +105,12 @@ data class PegCorrectStringResult(
     val selectedPitch: Pitch,
     val pegRetuneSemitones: Int,
     val pegRetuneRequired: Boolean,
-    val selectedIntonationCents: Double = 0.0
+    val selectedIntonationCents: Double = 0.0,
+    /**
+     * Signed semitones from the physical home/base tuning to the required peg position.
+     * Positive = tune up from home, negative = tune down, zero = peg stays at home.
+     */
+    val fromBaseSemitones: Int = 0
 )
 
 data class VoicingConflict(

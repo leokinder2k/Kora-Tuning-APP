@@ -42,6 +42,7 @@
     <string name="instrument_config_quick_start_step_3">3. Save profile, then use Scale/Overview and the merged Tuner workflow.</string>
     <string name="instrument_config_auto_save_note">String notes and cents are auto-saved when entries are valid.</string>
     <string name="instrument_config_action_load_starter_profile">Load Starter Profile</string>
+    <string name="instrument_config_action_play_all_strings">Play All Strings</string>
     <string name="instrument_config_action_save_profile">Save Instrument Profile</string>
     <string name="instrument_preset_manual">Manual</string>
 
@@ -399,7 +400,7 @@
     <!-- Notation tab -->
     <string name="nav_notation_label">Notation</string>
     <string name="notation_upload_title">Import Score</string>
-    <string name="notation_upload_hint">Open a MusicXML, MXL, or MIDI file to convert it to kora tablature.</string>
+    <string name="notation_upload_hint">Open a MusicXML (.xml/.mxl), MIDI, or PDF (with embedded MusicXML) file to convert it to kora tablature.</string>
     <string name="notation_pick_file">Open file…</string>
     <string name="notation_processing">Processing score…</string>
     <string name="notation_difficulty">Difficulty: %1$d%%</string>

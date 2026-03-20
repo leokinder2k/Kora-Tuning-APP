@@ -12,6 +12,7 @@ import com.leokinder2k.koratuningcompanion.instrumentconfig.data.InstrumentConfi
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.InstrumentProfile
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringLayout
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.StarterInstrumentProfiles
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.TraditionalPreset
@@ -42,13 +43,16 @@ data class InstrumentPresetOptionUiState(
 data class InstrumentConfigurationUiState(
     val stringCount: Int,
     val tuningMode: KoraTuningMode,
+    val rootNote: NoteName,
     val presetOptions: List<InstrumentPresetOptionUiState>,
     val selectedPresetId: String,
     val lowestLeftPitchInput: String,
     val autoCalibrateEnabled: Boolean,
     val rows: List<InstrumentStringRowUiState>,
     val canSave: Boolean,
-    val statusMessage: String?
+    val statusMessage: String?,
+    val basePitchInputs: List<String>,
+    val basePitchErrors: List<String?>
 )
 
 class InstrumentConfigurationViewModel(
@@ -68,6 +72,8 @@ class InstrumentConfigurationViewModel(
         val mismatchScore: Double
     )
 
+    private var currentBasePitchInputs: List<String> = StarterInstrumentProfiles.openPitchTexts(DEFAULT_STRING_COUNT)
+
     private val _uiState = MutableStateFlow(buildDefaultUiState())
     val uiState: StateFlow<InstrumentConfigurationUiState> = _uiState.asStateFlow()
 
@@ -81,19 +87,60 @@ class InstrumentConfigurationViewModel(
                 val lowestLeftPitchInput = profile.openPitches.getOrNull(l01Index)?.asText()
                     ?: DEFAULT_LOWEST_LEFT_PITCH_TEXT
 
+                currentBasePitchInputs = profile.basePitches.map(Pitch::asText)
+
                 _uiState.value = buildUiState(
                     stringCount = profile.stringCount,
                     tuningMode = profile.tuningMode,
+                    rootNote = profile.rootNote,
                     selectedPresetId = detectedPresetId,
                     lowestLeftPitchInput = lowestLeftPitchInput,
                     autoCalibrateEnabled = detectedPresetId != MANUAL_PRESET_ID,
                     openPitchInputs = profile.openPitches.map(Pitch::asText),
                     openIntonationInputs = profile.openIntonationCents.map(Double::toString),
                     closedIntonationInputs = profile.closedIntonationCents.map(Double::toString),
+                    basePitchInputs = currentBasePitchInputs,
                     statusMessage = _uiState.value.statusMessage
                 )
             }
         }
+    }
+
+    fun setCurrentAsBase() {
+        val currentState = _uiState.value
+        currentBasePitchInputs = currentState.rows.map { it.openPitchInput }
+        val nextState = currentState.copy(
+            basePitchInputs = currentBasePitchInputs,
+            basePitchErrors = buildBasePitchErrors(currentBasePitchInputs),
+            statusMessage = appContext.getString(R.string.instrument_config_status_home_tuning_set)
+        )
+        _uiState.value = nextState
+        persistProfileIfValid(nextState)
+    }
+
+    fun restoreToBase() {
+        val currentState = _uiState.value
+        val validBase = currentBasePitchInputs.mapNotNull(Pitch::parse)
+        if (validBase.size != currentState.stringCount) {
+            _uiState.update { it.copy(statusMessage = appContext.getString(R.string.instrument_config_status_home_not_set_error)) }
+            return
+        }
+        val l01Index = lowestLeftStringIndex(currentState.stringCount)
+        val nextState = buildUiState(
+            stringCount = currentState.stringCount,
+            tuningMode = currentState.tuningMode,
+            rootNote = currentState.rootNote,
+            selectedPresetId = MANUAL_PRESET_ID,
+            lowestLeftPitchInput = currentBasePitchInputs.getOrNull(l01Index) ?: currentState.lowestLeftPitchInput,
+            autoCalibrateEnabled = false,
+            openPitchInputs = currentBasePitchInputs,
+            openIntonationInputs = currentState.rows.map { it.openIntonationInput },
+            closedIntonationInputs = currentState.rows.map { it.closedIntonationInput },
+            basePitchInputs = currentBasePitchInputs,
+            statusMessage = appContext.getString(R.string.instrument_config_status_restored_to_home)
+        )
+        _uiState.value = nextState
+        persistProfileIfValid(nextState)
     }
 
     fun onStringCountSelected(stringCount: Int) {
@@ -119,6 +166,7 @@ class InstrumentConfigurationViewModel(
             buildUiState(
                 stringCount = stringCount,
                 tuningMode = currentState.tuningMode,
+                rootNote = currentState.rootNote,
                 selectedPresetId = nextPresetId,
                 lowestLeftPitchInput = calibrated.normalizedLowestLeftPitchInput,
                 autoCalibrateEnabled = true,
@@ -134,6 +182,7 @@ class InstrumentConfigurationViewModel(
             buildUiState(
                 stringCount = stringCount,
                 tuningMode = currentState.tuningMode,
+                rootNote = currentState.rootNote,
                 selectedPresetId = MANUAL_PRESET_ID,
                 lowestLeftPitchInput = currentState.lowestLeftPitchInput,
                 autoCalibrateEnabled = false,
@@ -161,6 +210,7 @@ class InstrumentConfigurationViewModel(
             val nextState = buildUiState(
                 stringCount = currentState.stringCount,
                 tuningMode = currentState.tuningMode,
+                rootNote = currentState.rootNote,
                 selectedPresetId = MANUAL_PRESET_ID,
                 lowestLeftPitchInput = currentState.lowestLeftPitchInput,
                 autoCalibrateEnabled = false,
@@ -183,6 +233,7 @@ class InstrumentConfigurationViewModel(
         val nextState = buildUiState(
             stringCount = currentState.stringCount,
             tuningMode = currentState.tuningMode,
+            rootNote = currentState.rootNote,
             selectedPresetId = presetId,
             lowestLeftPitchInput = calibrated.normalizedLowestLeftPitchInput,
             autoCalibrateEnabled = true,
@@ -211,6 +262,7 @@ class InstrumentConfigurationViewModel(
         val nextState = buildUiState(
             stringCount = currentState.stringCount,
             tuningMode = currentState.tuningMode,
+            rootNote = currentState.rootNote,
             selectedPresetId = currentState.selectedPresetId,
             lowestLeftPitchInput = calibrated.normalizedLowestLeftPitchInput,
             autoCalibrateEnabled = true,
@@ -231,6 +283,7 @@ class InstrumentConfigurationViewModel(
         val nextState = buildUiState(
             stringCount = stringCount,
             tuningMode = _uiState.value.tuningMode,
+            rootNote = _uiState.value.rootNote,
             selectedPresetId = MANUAL_PRESET_ID,
             lowestLeftPitchInput = openPitchInputs.getOrNull(l01Index) ?: DEFAULT_LOWEST_LEFT_PITCH_TEXT,
             autoCalibrateEnabled = false,
@@ -260,6 +313,7 @@ class InstrumentConfigurationViewModel(
         val nextState = buildUiState(
             stringCount = currentState.stringCount,
             tuningMode = currentState.tuningMode,
+            rootNote = currentState.rootNote,
             selectedPresetId = MANUAL_PRESET_ID,
             lowestLeftPitchInput = if (rowIndex == l01Index) newValue else currentState.lowestLeftPitchInput,
             autoCalibrateEnabled = false,
@@ -285,6 +339,7 @@ class InstrumentConfigurationViewModel(
         val nextState = buildUiState(
             stringCount = currentState.stringCount,
             tuningMode = currentState.tuningMode,
+            rootNote = currentState.rootNote,
             selectedPresetId = currentState.selectedPresetId,
             lowestLeftPitchInput = currentState.lowestLeftPitchInput,
             autoCalibrateEnabled = currentState.autoCalibrateEnabled,
@@ -310,6 +365,7 @@ class InstrumentConfigurationViewModel(
         val nextState = buildUiState(
             stringCount = currentState.stringCount,
             tuningMode = currentState.tuningMode,
+            rootNote = currentState.rootNote,
             selectedPresetId = currentState.selectedPresetId,
             lowestLeftPitchInput = currentState.lowestLeftPitchInput,
             autoCalibrateEnabled = currentState.autoCalibrateEnabled,
@@ -330,10 +386,35 @@ class InstrumentConfigurationViewModel(
         val nextState = buildUiState(
             stringCount = currentState.stringCount,
             tuningMode = tuningMode,
+            rootNote = currentState.rootNote,
             selectedPresetId = currentState.selectedPresetId,
             lowestLeftPitchInput = currentState.lowestLeftPitchInput,
             autoCalibrateEnabled = currentState.autoCalibrateEnabled,
             openPitchInputs = currentState.rows.map { row -> row.openPitchInput },
+            openIntonationInputs = currentState.rows.map { row -> row.openIntonationInput },
+            closedIntonationInputs = currentState.rows.map { row -> row.closedIntonationInput },
+            statusMessage = null
+        )
+        _uiState.value = nextState
+        persistProfileIfValid(nextState)
+    }
+
+    fun onRootNoteSelected(rootNote: NoteName) {
+        if (rootNote == _uiState.value.rootNote) return
+        val currentState = _uiState.value
+        val rawDelta = rootNote.semitone - currentState.rootNote.semitone
+        val semitones = Math.floorMod(rawDelta, 12).let { if (it > 6) it - 12 else it }
+        val transposedPitchInputs = currentState.rows.map { row ->
+            Pitch.parse(row.openPitchInput)?.plusSemitones(semitones)?.asText() ?: row.openPitchInput
+        }
+        val nextState = buildUiState(
+            stringCount = currentState.stringCount,
+            tuningMode = currentState.tuningMode,
+            rootNote = rootNote,
+            selectedPresetId = currentState.selectedPresetId,
+            lowestLeftPitchInput = currentState.lowestLeftPitchInput,
+            autoCalibrateEnabled = currentState.autoCalibrateEnabled,
+            openPitchInputs = transposedPitchInputs,
             openIntonationInputs = currentState.rows.map { row -> row.openIntonationInput },
             closedIntonationInputs = currentState.rows.map { row -> row.closedIntonationInput },
             statusMessage = null
@@ -376,12 +457,18 @@ class InstrumentConfigurationViewModel(
             return
         }
 
+        val basePitches = currentState.basePitchInputs.mapNotNull(Pitch::parse)
+            .takeIf { it.size == currentState.stringCount }
+            ?: openPitches
+
         val profile = InstrumentProfile(
             stringCount = currentState.stringCount,
             tuningMode = currentState.tuningMode,
             openPitches = openPitches,
             openIntonationCents = openIntonationCents,
-            closedIntonationCents = closedIntonationCents
+            closedIntonationCents = closedIntonationCents,
+            rootNote = currentState.rootNote,
+            basePitches = basePitches
         )
 
         viewModelScope.launch {
@@ -413,12 +500,18 @@ class InstrumentConfigurationViewModel(
             return
         }
 
+        val basePitches = state.basePitchInputs.mapNotNull(Pitch::parse)
+            .takeIf { it.size == state.stringCount }
+            ?: openPitches
+
         val profile = InstrumentProfile(
             stringCount = state.stringCount,
             tuningMode = state.tuningMode,
             openPitches = openPitches,
             openIntonationCents = openIntonationCents,
-            closedIntonationCents = closedIntonationCents
+            closedIntonationCents = closedIntonationCents,
+            rootNote = state.rootNote,
+            basePitches = basePitches
         )
 
         viewModelScope.launch {
@@ -477,13 +570,15 @@ class InstrumentConfigurationViewModel(
     private fun buildUiState(
         stringCount: Int,
         tuningMode: KoraTuningMode,
+        rootNote: NoteName,
         selectedPresetId: String,
         lowestLeftPitchInput: String,
         autoCalibrateEnabled: Boolean,
         openPitchInputs: List<String>,
         openIntonationInputs: List<String>,
         closedIntonationInputs: List<String>,
-        statusMessage: String?
+        statusMessage: String?,
+        basePitchInputs: List<String>? = null
     ): InstrumentConfigurationUiState {
         val resizedPitchInputs = resizePitchInputCount(openPitchInputs, stringCount)
         val resizedOpenIntonationInputs = resizeIntonationInputCount(openIntonationInputs, stringCount)
@@ -537,18 +632,30 @@ class InstrumentConfigurationViewModel(
                 parseCentsInput(row.closedIntonationInput) != null
         }
 
+        val resolvedBase = resizePitchInputCount(basePitchInputs ?: currentBasePitchInputs, stringCount)
+
         return InstrumentConfigurationUiState(
             stringCount = stringCount,
             tuningMode = tuningMode,
+            rootNote = rootNote,
             presetOptions = presetOptions,
             selectedPresetId = resolvedPresetId,
             lowestLeftPitchInput = lowestLeftPitchInput,
             autoCalibrateEnabled = resolvedAutoCalibrateEnabled,
             rows = rows,
             canSave = canSave,
-            statusMessage = statusMessage
+            statusMessage = statusMessage,
+            basePitchInputs = resolvedBase,
+            basePitchErrors = buildBasePitchErrors(resolvedBase)
         )
     }
+
+    private fun buildBasePitchErrors(inputs: List<String>): List<String?> =
+        inputs.map { input ->
+            if (input.isNotBlank() && Pitch.parse(input) == null) {
+                appContext.getString(R.string.instrument_config_error_pitch_format)
+            } else null
+        }
 
     private fun buildDefaultUiState(): InstrumentConfigurationUiState {
         val stringCount = DEFAULT_STRING_COUNT
@@ -561,6 +668,7 @@ class InstrumentConfigurationViewModel(
         return buildUiState(
             stringCount = stringCount,
             tuningMode = KoraTuningMode.LEVERED,
+            rootNote = NoteName.F,
             selectedPresetId = presetId,
             lowestLeftPitchInput = calibrated.normalizedLowestLeftPitchInput,
             autoCalibrateEnabled = true,

@@ -37,6 +37,9 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ColorScheme
@@ -44,6 +47,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
@@ -63,6 +68,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -84,6 +90,9 @@ import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.consumePositionChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -169,6 +178,7 @@ fun InstantOverviewScreen(
     uiState: ScaleCalculationUiState,
     onScaleTypeSelected: (ScaleType) -> Unit,
     isMuted: Boolean = false,
+    onToggleMute: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val showLeverInfo = uiState.result.request.instrumentProfile.tuningMode == KoraTuningMode.LEVERED
@@ -229,6 +239,24 @@ fun InstantOverviewScreen(
     val tonePlayer = remember { PluckedStringPlayer() }
     val metronomePlayer = remember { MetronomeClickPlayer() }
     val coroutineScope = rememberCoroutineScope()
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var isAppPaused by remember { mutableStateOf(false) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            isAppPaused = event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(isAppPaused) {
+        if (isAppPaused) {
+            tonePlayer.stopAll()
+            metronomePlayer.stopAll()
+            isMetronomeRunning = false
+            playingStringNumbers = emptySet()
+        }
+    }
     val playGenerationByString = remember { mutableStateMapOf<Int, Int>() }
 
     LaunchedEffect(
@@ -360,7 +388,7 @@ fun InstantOverviewScreen(
         )
         tonePlayer.play(
             stringNumber = stringNumber,
-            frequencyHz = frequency
+            frequencyHz = frequency * 2.0
         )
         playingStringNumbers = playingStringNumbers + stringNumber
 
@@ -571,7 +599,17 @@ fun InstantOverviewScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.title_instant_overview)) }
+                title = { Text(stringResource(R.string.title_instant_overview)) },
+                actions = {
+                    IconButton(onClick = onToggleMute) {
+                        Icon(
+                            imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                            contentDescription = null,
+                            tint = if (isMuted) MaterialTheme.colorScheme.error
+                                   else androidx.compose.ui.graphics.Color.Unspecified
+                        )
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -939,6 +977,7 @@ private fun DiagramOverview(
     val density = LocalDensity.current
     val maxTapDistancePx = with(density) { 20.dp.toPx() }
     var diagramSize by remember { mutableStateOf(IntSize.Zero) }
+    val currentOnStringTouched by rememberUpdatedState(onStringTouched)
 
     val infiniteTransition = rememberInfiniteTransition(label = "string_vibration")
     val rawVibrationPhase by infiniteTransition.animateFloat(
@@ -1045,7 +1084,7 @@ private fun DiagramOverview(
                                         if (newString != null && newString != prevString) {
                                             // Finger pressed or slid onto a new string → play it
                                             activeStringByPointer[change.id.value] = newString
-                                            onStringTouched(hit)
+                                            currentOnStringTouched(hit)
                                         } else if (newString == null) {
                                             activeStringByPointer.remove(change.id.value)
                                         }

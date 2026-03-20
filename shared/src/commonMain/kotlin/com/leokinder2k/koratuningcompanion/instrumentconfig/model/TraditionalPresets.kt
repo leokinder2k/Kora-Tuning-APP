@@ -169,9 +169,8 @@ object TraditionalPresets {
     )
 
     fun presetsForStringCount(stringCount: Int): List<TraditionalPreset> {
-        require(stringCount in SUPPORTED_STRING_COUNTS) {
-            "Supported string counts are 21 and 22."
-        }
+        if (stringCount == 19) return listOf(buildKadanuPreset())
+        if (stringCount !in setOf(21, 22)) return emptyList()
         return definitions.map { definition ->
             val parsedOpenPitches = parsePitchList(
                 if (stringCount == 21) definition.openPitches21 else definition.openPitches22
@@ -192,7 +191,25 @@ object TraditionalPresets {
         }
     }
 
-    private val SUPPORTED_STRING_COUNTS = setOf(21, 22)
+    private fun buildKadanuPreset(): TraditionalPreset {
+        val pitches = parsePitchList(listOf(
+            // Left row: A minor pentatonic (A1–A2), 6 strings
+            "A1", "C2", "D2", "E2", "G2", "A2",
+            // Right row: A natural minor (A2–F4), 13 strings
+            "A2", "B2", "C3", "D3", "E3", "F3", "G3", "A3", "B3", "C4", "D4", "E4", "F4"
+        ))
+        return TraditionalPreset(
+            id = "kadanu_19",
+            displayName = "Kadanu",
+            description = "Traditional Kadanu tuning. Left row: A minor pentatonic (A1–A2, 6 strings). Right row: A natural minor (A2–F4, 13 strings).",
+            stringCount = 19,
+            openPitches = pitches,
+            openIntonationCents = List(19) { 0.0 },
+            closedIntonationCents = List(19) { 0.0 }
+        )
+    }
+
+    private val SUPPORTED_STRING_COUNTS = setOf(19, 21, 22)
 
     private fun parsePitchList(pitches: List<String>): List<Pitch> {
         return pitches.map { input ->

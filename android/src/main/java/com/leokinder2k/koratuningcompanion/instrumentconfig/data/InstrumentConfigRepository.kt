@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.InstrumentProfile
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.UserPreset
 import kotlinx.coroutines.flow.Flow
@@ -50,12 +51,26 @@ class DataStoreInstrumentConfigRepository private constructor(
             ?.let { raw -> runCatching { KoraTuningMode.valueOf(raw) }.getOrNull() }
             ?: KoraTuningMode.LEVERED
 
+        val rootNote = preferences[ROOT_NOTE_KEY]
+            ?.let { raw -> runCatching { NoteName.valueOf(raw) }.getOrNull() }
+            ?: NoteName.F
+
+        val basePitches = preferences[BASE_TUNING_KEY]
+            ?.split(PITCH_DELIMITER)
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?.mapNotNull(Pitch::parse)
+            ?.takeIf { it.size == stringCount }
+            ?: parsedPitches
+
         InstrumentProfile(
             stringCount = stringCount,
             tuningMode = tuningMode,
             openPitches = parsedPitches,
             openIntonationCents = openIntonation,
-            closedIntonationCents = closedIntonation
+            closedIntonationCents = closedIntonation,
+            rootNote = rootNote,
+            basePitches = basePitches
         )
     }
 
@@ -67,6 +82,7 @@ class DataStoreInstrumentConfigRepository private constructor(
         dataStore.edit { preferences ->
             preferences[STRING_COUNT_KEY] = profile.stringCount
             preferences[TUNING_MODE_KEY] = profile.tuningMode.name
+            preferences[ROOT_NOTE_KEY] = profile.rootNote.name
             preferences[OPEN_TUNING_KEY] = profile.openPitches.joinToString(PITCH_DELIMITER) { pitch ->
                 pitch.asText()
             }
@@ -75,6 +91,9 @@ class DataStoreInstrumentConfigRepository private constructor(
             }
             preferences[CLOSED_INTONATION_CENTS_KEY] = profile.closedIntonationCents.joinToString(PITCH_DELIMITER) { cents ->
                 cents.toString()
+            }
+            preferences[BASE_TUNING_KEY] = profile.basePitches.joinToString(PITCH_DELIMITER) { pitch ->
+                pitch.asText()
             }
         }
     }
@@ -109,15 +128,17 @@ class DataStoreInstrumentConfigRepository private constructor(
             name = "instrument_config"
         )
 
-        private val SUPPORTED_STRING_COUNTS = setOf(21, 22)
+        private val SUPPORTED_STRING_COUNTS = setOf(19, 21, 22)
         private const val PITCH_DELIMITER = "|"
         private const val PRESET_RECORD_DELIMITER = "\u001E"
         private const val PRESET_FIELD_DELIMITER = "\u001F"
         private val STRING_COUNT_KEY = intPreferencesKey("instrument_string_count")
         private val TUNING_MODE_KEY = stringPreferencesKey("instrument_tuning_mode")
+        private val ROOT_NOTE_KEY = stringPreferencesKey("instrument_root_note")
         private val OPEN_TUNING_KEY = stringPreferencesKey("instrument_open_tuning")
         private val OPEN_INTONATION_CENTS_KEY = stringPreferencesKey("instrument_open_intonation_cents")
         private val CLOSED_INTONATION_CENTS_KEY = stringPreferencesKey("instrument_closed_intonation_cents")
+        private val BASE_TUNING_KEY = stringPreferencesKey("instrument_base_tuning")
         private val USER_PRESETS_KEY = stringPreferencesKey("instrument_user_presets")
 
         private fun parseCentsList(serialized: String?, stringCount: Int): List<Double> {

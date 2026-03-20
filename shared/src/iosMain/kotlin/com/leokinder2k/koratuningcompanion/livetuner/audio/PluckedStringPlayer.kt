@@ -1,5 +1,9 @@
+@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
+
 package com.leokinder2k.koratuningcompanion.livetuner.audio
 
+import kotlinx.cinterop.get
+import kotlinx.cinterop.set
 import platform.AVFAudio.AVAudioEngine
 import platform.AVFAudio.AVAudioFormat
 import platform.AVFAudio.AVAudioPCMBuffer

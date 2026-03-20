@@ -265,6 +265,6 @@ class TraditionalPresetsViewModel(
     companion object {
         private const val DEFAULT_STRING_COUNT = 21
         private const val PREVIEW_LIMIT = 5
-        private val SUPPORTED_STRING_COUNTS = setOf(21, 22)
+        private val SUPPORTED_STRING_COUNTS = setOf(19, 21, 22)
     }
 }

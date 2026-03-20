@@ -92,7 +92,6 @@ class ScaleCalculationEngineTest {
         val result = engine.calculate(
             ScaleCalculationRequest(
                 instrumentProfile = profile,
-                rootNote = NoteName.C,
                 scaleType = ScaleType.MAJOR_PENTATONIC
             )
         )
@@ -126,12 +125,12 @@ class ScaleCalculationEngineTest {
                 18 to "E5"
             ),
             fill = "F3",
-            stringCount = 21
+            stringCount = 21,
+            rootNote = NoteName.E
         )
         val result = engine.calculate(
             ScaleCalculationRequest(
                 instrumentProfile = profile,
-                rootNote = NoteName.E,
                 scaleType = ScaleType.MAJOR
             )
         )
@@ -158,7 +157,6 @@ class ScaleCalculationEngineTest {
         val result = engine.calculate(
             ScaleCalculationRequest(
                 instrumentProfile = profile,
-                rootNote = NoteName.C,
                 scaleType = ScaleType.MAJOR
             )
         )
@@ -179,7 +177,6 @@ class ScaleCalculationEngineTest {
         val result = engine.calculate(
             ScaleCalculationRequest(
                 instrumentProfile = profile,
-                rootNote = NoteName.C,
                 scaleType = ScaleType.MAJOR
             )
         )
@@ -204,7 +201,6 @@ class ScaleCalculationEngineTest {
         val result = engine.calculate(
             ScaleCalculationRequest(
                 instrumentProfile = profile,
-                rootNote = NoteName.C,
                 scaleType = ScaleType.MAJOR
             )
         )
@@ -231,7 +227,6 @@ class ScaleCalculationEngineTest {
         val result = engine.calculate(
             ScaleCalculationRequest(
                 instrumentProfile = profile,
-                rootNote = NoteName.C,
                 scaleType = ScaleType.MAJOR
             )
         )
@@ -251,7 +246,8 @@ class ScaleCalculationEngineTest {
     private fun profileWithPitches(
         overrides: Map<Int, String>,
         fill: String,
-        stringCount: Int = 21
+        stringCount: Int = 21,
+        rootNote: NoteName = NoteName.C
     ): InstrumentProfile {
         val openPitchTexts = MutableList(stringCount) { fill }
         overrides.forEach { (stringNumber, value) ->
@@ -265,7 +261,8 @@ class ScaleCalculationEngineTest {
         }
         return InstrumentProfile(
             stringCount = stringCount,
-            openPitches = pitches
+            openPitches = pitches,
+            rootNote = rootNote
         )
     }
 }

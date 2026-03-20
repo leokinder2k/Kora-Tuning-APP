@@ -7,6 +7,14 @@ plugins {
     alias(libs.plugins.gradle.play.publisher)
 }
 
+apply(plugin = "org.jetbrains.kotlin.android")
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+    }
+}
+
 val releaseVersionProperties = Properties().apply {
     val releaseVersionFile = rootProject.file("release-version.properties")
     if (releaseVersionFile.exists()) {
