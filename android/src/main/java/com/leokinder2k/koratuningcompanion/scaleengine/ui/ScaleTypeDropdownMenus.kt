@@ -170,7 +170,7 @@ private fun familyFor(scaleType: ScaleType): ScaleTypeFamily {
 }
 
 @Composable
-private fun scaleTypeLabel(scaleType: ScaleType): String {
+internal fun scaleTypeLabel(scaleType: ScaleType): String {
     return when (scaleType) {
         ScaleType.MAJOR -> stringResource(R.string.scale_type_major)
         ScaleType.NATURAL_MINOR -> stringResource(R.string.scale_type_natural_minor)

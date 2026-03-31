@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.SystemClock
 import android.os.ParcelFileDescriptor
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -20,17 +21,24 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -38,6 +46,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Card
@@ -59,6 +69,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -74,6 +85,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -86,7 +98,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import android.graphics.Paint
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.consumePositionChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -98,6 +109,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -117,8 +129,10 @@ import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverState
 import com.leokinder2k.koratuningcompanion.scaleengine.model.PegCorrectStringResult
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
 import com.leokinder2k.koratuningcompanion.scaleengine.model.StringSide
+import com.leokinder2k.koratuningcompanion.scaleengine.orchestration.TuningStringPlan
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraClosedLeverColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraCombinedChangesColor
+import com.leokinder2k.koratuningcompanion.ui.theme.KoraActionBadgeColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraDetunedColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraLeverClosedStringColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraOpenLeverColor
@@ -136,11 +150,35 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+@Composable
+private fun ExpandableText(text: String, modifier: Modifier = Modifier) {
+    var expanded by remember { mutableStateOf(false) }
+    var isOverflowing by remember { mutableStateOf(false) }
+    Column(modifier = modifier) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = if (expanded) Int.MAX_VALUE else 3,
+            overflow = if (expanded) TextOverflow.Clip else TextOverflow.Ellipsis,
+            onTextLayout = { result ->
+                if (!expanded) isOverflowing = result.hasVisualOverflow
+            }
+        )
+        if (isOverflowing || expanded) {
+            Text(
+                text = if (expanded) "Show less" else "Show more…",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable { expanded = !expanded }
+            )
+        }
+    }
+}
+
 private enum class OverviewViewMode {
     DIAGRAM,
     TABLE,
-    CHORDS,
-    EXERCISE
+    CHORDS
 }
 
 private enum class ChordPlaybackMode {
@@ -186,7 +224,10 @@ fun InstantOverviewScreen(
         initialPage = OverviewViewMode.entries.indexOf(OverviewViewMode.DIAGRAM),
         pageCount = { OverviewViewMode.entries.size }
     )
-    val viewMode = OverviewViewMode.entries.getOrElse(pagerState.currentPage) { OverviewViewMode.DIAGRAM }
+    val currentOverviewPage by remember {
+        derivedStateOf { pagerState.currentPage }
+    }
+    val viewMode = OverviewViewMode.entries.getOrElse(currentOverviewPage) { OverviewViewMode.DIAGRAM }
     var diagramZoom by rememberSaveable { mutableFloatStateOf(1f) }
     var isDiagramLocked by rememberSaveable { mutableStateOf(false) }
     var playingStringNumbers by remember(
@@ -227,6 +268,9 @@ fun InstantOverviewScreen(
 
     val pitchShiftByString = remember { mutableStateMapOf<Int, Int>() }
     val baseRows = uiState.result.pegCorrectTable
+    val tuningPlanByString = remember(uiState.orchestrationPlan) {
+        uiState.orchestrationPlan.stringPlans.associateBy { stringPlan -> stringPlan.stringNumber }
+    }
     val rows = baseRows.map { row ->
         val shift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
         if (shift == 0) {
@@ -239,6 +283,14 @@ fun InstantOverviewScreen(
     val tonePlayer = remember { PluckedStringPlayer() }
     val metronomePlayer = remember { MetronomeClickPlayer() }
     val coroutineScope = rememberCoroutineScope()
+    val animateToOverviewPage: (OverviewViewMode) -> Unit = { targetMode ->
+        val targetPage = OverviewViewMode.entries.indexOf(targetMode)
+        if (targetPage != currentOverviewPage) {
+            coroutineScope.launch {
+                pagerState.animateScrollToPage(targetPage)
+            }
+        }
+    }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     var isAppPaused by remember { mutableStateOf(false) }
@@ -613,7 +665,7 @@ fun InstantOverviewScreen(
             )
         }
     ) { innerPadding ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
@@ -621,9 +673,24 @@ fun InstantOverviewScreen(
                     state = scrollState,
                     enabled = isScreenScrollEnabled
                 )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            val isCompactWidth = maxWidth < 600.dp
+            val isTabletWidth = maxWidth >= 840.dp
+            val contentWidth = maxWidth.coerceAtMost(if (isTabletWidth) 1040.dp else 900.dp)
+            val screenHorizontalPadding = if (isCompactWidth) 16.dp else 24.dp
+            val screenVerticalPadding = if (isTabletWidth) 20.dp else 12.dp
+            val sectionSpacing = if (isTabletWidth) 16.dp else 12.dp
+
+            Column(
+                modifier = Modifier
+                    .width(contentWidth)
+                    .align(Alignment.TopCenter)
+                    .padding(
+                        horizontal = screenHorizontalPadding,
+                        vertical = screenVerticalPadding
+                    ),
+                verticalArrangement = Arrangement.spacedBy(sectionSpacing)
+            ) {
             Text(
                 text = uiState.profileStatus,
                 style = MaterialTheme.typography.bodyMedium
@@ -675,55 +742,36 @@ fun InstantOverviewScreen(
             }
 
             OverviewSelectionControls(
+                instrumentKey = uiState.instrumentKey,
                 rootNote = uiState.rootNote,
                 scaleType = uiState.scaleType,
                 onScaleTypeSelected = onScaleTypeSelected
             )
+            TuningOrchestrationCard(
+                plan = uiState.orchestrationPlan,
+                maxInstructionLines = 6
+            )
+            VersatilityRecommendationsCard(
+                analysis = uiState.versatilityAnalysis
+            )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            WrappingChipRow {
                 FilterChip(
                     selected = viewMode == OverviewViewMode.DIAGRAM,
-                    onClick = {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(OverviewViewMode.entries.indexOf(OverviewViewMode.DIAGRAM))
-                        }
-                    },
+                    onClick = { animateToOverviewPage(OverviewViewMode.DIAGRAM) },
                     label = { Text(stringResource(R.string.overview_view_diagram)) }
                 )
                 FilterChip(
                     selected = viewMode == OverviewViewMode.TABLE,
-                    onClick = {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(OverviewViewMode.entries.indexOf(OverviewViewMode.TABLE))
-                        }
-                    },
+                    onClick = { animateToOverviewPage(OverviewViewMode.TABLE) },
                     label = { Text(stringResource(R.string.overview_view_table)) }
                 )
                 FilterChip(
                     selected = viewMode == OverviewViewMode.CHORDS,
-                    onClick = {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(OverviewViewMode.entries.indexOf(OverviewViewMode.CHORDS))
-                        }
-                    },
+                    onClick = { animateToOverviewPage(OverviewViewMode.CHORDS) },
                     label = { Text(stringResource(R.string.overview_view_chords)) }
                 )
-                FilterChip(
-                    selected = viewMode == OverviewViewMode.EXERCISE,
-                    onClick = {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(OverviewViewMode.entries.indexOf(OverviewViewMode.EXERCISE))
-                        }
-                    },
-                    label = { Text(stringResource(R.string.overview_view_exercise)) }
-                )
             }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
             val showTopStopButton =
                 playingStringNumbers.isNotEmpty() && viewMode != OverviewViewMode.DIAGRAM
             Box(
@@ -738,17 +786,19 @@ fun InstantOverviewScreen(
                     }
                 }
             }
-            }
 
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxWidth(),
-                userScrollEnabled = false
+                beyondViewportPageCount = 1,
+                key = { page -> OverviewViewMode.entries[page].name },
+                userScrollEnabled = isScreenScrollEnabled
             ) { page ->
                 when (OverviewViewMode.entries[page]) {
                 OverviewViewMode.DIAGRAM -> DiagramOverview(
                     rows = rows,
                     pitchShiftByString = pitchShiftByString,
+                    tuningPlanByString = tuningPlanByString,
                     playingStringNumbers = playingStringNumbers,
                     onStringTouched = toggleRow,
                     onStringSharpened = sharpenRow,
@@ -863,65 +913,8 @@ fun InstantOverviewScreen(
                     playingStringNumbers = playingStringNumbers,
                     onStringTouched = onStringTouched
                 )
-                OverviewViewMode.EXERCISE -> ChordExerciseOverview(
-                    selectedQuality = selectedChordQuality,
-                    circleExerciseStartRoot = circleExerciseStartRoot,
-                    onCircleExerciseStartRootChanged = { note ->
-                        circleExerciseStartRoot = note
-                        circleExerciseStepOffset = 0
-                    },
-                    nextCircleExerciseRoot = CIRCLE_OF_FIFTHS_ORDER[
-                        (circleOfFifthsIndexFor(circleExerciseStartRoot) + circleExerciseStepOffset) % CIRCLE_OF_FIFTHS_ORDER.size
-                    ],
-                    onRunCircleExerciseStep = runCircleExerciseStep,
-                    exerciseChoiceMode = exerciseChoiceMode,
-                    onExerciseChoiceModeSelected = { mode ->
-                        exerciseChoiceMode = mode
-                    },
-                    isTimedExerciseRunning = isTimedExerciseRunning,
-                    onTimedExerciseRunningChanged = { running ->
-                        isTimedExerciseRunning = running
-                        if (running && !isMetronomeRunning) {
-                            isMetronomeRunning = true
-                        }
-                    },
-                    timedExerciseChordIntervalBeats = timedExerciseChordIntervalBeats,
-                    onTimedExerciseChordIntervalBeatsChanged = { beats ->
-                        timedExerciseChordIntervalBeats = beats.coerceIn(1, 4)
-                    },
-                    timedExerciseTargetRoot = timedExerciseTargetRoot,
-                    timedExerciseChoiceRoots = timedExerciseChoiceRoots,
-                    timedExerciseDueBeat = timedExerciseDueBeatInBar,
-                    timedExerciseBeatsUntilDue = timedExerciseBeatsUntilDue,
-                    onRootSelected = { note -> selectedChordRoot = note },
-                    metronomeBpm = metronomeBpm,
-                    onMetronomeBpmChanged = { bpm ->
-                        metronomeBpm = bpm.coerceIn(40, 250)
-                    },
-                    metronomeTimeSignature = metronomeTimeSignature,
-                    onMetronomeTimeSignatureChanged = { signature ->
-                        metronomeTimeSignature = signature
-                    },
-                    metronomeEnabledBeats = metronomeEnabledBeats,
-                    onMetronomeBeatToggled = { beat ->
-                        metronomeEnabledBeats = if (beat in metronomeEnabledBeats) {
-                            val next = metronomeEnabledBeats - beat
-                            if (next.isEmpty()) metronomeEnabledBeats else next
-                        } else {
-                            metronomeEnabledBeats + beat
-                        }
-                    },
-                    metronomeSound = metronomeSound,
-                    onMetronomeSoundChanged = { sound -> metronomeSound = sound },
-                    metronomeVolumePercent = metronomeVolumePercent,
-                    onMetronomeVolumePercentChanged = { volume ->
-                        metronomeVolumePercent = volume.coerceIn(30f, 180f)
-                    },
-                    isMetronomeRunning = isMetronomeRunning,
-                    onMetronomeRunningChanged = { running -> isMetronomeRunning = running },
-                    metronomeCurrentBeat = metronomeCurrentBeat
-                )
                 }
+            }
             }
         }
     }
@@ -929,11 +922,16 @@ fun InstantOverviewScreen(
 
 @Composable
 private fun OverviewSelectionControls(
+    instrumentKey: NoteName,
     rootNote: NoteName,
     scaleType: ScaleType,
     onScaleTypeSelected: (ScaleType) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "${stringResource(R.string.instrument_config_section_root_note)}: ${instrumentKey.symbol}",
+            style = MaterialTheme.typography.titleMedium
+        )
         Text(
             text = stringResource(R.string.scale_root_note_label) + ": ${rootNote.symbol}",
             style = MaterialTheme.typography.titleMedium
@@ -951,9 +949,84 @@ private fun OverviewSelectionControls(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
+private fun WrappingChipRow(
+    modifier: Modifier = Modifier,
+    content: @Composable FlowRowScope.() -> Unit
+) {
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        content = content
+    )
+}
+
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
+private fun DiagramZoomControls(
+    zoom: Float,
+    onZoomChanged: (Float) -> Unit,
+    isLocked: Boolean,
+    onLockedChanged: (Boolean) -> Unit
+) {
+    Text(
+        text = stringResource(
+            R.string.overview_diagram_zoom_label,
+            "%.0f".format(zoom * 100f)
+        ),
+        style = MaterialTheme.typography.bodySmall
+    )
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OutlinedButton(
+            onClick = { onZoomChanged((zoom - 0.2f).coerceAtLeast(1f)) },
+            enabled = zoom > 1f
+        ) {
+            Text("-")
+        }
+        OutlinedButton(
+            onClick = { onZoomChanged((zoom + 0.2f).coerceAtMost(3f)) },
+            enabled = zoom < 3f
+        ) {
+            Text("+")
+        }
+        OutlinedButton(
+            onClick = { onZoomChanged(1f) },
+            enabled = zoom != 1f
+        ) {
+            Text(stringResource(R.string.action_reset))
+        }
+        OutlinedButton(
+            onClick = { onLockedChanged(!isLocked) },
+            border = if (isLocked) {
+                BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+            } else {
+                null
+            }
+        ) {
+            Icon(
+                imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
+                contentDescription = null
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = stringResource(
+                    if (isLocked) R.string.overview_diagram_locked else R.string.overview_diagram_free
+                )
+            )
+        }
+    }
+}
+
+@Composable
 private fun DiagramOverview(
     rows: List<PegCorrectStringResult>,
     pitchShiftByString: Map<Int, Int>,
+    tuningPlanByString: Map<Int, TuningStringPlan>,
     playingStringNumbers: Set<Int>,
     onStringTouched: (PegCorrectStringResult) -> Unit,
     onStringSharpened: (PegCorrectStringResult) -> Unit,
@@ -1004,49 +1077,12 @@ private fun DiagramOverview(
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(
-                            R.string.overview_diagram_zoom_label,
-                            "%.0f".format(diagramZoom * 100f)
-                        ),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    OutlinedButton(
-                        onClick = {
-                            onDiagramZoomChanged((diagramZoom - 0.2f).coerceAtLeast(1f))
-                        },
-                        enabled = diagramZoom > 1f
-                    ) {
-                        Text("-")
-                    }
-                    OutlinedButton(
-                        onClick = {
-                            onDiagramZoomChanged((diagramZoom + 0.2f).coerceAtMost(3f))
-                        },
-                        enabled = diagramZoom < 3f
-                    ) {
-                        Text("+")
-                    }
-                    OutlinedButton(
-                        onClick = { onDiagramZoomChanged(1f) },
-                        enabled = diagramZoom != 1f
-                    ) {
-                        Text(stringResource(R.string.action_reset))
-                    }
-                    OutlinedButton(
-                        onClick = { onDiagramLockedChanged(!isDiagramLocked) },
-                        border = if (isDiagramLocked)
-                            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-                        else null
-                    ) {
-                        Text(stringResource(if (isDiagramLocked) R.string.overview_diagram_locked else R.string.overview_diagram_free))
-                    }
-                }
+                DiagramZoomControls(
+                    zoom = diagramZoom,
+                    onZoomChanged = onDiagramZoomChanged,
+                    isLocked = isDiagramLocked,
+                    onLockedChanged = onDiagramLockedChanged
+                )
                 OutlinedButton(
                     onClick = onPlayAllStrings,
                     modifier = Modifier.fillMaxWidth()
@@ -1060,6 +1096,11 @@ private fun DiagramOverview(
                         .height(StickyDiagramHeight)
                         .clipToBounds()
                         .onSizeChanged { size -> diagramSize = size }
+                        .pointerInput(diagramZoom) {
+                            detectTransformGestures { _, _, zoomChange, _ ->
+                                onDiagramZoomChanged((diagramZoom * zoomChange).coerceIn(1f, 3f))
+                            }
+                        }
                         .pointerInput(left, right, diagramZoom, diagramSize) {
                             awaitEachGesture {
                                 // Track which string each pointer is currently over
@@ -1112,6 +1153,7 @@ private fun DiagramOverview(
                                 activeStringNumbers = playingStringNumbers,
                                 showLeverInfo = showLeverInfo,
                                 noteLabelsVisible = showNoteLetters,
+                                tuningPlanByString = tuningPlanByString,
                                 pitchShiftByString = pitchShiftByString,
                                 vibrationPhase = vibrationPhase
                             )
@@ -1124,10 +1166,12 @@ private fun DiagramOverview(
                 leftRows = left,
                 rightRows = right,
                 pitchShiftByString = pitchShiftByString,
+                tuningPlanByString = tuningPlanByString,
                 playingStringNumbers = playingStringNumbers,
                 onStringTouched = onStringTouched,
                 onStringSharpened = onStringSharpened,
-                onStringFlattened = onStringFlattened
+                onStringFlattened = onStringFlattened,
+                showLeverInfo = showLeverInfo
             )
             }
         }
@@ -1322,6 +1366,7 @@ private fun DrawScope.drawKoraDiagram(
     activeStringNumbers: Set<Int>,
     showLeverInfo: Boolean,
     noteLabelsVisible: Boolean,
+    tuningPlanByString: Map<Int, TuningStringPlan> = emptyMap(),
     pitchShiftByString: Map<Int, Int>,
     vibrationPhase: Float = 0f
 ) {
@@ -1338,6 +1383,7 @@ private fun DrawScope.drawKoraDiagram(
         activeStringNumbers = activeStringNumbers,
         showLeverInfo = showLeverInfo,
         noteLabelsVisible = noteLabelsVisible,
+        tuningPlanByString = tuningPlanByString,
         pitchShiftByString = pitchShiftByString,
         vibrationPhase = vibrationPhase
     )
@@ -1350,6 +1396,7 @@ private fun DrawScope.drawKoraDiagram(
         activeStringNumbers = activeStringNumbers,
         showLeverInfo = showLeverInfo,
         noteLabelsVisible = noteLabelsVisible,
+        tuningPlanByString = tuningPlanByString,
         pitchShiftByString = pitchShiftByString,
         vibrationPhase = vibrationPhase
     )
@@ -1364,6 +1411,7 @@ private fun DrawScope.drawStringSet(
     activeStringNumbers: Set<Int>,
     showLeverInfo: Boolean,
     noteLabelsVisible: Boolean,
+    tuningPlanByString: Map<Int, TuningStringPlan>,
     pitchShiftByString: Map<Int, Int>,
     vibrationPhase: Float = 0f
 ) {
@@ -1389,19 +1437,28 @@ private fun DrawScope.drawStringSet(
         // Bass strings (ratio=0) at top → long; high strings (ratio=1) near bottom → short
         val pegY    = lerp(start = pegTopY, stop = pegBottomY,    fraction = ratio)
         val bridgeX = lerp(start = bridgeBassX, stop = bridgeTrebleX, fraction = ratio)
-        val closedLever = row.selectedLeverState == LeverState.CLOSED
+        val manualSemitoneShift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
+        val totalPegDelta = effectivePegDelta(
+            pegRetuneSemitones = row.pegRetuneSemitones,
+            manualSemitoneShift = manualSemitoneShift
+        )
+        val actionState = diagramStringActionState(
+            selectedLeverState = row.selectedLeverState,
+            pegRetuneSemitones = row.pegRetuneSemitones,
+            manualSemitoneShift = manualSemitoneShift
+        )
         val leverColor = if (showLeverInfo) {
-            when {
-                closedLever && row.pegRetuneRequired -> KoraCombinedChangesColor  // purple: both
-                row.pegRetuneRequired                -> KoraDetunedColor           // blue: peg only
-                closedLever                          -> KoraLeverClosedStringColor // amber: lever only
-                else                                 -> KoraOpenLeverColor         // green: no action
+            when (actionState) {
+                DiagramStringActionState.LEVER_AND_PEG -> KoraCombinedChangesColor
+                DiagramStringActionState.PEG_ONLY -> KoraDetunedColor
+                DiagramStringActionState.LEVER_ONLY -> KoraLeverClosedStringColor
+                DiagramStringActionState.OPEN -> KoraOpenLeverColor
             }
         } else {
             colors.outline
         }
         val isActive = row.stringNumber in activeStringNumbers
-        val baseStrokeWidth = if (row.pegRetuneRequired || closedLever) {
+        val baseStrokeWidth = if (actionState != DiagramStringActionState.OPEN) {
             width * 0.0058f
         } else {
             width * 0.004f
@@ -1453,15 +1510,15 @@ private fun DrawScope.drawStringSet(
             )
         }
 
-        val pegDotColor = when {
-            closedLever && row.pegRetuneRequired -> KoraCombinedChangesColor
-            row.pegRetuneRequired                -> KoraDetunedColor
-            closedLever                          -> KoraLeverClosedStringColor
-            else                                 -> colors.outline
+        val pegDotColor = when (actionState) {
+            DiagramStringActionState.LEVER_AND_PEG -> KoraCombinedChangesColor
+            DiagramStringActionState.PEG_ONLY -> KoraDetunedColor
+            DiagramStringActionState.LEVER_ONLY -> KoraLeverClosedStringColor
+            DiagramStringActionState.OPEN -> colors.outline
         }
         drawCircle(
             color = pegDotColor.copy(alpha = depthAlpha),
-            radius = if (row.pegRetuneRequired || closedLever) width * 0.010f else width * 0.007f,
+            radius = if (actionState != DiagramStringActionState.OPEN) width * 0.010f else width * 0.007f,
             center = Offset(pegX, pegY)
         )
 
@@ -1471,7 +1528,6 @@ private fun DrawScope.drawStringSet(
             center = Offset(bridgeX, bridgeY)
         )
         if (noteLabelsVisible) {
-            val semitoneShift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
             // Labels sit on the neck, just inside each peg (towards centre)
             val labelX = if (isLeft) {
                 pegX + (width * 0.032f)   // right of left peg → onto neck
@@ -1487,7 +1543,7 @@ private fun DrawScope.drawStringSet(
             drawContext.canvas.nativeCanvas.drawText(
                 displayPitchLabel(
                     effectivePitch = row.selectedPitch,
-                    semitoneShift = semitoneShift,
+                    semitoneShift = manualSemitoneShift,
                     includeOctave = false
                 ),
                 labelX,
@@ -1495,7 +1551,68 @@ private fun DrawScope.drawStringSet(
                 labelPaint
             )
         }
+        compactTuningActionLabel(
+            plan = tuningPlanByString[row.stringNumber],
+            manualSemitoneShift = manualSemitoneShift,
+            showLeverInfo = showLeverInfo
+        )?.let { actionLabel ->
+            drawActionBadge(
+                label = actionLabel,
+                anchor = Offset(
+                    x = if (isLeft) pegX - (width * 0.024f) else pegX + (width * 0.024f),
+                    y = pegY - (width * 0.018f)
+                ),
+                alignLeft = !isLeft,
+                color = KoraActionBadgeColor.copy(alpha = 0.96f)
+            )
+        }
     }
+}
+
+private fun DrawScope.drawActionBadge(
+    label: String,
+    anchor: Offset,
+    alignLeft: Boolean,
+    color: Color
+) {
+    val textSize = size.width * 0.016f
+    val horizontalPadding = size.width * 0.009f
+    val verticalPadding = size.width * 0.005f
+    val paint = Paint().apply {
+        this.color = android.graphics.Color.BLACK
+        textAlign = if (alignLeft) Paint.Align.LEFT else Paint.Align.RIGHT
+        this.textSize = textSize
+        isAntiAlias = true
+    }
+    val textWidth = paint.measureText(label)
+    val badgeWidth = textWidth + (horizontalPadding * 2f)
+    val badgeHeight = textSize + (verticalPadding * 2f)
+    val left = if (alignLeft) {
+        anchor.x
+    } else {
+        anchor.x - badgeWidth
+    }
+    val top = anchor.y - (badgeHeight * 0.5f)
+
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(left, top),
+        size = Size(badgeWidth, badgeHeight),
+        cornerRadius = CornerRadius(size.width * 0.006f, size.width * 0.006f)
+    )
+    drawRoundRect(
+        color = Color.Black.copy(alpha = 0.16f),
+        topLeft = Offset(left, top),
+        size = Size(badgeWidth, badgeHeight),
+        cornerRadius = CornerRadius(size.width * 0.006f, size.width * 0.006f),
+        style = Stroke(width = size.width * 0.0014f)
+    )
+    drawContext.canvas.nativeCanvas.drawText(
+        label,
+        if (alignLeft) left + horizontalPadding else left + badgeWidth - horizontalPadding,
+        top + badgeHeight - verticalPadding - (textSize * 0.18f),
+        paint
+    )
 }
 
 private fun buildDiagramStringSegments(
@@ -1606,15 +1723,6 @@ private fun resolveDiagramHit(
         ),
         maxDistancePx = maxDistancePx
     )
-}
-
-private suspend fun PointerInputScope.consumeAllTouches() {
-    awaitEachGesture {
-        do {
-            val event = awaitPointerEvent()
-            event.changes.forEach { change -> change.consume() }
-        } while (event.changes.any { change -> change.pressed })
-    }
 }
 
 private fun distancePointToSegment(
@@ -1740,10 +1848,18 @@ private fun DiagramLegend(showLeverInfo: Boolean) {
                 color = KoraCombinedChangesColor,
                 text = stringResource(R.string.overview_legend_both_lever_and_peg)
             )
+            LegendItem(
+                color = KoraActionBadgeColor,
+                text = stringResource(R.string.overview_legend_action_badge)
+            )
         } else {
             LegendItem(
                 color = KoraDetunedColor,
                 text = stringResource(R.string.overview_legend_peg_retune_required)
+            )
+            LegendItem(
+                color = KoraActionBadgeColor,
+                text = stringResource(R.string.overview_legend_action_badge_non_chromatic)
             )
         }
     }
@@ -1754,10 +1870,12 @@ private fun TouchStringRows(
     leftRows: List<PegCorrectStringResult>,
     rightRows: List<PegCorrectStringResult>,
     pitchShiftByString: Map<Int, Int>,
+    tuningPlanByString: Map<Int, TuningStringPlan>,
     playingStringNumbers: Set<Int>,
     onStringTouched: (PegCorrectStringResult) -> Unit,
     onStringSharpened: (PegCorrectStringResult) -> Unit,
-    onStringFlattened: (PegCorrectStringResult) -> Unit
+    onStringFlattened: (PegCorrectStringResult) -> Unit,
+    showLeverInfo: Boolean
 ) {
     Text(
         text = stringResource(R.string.overview_diagram_tap_to_hear),
@@ -1770,15 +1888,23 @@ private fun TouchStringRows(
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(items = leftRows, key = { row -> row.stringNumber }) { row ->
             val semitoneShift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
+            val actionLabel = compactTuningActionLabel(
+                plan = tuningPlanByString[row.stringNumber],
+                manualSemitoneShift = semitoneShift,
+                showLeverInfo = showLeverInfo
+            )
             PitchActionChip(
                 isActive = row.stringNumber in playingStringNumbers,
-                text = "${row.role.asLabel()} ${
-                    displayPitchLabel(
-                        effectivePitch = row.selectedPitch,
-                        semitoneShift = semitoneShift,
-                        includeOctave = false
-                    )
-                }",
+                text = listOfNotNull(
+                    "${row.role.asLabel()} ${
+                        displayPitchLabel(
+                            effectivePitch = row.selectedPitch,
+                            semitoneShift = semitoneShift,
+                            includeOctave = false
+                        )
+                    }",
+                    actionLabel
+                ).joinToString(" • "),
                 onClick = { onStringTouched(row) },
                 onDoubleClick = { onStringSharpened(row) },
                 onLongPress = { onStringFlattened(row) }
@@ -1792,15 +1918,23 @@ private fun TouchStringRows(
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(items = rightRows, key = { row -> row.stringNumber }) { row ->
             val semitoneShift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
+            val actionLabel = compactTuningActionLabel(
+                plan = tuningPlanByString[row.stringNumber],
+                manualSemitoneShift = semitoneShift,
+                showLeverInfo = showLeverInfo
+            )
             PitchActionChip(
                 isActive = row.stringNumber in playingStringNumbers,
-                text = "${row.role.asLabel()} ${
-                    displayPitchLabel(
-                        effectivePitch = row.selectedPitch,
-                        semitoneShift = semitoneShift,
-                        includeOctave = false
-                    )
-                }",
+                text = listOfNotNull(
+                    "${row.role.asLabel()} ${
+                        displayPitchLabel(
+                            effectivePitch = row.selectedPitch,
+                            semitoneShift = semitoneShift,
+                            includeOctave = false
+                        )
+                    }",
+                    actionLabel
+                ).joinToString(" • "),
                 onClick = { onStringTouched(row) },
                 onDoubleClick = { onStringSharpened(row) },
                 onLongPress = { onStringFlattened(row) }
@@ -2012,7 +2146,7 @@ private fun ChordOverview(
                 text = stringResource(R.string.overview_chords_playback_label),
                 style = MaterialTheme.typography.labelMedium
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            WrappingChipRow {
                 ChordPlaybackMode.entries.forEach { mode ->
                     FilterChip(
                         selected = mode == playbackMode,
@@ -2021,7 +2155,7 @@ private fun ChordOverview(
                     )
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            WrappingChipRow {
                 listOf(1, 2, 3, 4).forEach { count ->
                     FilterChip(
                         selected = count == chordVoicingNoteCount,
@@ -2179,6 +2313,10 @@ private fun ChordExerciseOverview(
     onRunCircleExerciseStep: () -> Unit,
     exerciseChoiceMode: ExerciseChoiceMode,
     onExerciseChoiceModeSelected: (ExerciseChoiceMode) -> Unit,
+    exerciseDiagramZoom: Float,
+    onExerciseDiagramZoomChanged: (Float) -> Unit,
+    isExerciseDiagramLocked: Boolean,
+    onExerciseDiagramLockedChanged: (Boolean) -> Unit,
     isTimedExerciseRunning: Boolean,
     onTimedExerciseRunningChanged: (Boolean) -> Unit,
     timedExerciseChordIntervalBeats: Int,
@@ -2204,236 +2342,257 @@ private fun ChordExerciseOverview(
 ) {
     var isTimeSignatureMenuExpanded by remember { mutableStateOf(false) }
 
-    Card(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        )
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        // ── Circle of Fifths Exercise ────────────────────────────────────────
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+            )
         ) {
-            Text(
-                text = stringResource(R.string.overview_exercise_title),
-                style = MaterialTheme.typography.titleSmall
-            )
-            Text(
-                text = stringResource(R.string.overview_exercise_order_note),
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                text = stringResource(R.string.overview_exercise_start_key_label),
-                style = MaterialTheme.typography.labelMedium
-            )
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(CIRCLE_OF_FIFTHS_ORDER) { note ->
-                    FilterChip(
-                        selected = note == circleExerciseStartRoot,
-                        onClick = { onCircleExerciseStartRootChanged(note) },
-                        label = { Text(circleOfFifthsLabel(note)) }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = stringResource(R.string.overview_exercise_title),
+                        style = MaterialTheme.typography.titleSmall
                     )
+                    ExpandableText(text = stringResource(R.string.overview_exercise_order_note))
                 }
-            }
-            Text(
-                text = stringResource(R.string.overview_exercise_choice_mode_label),
-                style = MaterialTheme.typography.labelMedium
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ExerciseChoiceMode.entries.forEach { mode ->
-                    FilterChip(
-                        selected = mode == exerciseChoiceMode,
-                        onClick = { onExerciseChoiceModeSelected(mode) },
-                        label = { Text(exerciseChoiceModeLabel(mode)) }
-                    )
-                }
-            }
-            CircleOfFifthsExerciseDiagram(
-                startRoot = circleExerciseStartRoot,
-                nextRoot = timedExerciseTargetRoot ?: nextCircleExerciseRoot,
-                choiceRoots = timedExerciseChoiceRoots
-            )
-            if (timedExerciseTargetRoot != null) {
                 Text(
-                    text = pluralStringResource(
-                        R.plurals.overview_exercise_suggested_next,
-                        timedExerciseBeatsUntilDue,
-                        circleOfFifthsLabel(timedExerciseTargetRoot),
-                        chordQualityLabel(selectedQuality),
-                        timedExerciseBeatsUntilDue,
-                        timedExerciseDueBeat
+                    text = stringResource(R.string.overview_exercise_start_key_label),
+                    style = MaterialTheme.typography.labelMedium
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(CIRCLE_OF_FIFTHS_ORDER) { note ->
+                        FilterChip(
+                            selected = note == circleExerciseStartRoot,
+                            onClick = { onCircleExerciseStartRootChanged(note) },
+                            label = { Text(circleOfFifthsLabel(note)) }
+                        )
+                    }
+                }
+                Text(
+                    text = stringResource(R.string.overview_exercise_choice_mode_label),
+                    style = MaterialTheme.typography.labelMedium
+                )
+                WrappingChipRow {
+                    ExerciseChoiceMode.entries.forEach { mode ->
+                        FilterChip(
+                            selected = mode == exerciseChoiceMode,
+                            onClick = { onExerciseChoiceModeSelected(mode) },
+                            label = { Text(exerciseChoiceModeLabel(mode)) }
+                        )
+                    }
+                }
+                CircleOfFifthsExerciseDiagram(
+                    startRoot = circleExerciseStartRoot,
+                    nextRoot = timedExerciseTargetRoot ?: nextCircleExerciseRoot,
+                    choiceRoots = timedExerciseChoiceRoots,
+                    exerciseDiagramZoom = exerciseDiagramZoom,
+                    onExerciseDiagramZoomChanged = onExerciseDiagramZoomChanged,
+                    isExerciseDiagramLocked = isExerciseDiagramLocked,
+                    onExerciseDiagramLockedChanged = onExerciseDiagramLockedChanged
+                )
+                if (timedExerciseTargetRoot != null) {
+                    Text(
+                        text = pluralStringResource(
+                            R.plurals.overview_exercise_suggested_next,
+                            timedExerciseBeatsUntilDue,
+                            circleOfFifthsLabel(timedExerciseTargetRoot),
+                            chordQualityLabel(selectedQuality),
+                            timedExerciseBeatsUntilDue,
+                            timedExerciseDueBeat
+                        ),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(timedExerciseChoiceRoots) { choiceRoot ->
+                            FilterChip(
+                                selected = choiceRoot == timedExerciseTargetRoot,
+                                onClick = { onRootSelected(choiceRoot) },
+                                label = {
+                                    Text(
+                                        text = stringResource(
+                                            R.string.overview_exercise_choice_item,
+                                            circleOfFifthsLabel(choiceRoot),
+                                            chordQualityLabel(selectedQuality)
+                                        )
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = stringResource(
+                        R.string.overview_exercise_next_step,
+                        circleOfFifthsLabel(nextCircleExerciseRoot),
+                        chordQualityLabel(selectedQuality)
                     ),
                     style = MaterialTheme.typography.bodySmall
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(timedExerciseChoiceRoots) { choiceRoot ->
+                OutlinedButton(
+                    onClick = onRunCircleExerciseStep,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.overview_exercise_action_next_fifth))
+                }
+                Text(
+                    text = stringResource(R.string.overview_exercise_timed_interval_label),
+                    style = MaterialTheme.typography.labelMedium
+                )
+                WrappingChipRow {
+                    listOf(1, 2, 3, 4).forEach { beats ->
                         FilterChip(
-                            selected = choiceRoot == timedExerciseTargetRoot,
-                            onClick = { onRootSelected(choiceRoot) },
+                            selected = beats == timedExerciseChordIntervalBeats,
+                            onClick = { onTimedExerciseChordIntervalBeatsChanged(beats) },
                             label = {
                                 Text(
-                                    text = stringResource(
-                                        R.string.overview_exercise_choice_item,
-                                        circleOfFifthsLabel(choiceRoot),
-                                        chordQualityLabel(selectedQuality)
+                                    pluralStringResource(
+                                        R.plurals.overview_exercise_interval_chip,
+                                        beats,
+                                        beats
                                     )
                                 )
                             }
                         )
                     }
                 }
-            }
-            Text(
-                text = stringResource(
-                    R.string.overview_exercise_next_step,
-                    circleOfFifthsLabel(nextCircleExerciseRoot),
-                    chordQualityLabel(selectedQuality)
-                ),
-                style = MaterialTheme.typography.bodySmall
-            )
-            OutlinedButton(
-                onClick = onRunCircleExerciseStep,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(R.string.overview_exercise_action_next_fifth))
-            }
-            Text(
-                text = stringResource(R.string.overview_exercise_timed_interval_label),
-                style = MaterialTheme.typography.labelMedium
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(1, 2, 3, 4).forEach { beats ->
-                    FilterChip(
-                        selected = beats == timedExerciseChordIntervalBeats,
-                        onClick = { onTimedExerciseChordIntervalBeatsChanged(beats) },
-                        label = {
-                            Text(
-                                pluralStringResource(
-                                    R.plurals.overview_exercise_interval_chip,
-                                    beats,
-                                    beats
-                                )
-                            )
+                OutlinedButton(
+                    onClick = { onTimedExerciseRunningChanged(!isTimedExerciseRunning) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        if (isTimedExerciseRunning) {
+                            stringResource(R.string.overview_exercise_action_stop_timed)
+                        } else {
+                            stringResource(R.string.overview_exercise_action_start_timed)
                         }
                     )
                 }
+                ExpandableText(text = stringResource(R.string.overview_exercise_timed_note))
             }
-            OutlinedButton(
-                onClick = { onTimedExerciseRunningChanged(!isTimedExerciseRunning) },
-                modifier = Modifier.fillMaxWidth()
+        }
+
+        // ── Metronome ────────────────────────────────────────────────────────
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    if (isTimedExerciseRunning) {
-                        stringResource(R.string.overview_exercise_action_stop_timed)
-                    } else {
-                        stringResource(R.string.overview_exercise_action_start_timed)
-                    }
+                    text = stringResource(R.string.overview_metronome_title),
+                    style = MaterialTheme.typography.titleSmall
                 )
-            }
-            Text(
-                text = stringResource(R.string.overview_exercise_timed_note),
-                style = MaterialTheme.typography.bodySmall
-            )
-
-            Text(
-                text = stringResource(R.string.overview_metronome_title),
-                style = MaterialTheme.typography.labelMedium
-            )
-            Text(
-                text = stringResource(R.string.overview_metronome_bpm_line, metronomeBpm),
-                style = MaterialTheme.typography.bodySmall
-            )
-            Slider(
-                value = metronomeBpm.toFloat(),
-                onValueChange = { value ->
-                    onMetronomeBpmChanged(value.roundToInt())
-                },
-                valueRange = 40f..250f
-            )
-            Text(
-                text = stringResource(R.string.overview_metronome_time_signature_label),
-                style = MaterialTheme.typography.labelMedium
-            )
-            Box(modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(
-                    onClick = { isTimeSignatureMenuExpanded = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(metronomeTimeSignature.label)
+                Text(
+                    text = stringResource(R.string.overview_metronome_bpm_line, metronomeBpm),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Slider(
+                    value = metronomeBpm.toFloat(),
+                    onValueChange = { value ->
+                        onMetronomeBpmChanged(value.roundToInt())
+                    },
+                    valueRange = 40f..250f
+                )
+                Text(
+                    text = stringResource(R.string.overview_metronome_time_signature_label),
+                    style = MaterialTheme.typography.labelMedium
+                )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(
+                        onClick = { isTimeSignatureMenuExpanded = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(metronomeTimeSignature.label)
+                    }
+                    DropdownMenu(
+                        expanded = isTimeSignatureMenuExpanded,
+                        onDismissRequest = { isTimeSignatureMenuExpanded = false }
+                    ) {
+                        METRONOME_TIME_SIGNATURES.forEach { signature ->
+                            DropdownMenuItem(
+                                text = { Text(signature.label) },
+                                onClick = {
+                                    isTimeSignatureMenuExpanded = false
+                                    onMetronomeTimeSignatureChanged(signature)
+                                }
+                            )
+                        }
+                    }
                 }
-                DropdownMenu(
-                    expanded = isTimeSignatureMenuExpanded,
-                    onDismissRequest = { isTimeSignatureMenuExpanded = false }
-                ) {
-                    METRONOME_TIME_SIGNATURES.forEach { signature ->
-                        DropdownMenuItem(
-                            text = { Text(signature.label) },
-                            onClick = {
-                                isTimeSignatureMenuExpanded = false
-                                onMetronomeTimeSignatureChanged(signature)
+                Text(
+                    text = stringResource(R.string.overview_metronome_beats_to_click_label),
+                    style = MaterialTheme.typography.labelMedium
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items((1..metronomeTimeSignature.numerator).toList()) { beat ->
+                        FilterChip(
+                            selected = beat in metronomeEnabledBeats,
+                            onClick = { onMetronomeBeatToggled(beat) },
+                            label = {
+                                val beatLabel = if (beat == metronomeCurrentBeat) {
+                                    "$beat *"
+                                } else {
+                                    beat.toString()
+                                }
+                                Text(beatLabel)
                             }
                         )
                     }
                 }
-            }
-            Text(
-                text = stringResource(R.string.overview_metronome_beats_to_click_label),
-                style = MaterialTheme.typography.labelMedium
-            )
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items((1..metronomeTimeSignature.numerator).toList()) { beat ->
-                    FilterChip(
-                        selected = beat in metronomeEnabledBeats,
-                        onClick = { onMetronomeBeatToggled(beat) },
-                        label = {
-                            val beatLabel = if (beat == metronomeCurrentBeat) {
-                                "$beat *"
-                            } else {
-                                beat.toString()
-                            }
-                            Text(beatLabel)
+                Text(
+                    text = stringResource(R.string.overview_metronome_sound_label),
+                    style = MaterialTheme.typography.labelMedium
+                )
+                WrappingChipRow {
+                    MetronomeSoundOption.entries.forEach { sound ->
+                        FilterChip(
+                            selected = sound == metronomeSound,
+                            onClick = { onMetronomeSoundChanged(sound) },
+                            label = { Text(metronomeSoundOptionLabel(sound)) }
+                        )
+                    }
+                }
+                Text(
+                    text = stringResource(
+                        R.string.overview_metronome_volume_label,
+                        metronomeVolumePercent.roundToInt()
+                    ),
+                    style = MaterialTheme.typography.labelMedium
+                )
+                Slider(
+                    value = metronomeVolumePercent,
+                    onValueChange = onMetronomeVolumePercentChanged,
+                    valueRange = 30f..180f
+                )
+                OutlinedButton(
+                    onClick = { onMetronomeRunningChanged(!isMetronomeRunning) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        if (isMetronomeRunning) {
+                            stringResource(R.string.overview_metronome_action_stop)
+                        } else {
+                            stringResource(R.string.overview_metronome_action_start)
                         }
                     )
                 }
-            }
-            Text(
-                text = stringResource(R.string.overview_metronome_sound_label),
-                style = MaterialTheme.typography.labelMedium
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MetronomeSoundOption.entries.forEach { sound ->
-                    FilterChip(
-                        selected = sound == metronomeSound,
-                        onClick = { onMetronomeSoundChanged(sound) },
-                        label = { Text(metronomeSoundOptionLabel(sound)) }
-                    )
-                }
-            }
-            Text(
-                text = stringResource(
-                    R.string.overview_metronome_volume_label,
-                    metronomeVolumePercent.roundToInt()
-                ),
-                style = MaterialTheme.typography.labelMedium
-            )
-            Slider(
-                value = metronomeVolumePercent,
-                onValueChange = onMetronomeVolumePercentChanged,
-                valueRange = 30f..180f
-            )
-            OutlinedButton(
-                onClick = { onMetronomeRunningChanged(!isMetronomeRunning) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    if (isMetronomeRunning) {
-                        stringResource(R.string.overview_metronome_action_stop)
-                    } else {
-                        stringResource(R.string.overview_metronome_action_start)
-                    }
-                )
             }
         }
     }
@@ -2443,7 +2602,11 @@ private fun ChordExerciseOverview(
 private fun CircleOfFifthsExerciseDiagram(
     startRoot: NoteName,
     nextRoot: NoteName,
-    choiceRoots: List<NoteName>
+    choiceRoots: List<NoteName>,
+    exerciseDiagramZoom: Float,
+    onExerciseDiagramZoomChanged: (Float) -> Unit,
+    isExerciseDiagramLocked: Boolean,
+    onExerciseDiagramLockedChanged: (Boolean) -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val textPaint = remember {
@@ -2452,7 +2615,6 @@ private fun CircleOfFifthsExerciseDiagram(
             textAlign = android.graphics.Paint.Align.CENTER
         }
     }
-    textPaint.textSize = with(LocalDensity.current) { 11.sp.toPx() }
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -2465,71 +2627,102 @@ private fun CircleOfFifthsExerciseDiagram(
                 text = stringResource(R.string.overview_exercise_diagram_title),
                 style = MaterialTheme.typography.bodySmall
             )
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .pointerInput(startRoot, nextRoot, choiceRoots) {
-                        consumeAllTouches()
-                    }
-            ) {
-                val center = Offset(size.width * 0.5f, size.height * 0.5f)
-                val ringRadius = size.minDimension * 0.38f
-                drawCircle(
-                    color = colorScheme.outlineVariant,
-                    radius = ringRadius,
-                    center = center,
-                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = size.minDimension * 0.006f)
-                )
+            DiagramZoomControls(
+                zoom = exerciseDiagramZoom,
+                onZoomChanged = onExerciseDiagramZoomChanged,
+                isLocked = isExerciseDiagramLocked,
+                onLockedChanged = onExerciseDiagramLockedChanged
+            )
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val diagramHeight = when {
+                    maxWidth >= 840.dp -> 320.dp
+                    maxWidth >= 600.dp -> 260.dp
+                    else -> 220.dp
+                }
+                textPaint.textSize = with(LocalDensity.current) {
+                    if (maxWidth >= 600.dp) 13.sp.toPx() else 11.sp.toPx()
+                }
 
-                CIRCLE_OF_FIFTHS_ORDER.forEachIndexed { index, note ->
-                    val angleRadians = Math.toRadians((-90.0 + (index * 30.0)))
-                    val markerCenter = Offset(
-                        x = center.x + (cos(angleRadians).toFloat() * ringRadius),
-                        y = center.y + (sin(angleRadians).toFloat() * ringRadius)
-                    )
-                    val isStart = note == startRoot
-                    val isNext = note == nextRoot
-                    val isChoice = note in choiceRoots
-
-                    val markerColor = when {
-                        isNext -> KoraClosedLeverColor
-                        isStart -> KoraOpenLeverColor
-                        isChoice -> colorScheme.tertiary
-                        else -> colorScheme.surfaceVariant
-                    }
-                    val markerRadius = when {
-                        isNext -> size.minDimension * 0.056f
-                        isStart -> size.minDimension * 0.048f
-                        else -> size.minDimension * 0.042f
-                    }
-                    drawCircle(
-                        color = markerColor,
-                        radius = markerRadius,
-                        center = markerCenter
-                    )
-                    if (isNext || isStart) {
-                        drawCircle(
-                            color = Color.White.copy(alpha = 0.9f),
-                            radius = markerRadius + (size.minDimension * 0.006f),
-                            center = markerCenter,
-                            style = androidx.compose.ui.graphics.drawscope.Stroke(
-                                width = size.minDimension * 0.006f
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(diagramHeight)
+                        .clipToBounds()
+                        .pointerInput(exerciseDiagramZoom) {
+                            detectTransformGestures { _, _, zoomChange, _ ->
+                                onExerciseDiagramZoomChanged(
+                                    (exerciseDiagramZoom * zoomChange).coerceIn(1f, 3f)
+                                )
+                            }
+                        }
+                ) {
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer(
+                                scaleX = exerciseDiagramZoom,
+                                scaleY = exerciseDiagramZoom
                             )
+                    ) {
+                        val center = Offset(size.width * 0.5f, size.height * 0.5f)
+                        val ringRadius = size.minDimension * 0.38f
+                        drawCircle(
+                            color = colorScheme.outlineVariant,
+                            radius = ringRadius,
+                            center = center,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = size.minDimension * 0.006f)
                         )
-                    }
 
-                    textPaint.color = if (isNext || isStart) {
-                        android.graphics.Color.WHITE
-                    } else {
-                        colorScheme.onSurface.toArgb()
+                        CIRCLE_OF_FIFTHS_ORDER.forEachIndexed { index, note ->
+                            val angleRadians = Math.toRadians((-90.0 + (index * 30.0)))
+                            val markerCenter = Offset(
+                                x = center.x + (cos(angleRadians).toFloat() * ringRadius),
+                                y = center.y + (sin(angleRadians).toFloat() * ringRadius)
+                            )
+                            val isStart = note == startRoot
+                            val isNext = note == nextRoot
+                            val isChoice = note in choiceRoots
+
+                            val markerColor = when {
+                                isNext -> KoraClosedLeverColor
+                                isStart -> KoraOpenLeverColor
+                                isChoice -> colorScheme.tertiary
+                                else -> colorScheme.surfaceVariant
+                            }
+                            val markerRadius = when {
+                                isNext -> size.minDimension * 0.056f
+                                isStart -> size.minDimension * 0.048f
+                                else -> size.minDimension * 0.042f
+                            }
+                            drawCircle(
+                                color = markerColor,
+                                radius = markerRadius,
+                                center = markerCenter
+                            )
+                            if (isNext || isStart) {
+                                drawCircle(
+                                    color = Color.White.copy(alpha = 0.9f),
+                                    radius = markerRadius + (size.minDimension * 0.006f),
+                                    center = markerCenter,
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                        width = size.minDimension * 0.006f
+                                    )
+                                )
+                            }
+
+                            textPaint.color = if (isNext || isStart) {
+                                android.graphics.Color.WHITE
+                            } else {
+                                colorScheme.onSurface.toArgb()
+                            }
+                            drawContext.canvas.nativeCanvas.drawText(
+                                circleOfFifthsLabel(note),
+                                markerCenter.x,
+                                markerCenter.y + (textPaint.textSize * 0.33f),
+                                textPaint
+                            )
+                        }
                     }
-                    drawContext.canvas.nativeCanvas.drawText(
-                        circleOfFifthsLabel(note),
-                        markerCenter.x,
-                        markerCenter.y + (textPaint.textSize * 0.33f),
-                        textPaint
-                    )
                 }
             }
 
@@ -2878,6 +3071,13 @@ private fun formatOverviewRow(
         }
         append("\n")
         append(stringResource(R.string.scale_engine_row_int_peg, signed(row.selectedIntonationCents), pegIndicator))
+        append("  ")
+        append(
+            stringResource(
+                R.string.scale_engine_peg_row_from_home,
+                signed(row.fromBaseSemitones)
+            )
+        )
     }
 }
 

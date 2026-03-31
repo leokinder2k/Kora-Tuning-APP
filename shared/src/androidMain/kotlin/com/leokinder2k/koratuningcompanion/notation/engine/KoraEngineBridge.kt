@@ -76,4 +76,6 @@ class KoraEngineBridge(context: Context) {
 
     suspend fun process(paramsJson: String): String = callJs("process", paramsJson)
     suspend fun edit(paramsJson: String): String = callJs("edit", paramsJson)
+    suspend fun exportAudio(paramsJson: String): String = callJs("exportAudio", paramsJson)
+    suspend fun exportPdf(paramsJson: String): String = callJs("exportPdf", paramsJson)
 }

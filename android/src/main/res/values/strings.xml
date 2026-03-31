@@ -23,6 +23,8 @@
     <string name="notation_processing">Processing score…</string>
     <string name="notation_difficulty">Difficulty: %1$d%%</string>
     <string name="notation_diagram_title">Kora String Diagram</string>
+    <string name="notation_diagram_subtitle_21">21-string kora. Left %1$d strings, right %2$d strings.</string>
+    <string name="notation_diagram_subtitle_22">22-string chromatic kora. Left %1$d strings, right %2$d strings.</string>
     <string name="notation_retune_title">Retune Plan</string>
     <string name="notation_transpose_title">Transpose</string>
     <string name="notation_export_title">Export</string>
@@ -49,6 +51,9 @@
     <string name="instrument_config_section_instrument_type">Instrument type</string>
     <string name="instrument_config_section_root_note">Instrument key</string>
     <string name="instrument_config_description_instrument_key">The key your kora is physically built and tuned in (all levers at rest). Changing this transposes all string pitches to match the new key. Use the Scale tab to choose a different root note for scale calculations.</string>
+    <string name="instrument_config_section_home_lever_position">Starting lever position</string>
+    <string name="instrument_config_home_lever_position_open">Open (levers up)</string>
+    <string name="instrument_config_home_lever_position_closed">Closed (levers down)</string>
     <string name="instrument_type_levers">Levers (chromatic)</string>
     <string name="instrument_type_pegs">Peg tuning</string>
     <string name="instrument_config_quick_start_step_1">1. Choose 21 or 22 strings.</string>
@@ -217,11 +222,40 @@
 
     <string name="scale_engine_lever_only_row_open_closed">Open %1$s  Closed %2$s</string>
     <string name="scale_engine_lever_only_row_lever_target">Lever %1$s  Target %2$s</string>
+    <string name="scale_engine_lever_change_indicator">lever change</string>
     <string name="scale_engine_row_int_peg">Int %1$s c  Peg %2$s</string>
     <string name="scale_engine_peg_row_target_lever">Target %1$s  Lever %2$s</string>
     <string name="scale_engine_peg_tuning_row_target">Target %1$s</string>
     <string name="scale_engine_peg_tuning_row_tune_open">Tune open %1$s</string>
     <string name="scale_engine_peg_row_from_home">From home %1$s st</string>
+    <string name="scale_engine_orchestrator_title">AI Tuning Orchestrator</string>
+    <string name="scale_engine_orchestrator_reference">Instrument key %1$s stays fixed. Requested root %2$s in %3$s from %4$s.</string>
+    <string name="scale_engine_orchestrator_root_shift">Root shift from instrument key: %1$s semitone(s).</string>
+    <string name="scale_engine_orchestrator_peg_summary">Peg plan: up %1$d, down %2$d, unchanged %3$d.</string>
+    <string name="scale_engine_orchestrator_lever_summary">Lever plan: open %1$d, close %2$d, unchanged %3$d.</string>
+    <string name="scale_engine_orchestrator_changed_strings">Strings with changes: %1$d</string>
+    <string name="scale_engine_orchestrator_note">Peg semitones are measured from the instrument-key open tuning. The tables keep the separate "From home" reference.</string>
+    <string name="scale_engine_orchestrator_no_changes">No lever or peg changes are required.</string>
+    <string name="scale_engine_orchestrator_more_strings">+%1$d more strings</string>
+    <string name="scale_engine_orchestrator_lever_keep">keep</string>
+    <string name="scale_engine_orchestrator_lever_open">open</string>
+    <string name="scale_engine_orchestrator_lever_close">close</string>
+    <string name="scale_engine_orchestrator_line_keep">%1$s (S%2$d): keep setup -&gt; %3$s</string>
+    <string name="scale_engine_orchestrator_line_peg">%1$s (S%2$d): tune peg %3$s st -&gt; %4$s</string>
+    <string name="scale_engine_orchestrator_line_lever">%1$s (S%2$d): %3$s lever -&gt; %4$s</string>
+    <string name="scale_engine_orchestrator_line_both">%1$s (S%2$d): tune peg %3$s st and %4$s lever -&gt; %5$s</string>
+    <string name="versatility_title">Chromatic Lever Analysis for Natural %1$s</string>
+    <string name="versatility_reference_note">Natural %1$s means all levers open. This analysis only counts roots and scales reachable without peg retuning or detuning the whole instrument.</string>
+    <string name="versatility_scope">Checked %1$d roots, %2$d scales, and %3$d root positions for each tuning.</string>
+    <string name="versatility_best_example">Most versatile tuning in natural %2$s: %1$s.</string>
+    <string name="versatility_tuning_line">%1$d. %2$s: %3$d lever-only states, %4$d roots, %5$d scales, %6$d root positions. Examples: %7$s.</string>
+    <string name="versatility_target_label">%1$s %2$s from %3$s</string>
+    <string name="versatility_route_title">Low-Lever-Change Route (15 states)</string>
+    <string name="versatility_route_line">%1$d. %2$s -> %3$s %4$s from %5$s. %6$s</string>
+    <string name="versatility_route_from_natural">From natural open: close %1$s.</string>
+    <string name="versatility_route_from_previous">%1$d lever changes: open %2$s, close %3$s.</string>
+    <string name="versatility_route_switch_tuning">Switch to %1$s natural tuning, then close %2$s.</string>
+    <string name="versatility_lever_none">none</string>
 
     <string name="scale_engine_conflicts_title">Voicing Conflicts</string>
     <string name="scale_engine_conflicts_none">No conflicts detected.</string>
@@ -326,6 +360,8 @@
     <string name="overview_legend_closed_lever">Close lever</string>
     <string name="overview_legend_peg_retune_required">Retune peg</string>
     <string name="overview_legend_both_lever_and_peg">Close lever + retune peg</string>
+    <string name="overview_legend_action_badge">Action badge: signed number = peg semitones from natural key, L = close lever.</string>
+    <string name="overview_legend_action_badge_non_chromatic">Action badge: signed number = peg semitones from the natural tuning.</string>
 
     <string name="overview_table_title">Kora Table</string>
 

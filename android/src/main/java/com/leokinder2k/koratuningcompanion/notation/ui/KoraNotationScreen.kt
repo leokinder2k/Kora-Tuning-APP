@@ -7,6 +7,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,12 +16,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,6 +31,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.R
+import com.leokinder2k.koratuningcompanion.instrumentconfig.data.DataStoreInstrumentConfigRepository
+import com.leokinder2k.koratuningcompanion.notation.engine.KoraInstrumentType
 import org.json.JSONArray
 import org.json.JSONObject
 import android.util.Base64
@@ -50,7 +55,13 @@ fun KoraNotationScreen(vm: KoraNotationViewModel, modifier: Modifier = Modifier)
     val originalKeyFifths by vm.originalKeyFifths.collectAsStateWithLifecycle()
     val originalKeyMode by vm.originalKeyMode.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var selectedInstrument by remember { mutableStateOf("KORA_21") }
+    val instrumentRepository = remember(context) { DataStoreInstrumentConfigRepository.create(context) }
+    val savedProfile by instrumentRepository.instrumentProfile.collectAsStateWithLifecycle(initialValue = null)
+    val savedInstrumentType = when (savedProfile?.stringCount) {
+        22 -> "KORA_22"
+        else -> "KORA_21"
+    }
+    var selectedInstrument by rememberSaveable(savedInstrumentType) { mutableStateOf(savedInstrumentType) }
     var selectedFileName by remember { mutableStateOf("") }
 
     val filePicker = rememberLauncherForActivityResult(
@@ -149,17 +160,24 @@ fun KoraNotationScreen(vm: KoraNotationViewModel, modifier: Modifier = Modifier)
                     )
                 }
             }
-            is NotationUiState.Success -> ResultSection(
-                result = state.result,
-                transposeOffset = transposeOffset,
-                originalKeyFifths = originalKeyFifths,
-                originalKeyMode = originalKeyMode,
-                context = context,
-                onTransposeSemitone = vm::applyTransposeSemitone,
-                onResetTranspose = vm::resetTranspose,
-                onPreviewTranspose = vm::previewTransposeDelta,
-                onStopPreview = vm::stopPreview,
-            )
+            is NotationUiState.Success -> {
+                val exportState by vm.exportState.collectAsStateWithLifecycle()
+                ResultSection(
+                    result = state.result,
+                    transposeOffset = transposeOffset,
+                    originalKeyFifths = originalKeyFifths,
+                    originalKeyMode = originalKeyMode,
+                    exportState = exportState,
+                    context = context,
+                    onTransposeSemitone = vm::applyTransposeSemitone,
+                    onResetTranspose = vm::resetTranspose,
+                    onPreviewTranspose = vm::previewTransposeDelta,
+                    onStopPreview = vm::stopPreview,
+                    onRequestAudio = vm::requestAudioExport,
+                    onRequestPdf = vm::requestPdfExport,
+                    onClearExport = vm::clearExportState,
+                )
+            }
             else -> {}
         }
     }
@@ -196,11 +214,15 @@ private fun ResultSection(
     transposeOffset: Int,
     originalKeyFifths: Int,
     originalKeyMode: String,
+    exportState: ExportState,
     context: Context,
     onTransposeSemitone: (Int) -> Unit,
     onResetTranspose: () -> Unit,
     onPreviewTranspose: (Int) -> Unit = {},
     onStopPreview: () -> Unit = {},
+    onRequestAudio: () -> Unit = {},
+    onRequestPdf: () -> Unit = {},
+    onClearExport: () -> Unit = {},
 ) {
     val darkCard = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1C))
     val onDark = Color.White
@@ -210,7 +232,7 @@ private fun ResultSection(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(result.title, style = MaterialTheme.typography.titleMedium, color = onDark)
             Text(
-                "${result.instrumentType.replace("_", " ")}  ·  ${result.tuningName}  ·  ${result.sourceKind}",
+                "${instrumentTypeLabel(result.instrumentType)}  ·  ${result.tuningName}  ·  ${result.sourceKind}",
                 style = MaterialTheme.typography.bodySmall,
                 color = onDarkMuted
             )
@@ -345,35 +367,87 @@ private fun ResultSection(
     }
 
     // ── Export Card ───────────────────────────────────────────────────────────
+    // Trigger PDF share when export completes
+    LaunchedEffect(exportState) {
+        if (exportState is ExportState.PdfReady) {
+            shareBase64(context, exportState.pdfBase64, "${result.title}.pdf", "application/pdf")
+            onClearExport()
+        }
+    }
+
     Card(modifier = Modifier.fillMaxWidth(), colors = darkCard) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.notation_export_title), style = MaterialTheme.typography.titleMedium, color = onDark)
 
+            val exportBusy = exportState is ExportState.LoadingAudio || exportState is ExportState.LoadingPdf
+            val audioReady = exportState as? ExportState.AudioReady
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { shareBase64(context, result.pdfBase64, "${result.title}.pdf", "application/pdf") }) {
-                    Icon(Icons.Default.PictureAsPdf, null, modifier = Modifier.size(18.dp))
+                Button(onClick = onRequestPdf, enabled = !exportBusy) {
+                    if (exportState is ExportState.LoadingPdf) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = onDark)
+                    } else {
+                        Icon(Icons.Default.PictureAsPdf, null, modifier = Modifier.size(18.dp))
+                    }
                     Spacer(Modifier.width(6.dp))
                     Text("PDF")
                 }
-                Button(onClick = { shareBase64(context, result.koraMidiBase64, "${result.title}_kora.mid", "audio/midi") }) {
+                Button(
+                    onClick = { shareBase64(context, result.koraMidiBase64, "${result.title}_kora.mid", "audio/midi") },
+                    enabled = !exportBusy,
+                ) {
                     Icon(Icons.Default.MusicNote, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("MIDI")
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { playBase64Wav(context, result.koraAudioBase64, "_kora_audio.wav", onStopPreview) }) {
-                    Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
+                OutlinedButton(
+                    onClick = {
+                        if (audioReady != null) playBase64Wav(context, audioReady.koraBase64, "_kora_audio.wav", onStopPreview)
+                        else onRequestAudio()
+                    },
+                    enabled = !exportBusy,
+                ) {
+                    if (exportState is ExportState.LoadingAudio) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
+                    }
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.notation_play_kora))
                 }
-                OutlinedButton(onClick = { playBase64Wav(context, result.simplifiedAudioBase64, "_original_audio.wav", onStopPreview) }) {
-                    Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
+                OutlinedButton(
+                    onClick = {
+                        if (audioReady != null) playBase64Wav(context, audioReady.simplifiedBase64, "_original_audio.wav", onStopPreview)
+                        else onRequestAudio()
+                    },
+                    enabled = !exportBusy,
+                ) {
+                    if (exportState is ExportState.LoadingAudio) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
+                    }
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.notation_play_original))
                 }
             }
+            if (exportState is ExportState.Error) {
+                Text(
+                    exportState.message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
+    }
+}
+
+private fun instrumentTypeLabel(instrumentType: String): String {
+    return when (KoraInstrumentType.fromString(instrumentType)) {
+        KoraInstrumentType.KORA_21 -> "21-string kora"
+        KoraInstrumentType.KORA_22_CHROMATIC -> "22-string chromatic kora"
     }
 }
 
@@ -384,9 +458,10 @@ private fun KoraDiagramCard(
     labelColor: Color = Color.Unspecified,
     mutedColor: Color = Color.Unspecified,
 ) {
-    val isChromatic = instrumentType == "KORA_22"
-    val leftCount = 11
-    val rightCount = if (isChromatic) 11 else 10
+    val instrument = KoraInstrumentType.fromString(instrumentType)
+    val isChromatic = instrument == KoraInstrumentType.KORA_22_CHROMATIC
+    val leftCount = instrument.leftCount
+    val rightCount = instrument.rightCount
     val primary = MaterialTheme.colorScheme.primary
     val surface = Color(0xFF2A2A2A)   // dark gourd fill on black bg
 
@@ -394,39 +469,55 @@ private fun KoraDiagramCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.notation_diagram_title), style = MaterialTheme.typography.titleMedium, color = labelColor)
             Text(
-                if (isChromatic) "22-string chromatic" else "21-string",
+                stringResource(
+                    if (isChromatic) R.string.notation_diagram_subtitle_22 else R.string.notation_diagram_subtitle_21,
+                    leftCount,
+                    rightCount
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = mutedColor
             )
-            Canvas(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
             ) {
-                val w = size.width
-                val h = size.height
-                val bridgeY = h * 0.5f
-                val gourdR = h * 0.35f
+                Image(
+                    painter = painterResource(id = R.drawable.ic_kora_diagram_base),
+                    contentDescription = stringResource(R.string.notation_diagram_title),
+                    modifier = Modifier.fillMaxSize()
+                )
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val w = size.width
+                    val h = size.height
+                    val bridgeY = h * 0.5f
+                    val gourdR = h * 0.35f
 
-                // Gourd outline
-                drawCircle(color = surface, radius = gourdR, center = Offset(w / 2f, bridgeY))
-                drawCircle(color = primary, radius = gourdR, center = Offset(w / 2f, bridgeY), style = Stroke(2f))
+                    drawCircle(color = surface.copy(alpha = 0.10f), radius = gourdR, center = Offset(w / 2f, bridgeY))
+                    drawCircle(color = primary, radius = gourdR, center = Offset(w / 2f, bridgeY), style = Stroke(2f))
+                    drawLine(primary, Offset(w * 0.3f, bridgeY), Offset(w * 0.7f, bridgeY), strokeWidth = 3f)
 
-                // Bridge line
-                drawLine(primary, Offset(w * 0.3f, bridgeY), Offset(w * 0.7f, bridgeY), strokeWidth = 3f)
+                    val leftSpacing = (w * 0.28f) / (leftCount + 1)
+                    for (i in 1..leftCount) {
+                        val x = w * 0.02f + leftSpacing * i
+                        drawLine(
+                            primary,
+                            Offset(x, 0f),
+                            Offset(w * 0.3f + leftSpacing * i * 0.1f, bridgeY),
+                            strokeWidth = 1.5f
+                        )
+                    }
 
-                // Left strings
-                val leftSpacing = (w * 0.28f) / (leftCount + 1)
-                for (i in 1..leftCount) {
-                    val x = w * 0.02f + leftSpacing * i
-                    drawLine(primary, Offset(x, 0f), Offset(w * 0.3f + leftSpacing * i * 0.1f, bridgeY), strokeWidth = 1.5f)
-                }
-
-                // Right strings
-                val rightSpacing = (w * 0.28f) / (rightCount + 1)
-                for (i in 1..rightCount) {
-                    val x = w * 0.72f + rightSpacing * i
-                    drawLine(primary, Offset(x, 0f), Offset(w * 0.7f + rightSpacing * i * 0.1f, bridgeY), strokeWidth = 1.5f)
+                    val rightSpacing = (w * 0.28f) / (rightCount + 1)
+                    for (i in 1..rightCount) {
+                        val x = w * 0.72f + rightSpacing * i
+                        drawLine(
+                            primary,
+                            Offset(x, 0f),
+                            Offset(w * 0.7f + rightSpacing * i * 0.1f, bridgeY),
+                            strokeWidth = 1.5f
+                        )
+                    }
                 }
             }
         }

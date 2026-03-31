@@ -1,0 +1,204 @@
+Kora Tuning Companion
+Final Consolidated Specification
+Date: 2026-03-02
+
+Purpose
+This document consolidates the final accepted product, UX, visual, security,
+release, and collaboration requirements from the iterative prompt/correction
+history. When earlier requests conflict with later corrections, the latest
+correction wins.
+
+Latest-Wins Rules
+1. The bridge must use the final corrected single logo-style form, not the
+   earlier multi-part realistic bridge assembly.
+2. Tuning color must stay visibly present even when idle, but active lights,
+   marker, and live tuning indicators should only appear while tuning is active.
+3. The final state of the app is defined by the corrected behavior, not by
+   intermediate experiments.
+
+Product Scope
+1. Android app for 21-string and 22-string kora players.
+2. Main goals:
+   - configure the instrument profile,
+   - analyze scales and playable notes,
+   - show interactive kora diagrams,
+   - support guided and live tuning,
+   - support chords and exercises,
+   - provide reference tone and metronome utilities.
+3. Main navigation areas:
+   - Instrument
+   - Scale
+   - Overview
+   - Tuner
+   - Presets
+
+Instrument Configuration Requirements
+1. The Instrument tab must support 21-string and 22-string profiles.
+2. It must support levered/chromatic and peg-tuning/non-chromatic modes.
+3. The lower tuning-assistant section must be visually stronger and easier to
+   notice than a generic low-contrast form block.
+4. The third scrolling area on the first tab must remain clearly visible and
+   readable, especially the horizontal string-selection area(s).
+5. The tuning-assistant color strip must always be visible even before live
+   tuning begins.
+6. The active marker and live tuning lights on this page must appear only after
+   tuning/listening starts.
+7. Flat, in-tune, and sharp states must follow the final color language:
+   - Flat: light blue
+   - In tune: green
+   - Sharp: red
+8. The tuning-assistant should read like a simple instrument tuner at a glance,
+   but the final corrected behavior is:
+   - persistent background gradient strip when idle,
+   - active marker only while tuning is live,
+   - active state text emphasis only while tuning is live.
+
+Live Tuner Requirements
+1. The Live Tuner page must use the same flat -> in tune -> sharp gradient logic
+   as the Instrument tuning assistant.
+2. The gradient strip must remain visibly present on the page even when the
+   tuner is idle.
+3. Blue/green/red state lights for Flat / In Tune / Sharp must be shown on the
+   Live Tuner page.
+4. The lights and active dial/marker behavior must appear only when tuning is
+   active, not when idle.
+5. During active tuning, the strip should visually read as belonging to the
+   current tuning state rather than looking passive or disconnected.
+6. Live nearest-target feedback must remain easy to read:
+   - target string
+   - target pitch and frequency
+   - intonation
+   - cents deviation
+   - lever state where relevant
+   - peg retune instruction where relevant
+
+Overview and Diagram Requirements
+1. The interactive kora body renderer must be shared so changes apply
+   consistently across the main kora image views.
+2. The chord/diagram marker shape must use red circles instead of X markers.
+3. Red markers must be visually clear against strings and body surfaces.
+4. The chord markers should include enough contrast/halo/outline to remain
+   readable on mobile screens.
+5. The bridge must use the final corrected form:
+   - one bridge only,
+   - centered,
+   - simple logo-style silhouette,
+   - single horizontal bar,
+   - single central upright stem,
+   - no second bridge read caused by perspective, cap, or arm assembly.
+6. The bridge should feel consistent with the logo/diagram visual language,
+   not like a separate photo-real component pasted into the drawing.
+7. Both kora images that use the shared renderer must display the same final
+   bridge design.
+
+Bridge Reference Outcome
+1. Earlier attempts to create a more realistic bridge from photo/sketch
+   references were superseded by the later correction.
+2. Final accepted bridge direction:
+   - smaller and cleaner,
+   - only one visible bridge,
+   - logo-style geometry,
+   - no duplicate bridge impression,
+   - no extended cap or second block that reads as another bridge.
+
+Kora Visual Requirements
+1. The kora visual should remain intentionally stylized rather than becoming a
+   mismatched semi-realistic collage.
+2. Strings must remain visually readable against the instrument body.
+3. The layout should continue to support touch interaction without cluttering
+   the string paths.
+
+Metronome Requirements
+1. The metronome must be louder than the original baseline.
+2. The metronome must provide a volume slider.
+3. Final volume behavior:
+   - adjustable range approximately 30 percent to 180 percent,
+   - safe clamping,
+   - default louder-than-baseline behavior.
+4. The metronome should remain usable inside the Overview workflow without
+   requiring a separate setup screen.
+
+About and Privacy Requirements
+1. The About section must not use a broken or missing privacy link.
+2. Privacy Policy must open the GitHub-hosted privacy document.
+3. The privacy URL must be stored as a string resource rather than hardcoded in
+   the screen logic.
+
+Release and Security Requirements
+1. Release builds must use code shrinking and minification.
+2. Release builds must use resource shrinking.
+3. Release builds must not be debuggable.
+4. Release builds must not be JNI-debuggable.
+5. Cleartext traffic must be disabled.
+6. App backups must be disabled.
+7. A network security config must be present and must trust system CAs only.
+8. The exported Android component surface must stay minimal. The launcher
+   activity is acceptable; unnecessary exported components are not.
+9. No embedded WebView/JS bridge attack surface should be introduced without a
+   deliberate reviewed requirement.
+10. Release artifacts must include:
+    - App Bundle (AAB)
+    - ProGuard/R8 mapping file for ReTrace
+    - native debug symbols zip when available for Play upload
+
+Play Console and Release Packaging Requirements
+1. Internal testing is the default publish track.
+2. Draft release status is acceptable for current Play workflow.
+3. A valid service account JSON must be used for Play publishing.
+4. A valid release signing configuration must be loaded from local signing
+   secrets, not committed to repo history.
+5. A ReTrace-compatible mapping file must be produced for each release build.
+6. Native symbol upload should be attempted in the same Play edit as bundle
+   upload when Play warning remediation is needed.
+7. If Play shows "Supports 16 KB", that is treated as acceptable support status,
+   not a release blocker.
+
+Known Native Library Context
+1. The final bundle may still contain native libraries from upstream AndroidX
+   dependencies rather than from project-owned NDK code.
+2. The app itself does not define project JNI/CMake/NDK modules.
+3. If Play continues to show advisory native warnings after symbol upload, the
+   warning may be dependency-originated rather than caused by app code.
+
+Dependency Direction
+1. DataStore remains on the stable 1.2.0 line unless a later stable version is
+   explicitly adopted and validated.
+2. Compose BOM should track the newer validated stable BOM used in this repo.
+3. Dependency updates must remain conservative and build-verified.
+
+Collaboration Workflow Requirements
+1. Claude and Codex must work together with explicit ownership.
+2. Claude owns the visual specification for:
+   - tuning slide / tuning strip behavior,
+   - bridge image direction and final visual intent.
+3. Codex owns:
+   - code implementation,
+   - build/test/install,
+   - device verification,
+   - Play publishing,
+   - concrete artifact generation.
+4. Claude should not be bypassed for those visual ownership areas.
+5. Codex should not independently invent conflicting visual directions for those
+   same owned surfaces.
+
+Artifacts Required by This Final Spec
+1. ReTrace mapping artifact for the latest release build.
+2. Consolidated final specification text file.
+3. Release bundle artifact.
+4. Native symbol zip artifact when available.
+
+Acceptance Checklist
+1. Privacy link opens correctly.
+2. Chord markers use red circles, not X markers.
+3. Instrument tuning strip stays visible while idle.
+4. Instrument live marker/lights only show while tuning is active.
+5. Live Tuner uses the same gradient language.
+6. Live Tuner lights are visible only during active tuning.
+7. Bridge shows as one single centered logo-style bridge.
+8. No duplicate bridge impression remains.
+9. Metronome volume slider exists and louder baseline is retained.
+10. Release build is minified, shrinked, and non-debuggable.
+11. Mapping file exists for ReTrace.
+12. Play internal-testing publish flow is operational.
+
+End of Specification

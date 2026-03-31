@@ -3,7 +3,10 @@ package com.leokinder2k.koratuningcompanion.notation.engine
 import android.util.Base64
 import org.json.JSONArray
 import org.json.JSONObject
-import java.time.Instant
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 /**
  * Native Kotlin replacement for KoraEngineBridge + JS kora_engine.
@@ -66,6 +69,43 @@ class KoraNativeEngine {
 
     // ── Score serialisation ───────────────────────────────────────────────────
 
+    suspend fun exportAudio(paramsJson: String): String {
+        val p = JSONObject(paramsJson)
+        val instrumentType = KoraInstrumentType.fromString(p.optString("instrumentType", "KORA_21"))
+        val tuningMidi = tuningToMidi(fTuning(instrumentType))
+        val score = scoreFromJson(p.optJSONObject("score"), tuningMidi.values.toSet())
+        val mappedEvents = mapSimplifiedScoreToKora(instrumentType, tuningMidi, score).events
+        val wavKora = exportKoraPerformanceToWavBytes(score, mappedEvents)
+        val wavSimpl = exportSimplifiedScoreToWavBytes(score)
+        return JSONObject().apply {
+            put("koraAudioBase64", Base64.encodeToString(wavKora, Base64.NO_WRAP))
+            put("simplifiedAudioBase64", Base64.encodeToString(wavSimpl, Base64.NO_WRAP))
+        }.toString()
+    }
+
+    suspend fun exportPdf(paramsJson: String): String {
+        val p = JSONObject(paramsJson)
+        val instrumentType = KoraInstrumentType.fromString(p.optString("instrumentType", "KORA_21"))
+        val title = p.optString("title", "Untitled")
+        val difficulty = p.optDouble("difficulty", 0.0)
+        val tuning = fTuning(instrumentType)
+        val tuningMidi = tuningToMidi(tuning)
+        val score = scoreFromJson(p.optJSONObject("score"), tuningMidi.values.toSet())
+        val mappingResult = mapSimplifiedScoreToKora(instrumentType, tuningMidi, score)
+        val pdfBytes = exportLessonToPdfBytes(
+            score, mappingResult.events, mappingResult.retunePlan,
+            PdfExportMeta(
+                pieceName = title,
+                tuningName = tuning.name,
+                exportedAtIso = currentIsoTimestamp(),
+                difficulty = difficulty,
+            )
+        )
+        return JSONObject().apply {
+            put("pdfBase64", Base64.encodeToString(pdfBytes, Base64.NO_WRAP))
+        }.toString()
+    }
+
     private fun buildResultJson(
         score: SimplifiedScore,
         instrumentType: KoraInstrumentType,
@@ -78,26 +118,13 @@ class KoraNativeEngine {
         val retunePlan = mappingResult.retunePlan
         val mappedEvents = mappingResult.events
 
-        val pdfBytes = exportLessonToPdfBytes(
-            score, mappedEvents, retunePlan,
-            PdfExportMeta(
-                pieceName = title,
-                tuningName = tuning.name,
-                exportedAtIso = Instant.now().toString(),
-                difficulty = estimateDifficulty(mappedEvents),
-            )
-        )
-        val wavKora = exportKoraPerformanceToWavBytes(score, mappedEvents)
-        val wavSimpl = exportSimplifiedScoreToWavBytes(score)
+        // WAV and PDF are generated on demand via exportAudio / exportPdf to avoid
+        // OOM crashes on tablets when processing long pieces.
         val midiKora = exportKoraPerformanceToMidiBytes(score, mappedEvents)
         val midiSimpl = exportSimplifiedScoreToMidiBytes(score)
-
         val difficulty = estimateDifficulty(mappedEvents)
 
         return JSONObject().apply {
-            put("pdfBase64", Base64.encodeToString(pdfBytes, Base64.NO_WRAP))
-            put("koraAudioBase64", Base64.encodeToString(wavKora, Base64.NO_WRAP))
-            put("simplifiedAudioBase64", Base64.encodeToString(wavSimpl, Base64.NO_WRAP))
             put("koraMidiBase64", Base64.encodeToString(midiKora, Base64.NO_WRAP))
             put("simplifiedMidiBase64", Base64.encodeToString(midiSimpl, Base64.NO_WRAP))
             put("ppq", score.ppq)
@@ -113,6 +140,12 @@ class KoraNativeEngine {
                 put("tuningName", tuning.name)
             })
         }.toString()
+    }
+
+    private fun currentIsoTimestamp(): String {
+        return SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }.format(Date())
     }
 
     // ── Difficulty estimate ───────────────────────────────────────────────────

@@ -19,9 +19,6 @@ import java.util.zip.ZipInputStream
 import android.util.Base64
 
 data class NotationResult(
-    val pdfBase64: String,
-    val koraAudioBase64: String,
-    val simplifiedAudioBase64: String,
     val koraMidiBase64: String,
     val simplifiedMidiBase64: String,
     val title: String,
@@ -43,6 +40,15 @@ sealed class NotationUiState {
     data class Error(val message: String) : NotationUiState()
 }
 
+sealed class ExportState {
+    object Idle : ExportState()
+    object LoadingAudio : ExportState()
+    object LoadingPdf : ExportState()
+    data class AudioReady(val koraBase64: String, val simplifiedBase64: String) : ExportState()
+    data class PdfReady(val pdfBase64: String) : ExportState()
+    data class Error(val message: String) : ExportState()
+}
+
 class KoraNotationViewModel(
     private val appContext: Context,
     val bridge: KoraEngineBridge,
@@ -51,10 +57,14 @@ class KoraNotationViewModel(
     private val _uiState = MutableStateFlow<NotationUiState>(NotationUiState.Idle)
     val uiState: StateFlow<NotationUiState> = _uiState.asStateFlow()
 
+    private val _exportState = MutableStateFlow<ExportState>(ExportState.Idle)
+    val exportState: StateFlow<ExportState> = _exportState.asStateFlow()
+
     private var currentScore: String? = null
     private var currentInstrumentType: String = "KORA_21"
     private var currentTitle: String = "Untitled"
     private var currentSourceKind: String = "MUSICXML"
+    private var currentDifficulty: Double = 0.0
 
     fun processFile(context: Context, uri: Uri, instrumentType: String) {
         viewModelScope.launch {
@@ -96,6 +106,8 @@ class KoraNotationViewModel(
                 currentInstrumentType = result.instrumentType
                 currentTitle = result.title
                 currentSourceKind = result.sourceKind
+                currentDifficulty = result.difficulty
+                _exportState.value = ExportState.Idle
                 _uiState.value = NotationUiState.Success(result)
             } catch (e: Exception) {
                 _uiState.value = NotationUiState.Error(e.message ?: "Unknown error")
@@ -123,6 +135,8 @@ class KoraNotationViewModel(
                 currentInstrumentType = result.instrumentType
                 currentTitle = result.title
                 currentSourceKind = result.sourceKind
+                currentDifficulty = result.difficulty
+                _exportState.value = ExportState.Idle
                 _uiState.value = NotationUiState.Success(result)
             } catch (e: Exception) {
                 _uiState.value = NotationUiState.Error(e.message ?: "Edit failed")
@@ -130,13 +144,49 @@ class KoraNotationViewModel(
         }
     }
 
+    fun requestAudioExport() {
+        val score = currentScore ?: return
+        viewModelScope.launch {
+            _exportState.value = ExportState.LoadingAudio
+            try {
+                val paramsJson = """{"score":$score,"instrumentType":"$currentInstrumentType"}"""
+                val resultJson = bridge.exportAudio(paramsJson)
+                val obj = JSONObject(resultJson)
+                _exportState.value = ExportState.AudioReady(
+                    koraBase64 = obj.optString("koraAudioBase64"),
+                    simplifiedBase64 = obj.optString("simplifiedAudioBase64"),
+                )
+            } catch (e: Exception) {
+                _exportState.value = ExportState.Error(e.message ?: "Audio export failed")
+            }
+        }
+    }
+
+    fun requestPdfExport() {
+        val score = currentScore ?: return
+        viewModelScope.launch {
+            _exportState.value = ExportState.LoadingPdf
+            try {
+                val paramsJson = """{"score":$score,"instrumentType":"$currentInstrumentType","title":"${currentTitle.replace("\"","'")}","difficulty":$currentDifficulty}"""
+                val resultJson = bridge.exportPdf(paramsJson)
+                val obj = JSONObject(resultJson)
+                _exportState.value = ExportState.PdfReady(
+                    pdfBase64 = obj.optString("pdfBase64"),
+                )
+            } catch (e: Exception) {
+                _exportState.value = ExportState.Error(e.message ?: "PDF export failed")
+            }
+        }
+    }
+
+    fun clearExportState() {
+        _exportState.value = ExportState.Idle
+    }
+
     private fun parseResult(json: String): NotationResult {
         val obj = JSONObject(json)
         val meta = obj.optJSONObject("metadata") ?: JSONObject()
         return NotationResult(
-            pdfBase64 = obj.optString("pdfBase64"),
-            koraAudioBase64 = obj.optString("koraAudioBase64"),
-            simplifiedAudioBase64 = obj.optString("simplifiedAudioBase64"),
             koraMidiBase64 = obj.optString("koraMidiBase64"),
             simplifiedMidiBase64 = obj.optString("simplifiedMidiBase64"),
             title = meta.optString("title", "Untitled"),

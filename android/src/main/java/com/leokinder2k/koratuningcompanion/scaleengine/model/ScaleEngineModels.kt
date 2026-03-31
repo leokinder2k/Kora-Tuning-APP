@@ -91,7 +91,9 @@ data class LeverOnlyStringResult(
     val selectedLeverState: LeverState?,
     val selectedPitch: Pitch?,
     val pegRetuneRequired: Boolean,
-    val selectedIntonationCents: Double = 0.0
+    val selectedIntonationCents: Double = 0.0,
+    /** True when the selected lever state differs from the player's home/starting position. */
+    val leverChangeFromHome: Boolean = false
 )
 
 data class PegCorrectStringResult(
@@ -110,7 +112,9 @@ data class PegCorrectStringResult(
      * Signed semitones from the physical home/base tuning to the required peg position.
      * Positive = tune up from home, negative = tune down, zero = peg stays at home.
      */
-    val fromBaseSemitones: Int = 0
+    val fromBaseSemitones: Int = 0,
+    /** True when the selected lever state differs from the player's home/starting position. */
+    val leverChangeFromHome: Boolean = false
 )
 
 data class VoicingConflict(

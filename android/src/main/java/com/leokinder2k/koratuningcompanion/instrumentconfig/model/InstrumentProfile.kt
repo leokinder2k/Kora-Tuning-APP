@@ -7,6 +7,14 @@ enum class KoraTuningMode {
     PEG_TUNING
 }
 
+/**
+ * The lever state the player starts from at the beginning of a piece.
+ * OPEN  = all levers up   -> instrument sounds in its flat/natural key.
+ * CLOSED = all levers down -> instrument sounds in its sharp key (+1 semitone per string).
+ * Only meaningful for [KoraTuningMode.LEVERED] instruments.
+ */
+enum class HomeLeverPosition { OPEN, CLOSED }
+
 data class StringTuning(
     val stringNumber: Int,
     val openPitch: Pitch,
@@ -27,11 +35,16 @@ data class InstrumentProfile(
      * Retune plans show peg adjustments relative to these pitches.
      * Defaults to [openPitches] when not set (backwards compatible).
      */
-    val basePitches: List<Pitch> = openPitches
+    val basePitches: List<Pitch> = openPitches,
+    /**
+     * The lever position the player starts from at the beginning of a piece.
+     * Only meaningful for [KoraTuningMode.LEVERED] instruments.
+     */
+    val homeLeverPosition: HomeLeverPosition = HomeLeverPosition.OPEN
 ) {
     init {
         require(stringCount in SUPPORTED_STRING_COUNTS) {
-            "Supported string counts are 21 and 22."
+            "Supported string counts are 19, 21, and 22."
         }
         require(openPitches.size == stringCount) {
             "Open tuning count must match selected string count."

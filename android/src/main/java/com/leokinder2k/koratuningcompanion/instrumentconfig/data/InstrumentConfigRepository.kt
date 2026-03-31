@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.HomeLeverPosition
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.InstrumentProfile
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
@@ -63,6 +64,10 @@ class DataStoreInstrumentConfigRepository private constructor(
             ?.takeIf { it.size == stringCount }
             ?: parsedPitches
 
+        val homeLeverPosition = preferences[HOME_LEVER_POSITION_KEY]
+            ?.let { raw -> runCatching { HomeLeverPosition.valueOf(raw) }.getOrNull() }
+            ?: HomeLeverPosition.OPEN
+
         InstrumentProfile(
             stringCount = stringCount,
             tuningMode = tuningMode,
@@ -70,7 +75,8 @@ class DataStoreInstrumentConfigRepository private constructor(
             openIntonationCents = openIntonation,
             closedIntonationCents = closedIntonation,
             rootNote = rootNote,
-            basePitches = basePitches
+            basePitches = basePitches,
+            homeLeverPosition = homeLeverPosition
         )
     }
 
@@ -95,6 +101,7 @@ class DataStoreInstrumentConfigRepository private constructor(
             preferences[BASE_TUNING_KEY] = profile.basePitches.joinToString(PITCH_DELIMITER) { pitch ->
                 pitch.asText()
             }
+            preferences[HOME_LEVER_POSITION_KEY] = profile.homeLeverPosition.name
         }
     }
 
@@ -139,6 +146,7 @@ class DataStoreInstrumentConfigRepository private constructor(
         private val OPEN_INTONATION_CENTS_KEY = stringPreferencesKey("instrument_open_intonation_cents")
         private val CLOSED_INTONATION_CENTS_KEY = stringPreferencesKey("instrument_closed_intonation_cents")
         private val BASE_TUNING_KEY = stringPreferencesKey("instrument_base_tuning")
+        private val HOME_LEVER_POSITION_KEY = stringPreferencesKey("instrument_home_lever_position")
         private val USER_PRESETS_KEY = stringPreferencesKey("instrument_user_presets")
 
         private fun parseCentsList(serialized: String?, stringCount: Int): List<Double> {
@@ -177,7 +185,7 @@ class DataStoreInstrumentConfigRepository private constructor(
 
         private fun parseUserPresetRecord(record: String): UserPreset? {
             val fields = record.split(PRESET_FIELD_DELIMITER)
-            if (fields.size !in setOf(7, 8)) {
+            if (fields.size !in setOf(7, 8, 9)) {
                 return null
             }
 
@@ -222,6 +230,14 @@ class DataStoreInstrumentConfigRepository private constructor(
                 KoraTuningMode.LEVERED
             }
 
+            val homeLeverPosition = if (fields.size >= 9) {
+                decodeField(fields[8])
+                    ?.let { raw -> runCatching { HomeLeverPosition.valueOf(raw) }.getOrNull() }
+                    ?: HomeLeverPosition.OPEN
+            } else {
+                HomeLeverPosition.OPEN
+            }
+
             return UserPreset(
                 id = id,
                 displayName = displayName,
@@ -231,7 +247,8 @@ class DataStoreInstrumentConfigRepository private constructor(
                     tuningMode = tuningMode,
                     openPitches = openPitches,
                     openIntonationCents = openIntonation,
-                    closedIntonationCents = closedIntonation
+                    closedIntonationCents = closedIntonation,
+                    homeLeverPosition = homeLeverPosition
                 )
             )
         }
@@ -249,7 +266,8 @@ class DataStoreInstrumentConfigRepository private constructor(
                     encodeField(preset.profile.openPitches.joinToString(PITCH_DELIMITER) { pitch -> pitch.asText() }),
                     encodeField(preset.profile.openIntonationCents.joinToString(PITCH_DELIMITER) { cents -> cents.toString() }),
                     encodeField(preset.profile.closedIntonationCents.joinToString(PITCH_DELIMITER) { cents -> cents.toString() }),
-                    encodeField(preset.profile.tuningMode.name)
+                    encodeField(preset.profile.tuningMode.name),
+                    encodeField(preset.profile.homeLeverPosition.name)
                 ).joinToString(PRESET_FIELD_DELIMITER)
             }
         }

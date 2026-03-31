@@ -72,6 +72,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.R
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.HomeLeverPosition
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringLayout
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
@@ -110,6 +111,7 @@ fun InstrumentConfigurationRoute(
         tunerUiState = tunerUiState,
         onStringCountSelected = configViewModel::onStringCountSelected,
         onTuningModeSelected = configViewModel::onTuningModeSelected,
+        onHomeLeverPositionSelected = configViewModel::onHomeLeverPositionSelected,
         onRootNoteSelected = configViewModel::onRootNoteSelected,
         onOpenPitchChanged = configViewModel::onOpenPitchChanged,
         onOpenIntonationChanged = configViewModel::onOpenIntonationChanged,
@@ -136,6 +138,7 @@ fun InstrumentConfigurationScreen(
     tunerUiState: LiveTunerUiState,
     onStringCountSelected: (Int) -> Unit,
     onTuningModeSelected: (KoraTuningMode) -> Unit,
+    onHomeLeverPositionSelected: (HomeLeverPosition) -> Unit,
     onRootNoteSelected: (NoteName) -> Unit,
     onOpenPitchChanged: (rowIndex: Int, value: String) -> Unit,
     onOpenIntonationChanged: (rowIndex: Int, value: String) -> Unit,
@@ -1132,7 +1135,8 @@ private fun InstrumentConfigurationScreenPreview() {
                 statusMessage = null,
                 rootNote = NoteName.F,
                 basePitchInputs = listOf("E3", "F#3", "Q9"),
-                basePitchErrors = listOf(null, null, "Use format like E3 or F#4.")
+                basePitchErrors = listOf(null, null, "Use format like E3 or F#4."),
+                homeLeverPosition = HomeLeverPosition.OPEN
             ),
             tunerUiState = LiveTunerUiState(
                 hasAudioPermission = false,
@@ -1145,6 +1149,7 @@ private fun InstrumentConfigurationScreenPreview() {
             ),
             onStringCountSelected = {},
             onTuningModeSelected = {},
+            onHomeLeverPositionSelected = {},
             onOpenPitchChanged = { _, _ -> },
             onOpenIntonationChanged = { _, _ -> },
             onClosedIntonationChanged = { _, _ -> },

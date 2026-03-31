@@ -23,9 +23,6 @@ import android.util.Base64
 import kotlin.math.pow
 
 data class NotationResult(
-    val pdfBase64: String,
-    val koraAudioBase64: String,
-    val simplifiedAudioBase64: String,
     val koraMidiBase64: String,
     val simplifiedMidiBase64: String,
     val title: String,
@@ -49,6 +46,15 @@ sealed class NotationUiState {
     data class Error(val message: String) : NotationUiState()
 }
 
+sealed class ExportState {
+    object Idle : ExportState()
+    object LoadingAudio : ExportState()
+    object LoadingPdf : ExportState()
+    data class AudioReady(val koraBase64: String, val simplifiedBase64: String) : ExportState()
+    data class PdfReady(val pdfBase64: String) : ExportState()
+    data class Error(val message: String) : ExportState()
+}
+
 class KoraNotationViewModel(
     private val appContext: Context,
     private val engine: KoraNativeEngine = KoraNativeEngine(),
@@ -56,6 +62,9 @@ class KoraNotationViewModel(
 
     private val _uiState = MutableStateFlow<NotationUiState>(NotationUiState.Idle)
     val uiState: StateFlow<NotationUiState> = _uiState.asStateFlow()
+
+    private val _exportState = MutableStateFlow<ExportState>(ExportState.Idle)
+    val exportState: StateFlow<ExportState> = _exportState.asStateFlow()
 
     private val _transposeOffset = MutableStateFlow(0)
     val transposeOffset: StateFlow<Int> = _transposeOffset.asStateFlow()
@@ -67,10 +76,12 @@ class KoraNotationViewModel(
     val originalKeyMode: StateFlow<String> = _originalKeyMode.asStateFlow()
 
     private var currentScore: String? = null
-    private var currentKoraAudioBase64: String = ""
     private var currentInstrumentType: String = "KORA_21"
     private var currentTitle: String = "Untitled"
     private var currentSourceKind: String = "MUSICXML"
+    private var currentDifficulty: Double = 0.0
+    // Populated lazily when audio is first generated; used for pitch preview.
+    private var currentKoraAudioBase64: String = ""
 
     private var previewPlayer: MediaPlayer? = null
 
@@ -170,10 +181,12 @@ class KoraNotationViewModel(
                 currentInstrumentType = result.instrumentType
                 currentTitle = result.title
                 currentSourceKind = result.sourceKind
-                currentKoraAudioBase64 = result.koraAudioBase64
+                currentDifficulty = result.difficulty
+                currentKoraAudioBase64 = ""
                 _transposeOffset.value = 0
                 _originalKeyFifths.value = result.keyFifths
                 _originalKeyMode.value = result.keyMode
+                _exportState.value = ExportState.Idle
                 _uiState.value = NotationUiState.Success(result)
             } catch (e: Exception) {
                 _uiState.value = NotationUiState.Error(e.message ?: "Unknown error")
@@ -208,14 +221,63 @@ class KoraNotationViewModel(
                 currentInstrumentType = result.instrumentType
                 currentTitle = result.title
                 currentSourceKind = result.sourceKind
-                currentKoraAudioBase64 = result.koraAudioBase64
+                currentDifficulty = result.difficulty
+                currentKoraAudioBase64 = ""
                 // Update offset only when the edit actually succeeded
                 _transposeOffset.value += transposeChange
+                _exportState.value = ExportState.Idle
                 _uiState.value = NotationUiState.Success(result)
             } catch (e: Exception) {
                 _uiState.value = NotationUiState.Error(e.message ?: "Edit failed")
             }
         }
+    }
+
+    fun requestAudioExport() {
+        val score = currentScore ?: return
+        viewModelScope.launch {
+            _exportState.value = ExportState.LoadingAudio
+            try {
+                val paramsJson = JSONObject().apply {
+                    put("score", JSONObject(score))
+                    put("instrumentType", currentInstrumentType)
+                }.toString()
+                val resultJson = withContext(Dispatchers.Default) { engine.exportAudio(paramsJson) }
+                val obj = JSONObject(resultJson)
+                val koraB64 = obj.optString("koraAudioBase64")
+                currentKoraAudioBase64 = koraB64
+                _exportState.value = ExportState.AudioReady(
+                    koraBase64 = koraB64,
+                    simplifiedBase64 = obj.optString("simplifiedAudioBase64"),
+                )
+            } catch (e: Exception) {
+                _exportState.value = ExportState.Error(e.message ?: "Audio export failed")
+            }
+        }
+    }
+
+    fun requestPdfExport() {
+        val score = currentScore ?: return
+        viewModelScope.launch {
+            _exportState.value = ExportState.LoadingPdf
+            try {
+                val paramsJson = JSONObject().apply {
+                    put("score", JSONObject(score))
+                    put("instrumentType", currentInstrumentType)
+                    put("title", currentTitle)
+                    put("difficulty", currentDifficulty)
+                }.toString()
+                val resultJson = withContext(Dispatchers.Default) { engine.exportPdf(paramsJson) }
+                val obj = JSONObject(resultJson)
+                _exportState.value = ExportState.PdfReady(pdfBase64 = obj.optString("pdfBase64"))
+            } catch (e: Exception) {
+                _exportState.value = ExportState.Error(e.message ?: "PDF export failed")
+            }
+        }
+    }
+
+    fun clearExportState() {
+        _exportState.value = ExportState.Idle
     }
 
     private fun parseResult(json: String): NotationResult {
@@ -224,9 +286,6 @@ class KoraNotationViewModel(
         val scoreObj = obj.optJSONObject("score")
         val firstKs = scoreObj?.optJSONArray("keySignatures")?.optJSONObject(0)
         return NotationResult(
-            pdfBase64 = obj.optString("pdfBase64"),
-            koraAudioBase64 = obj.optString("koraAudioBase64"),
-            simplifiedAudioBase64 = obj.optString("simplifiedAudioBase64"),
             koraMidiBase64 = obj.optString("koraMidiBase64"),
             simplifiedMidiBase64 = obj.optString("simplifiedMidiBase64"),
             title = meta.optString("title", "Untitled"),

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+<script type="module">
+import {
+  InstrumentType,
+  fTuningNoteNames,
+  tuningNoteNamesToMidi,
+  importMusicXmlToSimplifiedScore,
+  importMidiToSimplifiedScore,
+  mapSimplifiedScoreToKora,
+  buildLayoutModel,
+  buildPlaybackSchedule,
+  exportKoraPerformanceToWavBytes,
+  exportSimplifiedScoreToWavBytes,
+  exportKoraPerformanceToMidiBytes,
+  exportSimplifiedScoreToMidiBytes,
+  exportLessonToPdfBytes,
+  generateRetunePlan,
+  createEditorState,
+  applyEditorEdit,
+  estimateDifficultyFromScore,
+  PlayMode,
+  RepeatsMode,
+  normalizeSimplifiedScore,
+} from './index.js';
+
+function base64ToUint8Array(b64) {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+
+function uint8ArrayToBase64(arr) {
+  let bin = '';
+  const chunk = 8192;
+  for (let i = 0; i < arr.length; i += chunk) {
+    bin += String.fromCharCode(...arr.subarray(i, Math.min(i + chunk, arr.length)));
+  }
+  return btoa(bin);
+}
+
+async function runProcess(paramsJson) {
+  const p = JSON.parse(paramsJson);
+  const instrumentType = p.instrumentType === 'KORA_22' ? InstrumentType.KORA_22_CHROMATIC : InstrumentType.KORA_21;
+  const tuning = tuningNoteNamesToMidi(fTuningNoteNames(instrumentType));
+  const tuningMidiByStringId = tuning.strings;
+
+  let score;
+  if (p.kind === 'midi') {
+    const bytes = base64ToUint8Array(p.dataBase64);
+    score = importMidiToSimplifiedScore({ midiBytes: bytes, instrumentType, tuningMidiByStringId });
+  } else {
+    // xmlText already extracted by Kotlin (handles both .xml and .mxl)
+    score = importMusicXmlToSimplifiedScore({ xmlText: p.xmlText, instrumentType, tuningMidiByStringId });
+  }
+
+  const { events: mappedEvents, retunePlan } = mapSimplifiedScoreToKora({
+    instrumentType, tuningMidiByStringId, score,
+  });
+
+  const layout = buildLayoutModel({ score, mappedEvents });
+
+  // MIDI files are small — include them eagerly.
+  // WAV and PDF are generated on demand via exportAudio / exportPdf to avoid
+  // crashing the WebView bridge with multi-MB result payloads on long pieces.
+  const midiKora = exportKoraPerformanceToMidiBytes({ score, mappedEvents });
+  const midiSimpl = exportSimplifiedScoreToMidiBytes({ score });
+
+  const difficulty = estimateDifficultyFromScore({ score });
+
+  return JSON.stringify({
+    koraMidiBase64: uint8ArrayToBase64(midiKora),
+    simplifiedMidiBase64: uint8ArrayToBase64(midiSimpl),
+    ppq: score.ppq,
+    tempoMap: score.tempoMap,
+    timeline: layout.timeline,
+    retunePlan,
+    score,
+    metadata: {
+      title: p.title || 'Untitled',
+      instrumentType: p.instrumentType,
+      sourceKind: p.kind === 'midi' ? 'MIDI' : 'MUSICXML',
+      difficulty: difficulty.score,
+      difficultyMetrics: difficulty.metrics,
+      tuningName: tuning.name,
+    },
+  });
+}
+
+async function runExportAudio(paramsJson) {
+  const p = JSON.parse(paramsJson);
+  const instrumentType = p.instrumentType === 'KORA_22' ? InstrumentType.KORA_22_CHROMATIC : InstrumentType.KORA_21;
+  const tuning = tuningNoteNamesToMidi(fTuningNoteNames(instrumentType));
+  const tuningMidiByStringId = tuning.strings;
+  const { events: mappedEvents } = mapSimplifiedScoreToKora({ instrumentType, tuningMidiByStringId, score: p.score });
+  const wavKora = exportKoraPerformanceToWavBytes({ score: p.score, mappedEvents });
+  const wavSimpl = exportSimplifiedScoreToWavBytes({ score: p.score });
+  return JSON.stringify({
+    koraAudioBase64: uint8ArrayToBase64(wavKora),
+    simplifiedAudioBase64: uint8ArrayToBase64(wavSimpl),
+  });
+}
+
+async function runExportPdf(paramsJson) {
+  const p = JSON.parse(paramsJson);
+  const instrumentType = p.instrumentType === 'KORA_22' ? InstrumentType.KORA_22_CHROMATIC : InstrumentType.KORA_21;
+  const tuning = tuningNoteNamesToMidi(fTuningNoteNames(instrumentType));
+  const tuningMidiByStringId = tuning.strings;
+  const { events: mappedEvents, retunePlan } = mapSimplifiedScoreToKora({ instrumentType, tuningMidiByStringId, score: p.score });
+  const pdfBytes = exportLessonToPdfBytes({
+    score: p.score,
+    mappedEvents,
+    retunePlan,
+    metadata: {
+      pieceName: p.title || 'Untitled',
+      tuningName: tuning.name,
+      exportedAtIso: new Date().toISOString(),
+      difficulty: p.difficulty || 0,
+    },
+  });
+  return JSON.stringify({ pdfBase64: uint8ArrayToBase64(pdfBytes) });
+}
+
+async function runEdit(paramsJson) {
+  const p = JSON.parse(paramsJson);
+  const instrumentType = p.instrumentType === 'KORA_22' ? InstrumentType.KORA_22_CHROMATIC : InstrumentType.KORA_21;
+  const tuning = tuningNoteNamesToMidi(fTuningNoteNames(instrumentType));
+  const tuningMidiByStringId = tuning.strings;
+
+  let state = createEditorState({ score: p.score });
+  const { state: newState, warnings } = applyEditorEdit({ state, edit: p.edit });
+  const score = newState.score;
+
+  const { events: mappedEvents, retunePlan } = mapSimplifiedScoreToKora({
+    instrumentType, tuningMidiByStringId, score,
+  });
+
+  const layout = buildLayoutModel({ score, mappedEvents });
+  const midiKora = exportKoraPerformanceToMidiBytes({ score, mappedEvents });
+  const midiSimpl = exportSimplifiedScoreToMidiBytes({ score });
+  const difficulty = estimateDifficultyFromScore({ score });
+
+  return JSON.stringify({
+    koraMidiBase64: uint8ArrayToBase64(midiKora),
+    simplifiedMidiBase64: uint8ArrayToBase64(midiSimpl),
+    ppq: score.ppq,
+    tempoMap: score.tempoMap,
+    timeline: layout.timeline,
+    retunePlan,
+    score,
+    warnings: warnings || [],
+    metadata: {
+      title: p.title || 'Untitled',
+      instrumentType: p.instrumentType,
+      sourceKind: p.sourceKind || 'EDIT',
+      difficulty: difficulty.score,
+      difficultyMetrics: difficulty.metrics,
+      tuningName: tuning.name,
+    },
+  });
+}
+
+window._koraEngine = {
+  process: async (paramsJson, callbackId) => {
+    try {
+      const result = await runProcess(paramsJson);
+      AndroidBridge.onResult(callbackId, result, null);
+    } catch (e) {
+      AndroidBridge.onResult(callbackId, null, String(e));
+    }
+  },
+  edit: async (paramsJson, callbackId) => {
+    try {
+      const result = await runEdit(paramsJson);
+      AndroidBridge.onResult(callbackId, result, null);
+    } catch (e) {
+      AndroidBridge.onResult(callbackId, null, String(e));
+    }
+  },
+  exportAudio: async (paramsJson, callbackId) => {
+    try {
+      const result = await runExportAudio(paramsJson);
+      AndroidBridge.onResult(callbackId, result, null);
+    } catch (e) {
+      AndroidBridge.onResult(callbackId, null, String(e));
+    }
+  },
+  exportPdf: async (paramsJson, callbackId) => {
+    try {
+      const result = await runExportPdf(paramsJson);
+      AndroidBridge.onResult(callbackId, result, null);
+    } catch (e) {
+      AndroidBridge.onResult(callbackId, null, String(e));
+    }
+  },
+};
+
+AndroidBridge.onReady();
+</script>
+</body>
+</html>

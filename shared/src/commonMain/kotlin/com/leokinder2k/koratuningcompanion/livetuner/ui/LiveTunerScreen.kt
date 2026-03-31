@@ -229,6 +229,7 @@ fun LiveTunerScreen(
             Text(text = scaleUiState.profileStatus, style = MaterialTheme.typography.bodyMedium)
 
             SelectionControls(
+                instrumentKey = scaleUiState.instrumentKey,
                 rootNote = scaleUiState.rootNote,
                 scaleType = scaleUiState.scaleType,
                 onScaleTypeSelected = onScaleTypeSelected
@@ -697,11 +698,16 @@ private fun GuidedTuningCard(
 
 @Composable
 private fun SelectionControls(
+    instrumentKey: NoteName,
     rootNote: NoteName,
     scaleType: ScaleType,
     onScaleTypeSelected: (ScaleType) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "${stringResource(Res.string.instrument_config_section_root_note)}: ${instrumentKey.symbol}",
+            style = MaterialTheme.typography.titleMedium
+        )
         Text(text = stringResource(Res.string.scale_root_note_label) + ": ${rootNote.symbol}", style = MaterialTheme.typography.titleMedium)
         Text(text = stringResource(Res.string.scale_type_label), style = MaterialTheme.typography.titleMedium)
         ScaleTypeDropdownMenus(selectedScaleType = scaleType, onScaleTypeSelected = onScaleTypeSelected)

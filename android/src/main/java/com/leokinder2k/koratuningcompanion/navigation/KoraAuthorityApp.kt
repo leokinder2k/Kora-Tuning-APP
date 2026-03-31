@@ -36,6 +36,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -90,6 +91,9 @@ fun KoraAuthorityApp(
         pageCount = { destinations.size }
     )
     val coroutineScope = rememberCoroutineScope()
+    val selectedPage by remember {
+        derivedStateOf { pagerState.currentPage }
+    }
 
     var isMuted by rememberSaveable { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }
@@ -115,10 +119,12 @@ fun KoraAuthorityApp(
                             overflow = TextOverflow.Ellipsis
                         )
                     },
-                    selected = index == pagerState.currentPage,
+                    selected = index == selectedPage,
                     onClick = {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(index)
+                        if (index != selectedPage) {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
                         }
                     }
                 )
@@ -171,7 +177,8 @@ fun KoraAuthorityApp(
         ) { innerPadding ->
             HorizontalPager(
                 state = pagerState,
-                beyondViewportPageCount = 0,
+                beyondViewportPageCount = 1,
+                key = { page -> destinations[page].name },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
@@ -180,7 +187,7 @@ fun KoraAuthorityApp(
                     AppDestination.INSTRUMENT_CONFIG -> InstrumentConfigurationRoute(
                         isMuted = isMuted,
                         onToggleMute = { isMuted = !isMuted },
-                        isActive = page == pagerState.currentPage
+                        isActive = page == selectedPage
                     )
                     AppDestination.SCALE_ENGINE -> ScaleCalculationScreen(
                         uiState = scaleUiState,

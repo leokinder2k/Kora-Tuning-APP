@@ -128,12 +128,19 @@ private fun KoraNotationScreenContent(vm: KoraNotationViewModel, modifier: Modif
                     )
                 }
             }
-            is NotationUiState.Success -> ResultSection(
-                result = state.result,
-                context = context,
-                onTransposeSemitone = vm::applyTransposeSemitone,
-                onTransposeDiatonic = vm::applyTransposeDiatonic,
-            )
+            is NotationUiState.Success -> {
+                val exportState by vm.exportState.collectAsStateWithLifecycle()
+                ResultSection(
+                    result = state.result,
+                    context = context,
+                    exportState = exportState,
+                    onTransposeSemitone = vm::applyTransposeSemitone,
+                    onTransposeDiatonic = vm::applyTransposeDiatonic,
+                    onRequestAudio = vm::requestAudioExport,
+                    onRequestPdf = vm::requestPdfExport,
+                    onClearExport = vm::clearExportState,
+                )
+            }
             else -> {}
         }
     }
@@ -143,9 +150,27 @@ private fun KoraNotationScreenContent(vm: KoraNotationViewModel, modifier: Modif
 private fun ResultSection(
     result: NotationResult,
     context: Context,
+    exportState: ExportState,
     onTransposeSemitone: (Int) -> Unit,
     onTransposeDiatonic: (Int) -> Unit,
+    onRequestAudio: () -> Unit,
+    onRequestPdf: () -> Unit,
+    onClearExport: () -> Unit,
 ) {
+    // React to completed exports
+    LaunchedEffect(exportState) {
+        when (exportState) {
+            is ExportState.AudioReady -> {
+                // played by the play buttons below; state stays until next import
+            }
+            is ExportState.PdfReady -> {
+                shareBase64(context, exportState.pdfBase64, "${result.title}.pdf", "application/pdf")
+                onClearExport()
+            }
+            else -> {}
+        }
+    }
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(result.title, style = MaterialTheme.typography.titleMedium)
@@ -207,29 +232,72 @@ private fun ResultSection(
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(Res.string.notation_export_title), style = MaterialTheme.typography.titleMedium)
+
+            val exportBusy = exportState is ExportState.LoadingAudio || exportState is ExportState.LoadingPdf
+            val audioReady = exportState as? ExportState.AudioReady
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { shareBase64(context, result.pdfBase64, "${result.title}.pdf", "application/pdf") }) {
-                    Icon(Icons.Default.PictureAsPdf, null, modifier = Modifier.size(18.dp))
+                Button(
+                    onClick = onRequestPdf,
+                    enabled = !exportBusy,
+                ) {
+                    if (exportState is ExportState.LoadingPdf) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Icon(Icons.Default.PictureAsPdf, null, modifier = Modifier.size(18.dp))
+                    }
                     Spacer(Modifier.width(6.dp))
                     Text("PDF")
                 }
-                Button(onClick = { shareBase64(context, result.koraMidiBase64, "${result.title}_kora.mid", "audio/midi") }) {
+                Button(
+                    onClick = { shareBase64(context, result.koraMidiBase64, "${result.title}_kora.mid", "audio/midi") },
+                    enabled = !exportBusy,
+                ) {
                     Icon(Icons.Default.MusicNote, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("MIDI")
                 }
             }
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { playBase64Wav(context, result.koraAudioBase64) }) {
-                    Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
+                OutlinedButton(
+                    onClick = {
+                        if (audioReady != null) playBase64Wav(context, audioReady.koraBase64)
+                        else onRequestAudio()
+                    },
+                    enabled = !exportBusy,
+                ) {
+                    if (exportState is ExportState.LoadingAudio) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
+                    }
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(Res.string.notation_play_kora))
                 }
-                OutlinedButton(onClick = { playBase64Wav(context, result.simplifiedAudioBase64) }) {
-                    Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
+                OutlinedButton(
+                    onClick = {
+                        if (audioReady != null) playBase64Wav(context, audioReady.simplifiedBase64)
+                        else onRequestAudio()
+                    },
+                    enabled = !exportBusy,
+                ) {
+                    if (exportState is ExportState.LoadingAudio) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
+                    }
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(Res.string.notation_play_original))
                 }
+            }
+
+            if (exportState is ExportState.Error) {
+                Text(
+                    exportState.message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
         }
     }

@@ -13,30 +13,41 @@ import com.leokinder2k.koratuningcompanion.instrumentconfig.model.InstrumentProf
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.StarterInstrumentProfiles
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.TraditionalPresets
 import com.leokinder2k.koratuningcompanion.scaleengine.ScaleCalculationEngine
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleCalculationRequest
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleCalculationResult
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleRootReference
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
+import com.leokinder2k.koratuningcompanion.scaleengine.orchestration.StructuredTuningLlmOrchestrator
+import com.leokinder2k.koratuningcompanion.scaleengine.orchestration.TuningLlmOrchestrator
+import com.leokinder2k.koratuningcompanion.scaleengine.orchestration.TuningOrchestrationPlan
+import com.leokinder2k.koratuningcompanion.scaleengine.recommendation.VersatilityAnalysis
+import com.leokinder2k.koratuningcompanion.scaleengine.recommendation.VersatilityAnalyzer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class ScaleCalculationUiState(
+    val instrumentKey: NoteName,
     val rootNote: NoteName,
     val scaleType: ScaleType,
     val scaleRootReference: ScaleRootReference,
     val isChromatic: Boolean,
     val allowRight1: Boolean,
     val profileStatus: String,
+    val orchestrationPlan: TuningOrchestrationPlan,
+    val versatilityAnalysis: VersatilityAnalysis,
     val result: ScaleCalculationResult
 )
 
 class ScaleCalculationViewModel(
     private val appContext: Context,
     private val repository: InstrumentConfigRepository,
-    private val engine: ScaleCalculationEngine
+    private val engine: ScaleCalculationEngine,
+    private val tuningLlmOrchestrator: TuningLlmOrchestrator,
+    private val versatilityAnalyzer: VersatilityAnalyzer
 ) : ViewModel() {
 
     private var currentProfile = defaultInstrumentProfile()
@@ -48,7 +59,6 @@ class ScaleCalculationViewModel(
         buildUiState(
             profile = currentProfile,
             scaleType = currentScaleType,
-            scaleRootNote = currentProfile.rootNote,
             scaleRootReference = currentScaleRootReference,
             profileStatus = appContext.getString(
                 R.string.scale_profile_status_no_saved,
@@ -63,14 +73,12 @@ class ScaleCalculationViewModel(
             repository.instrumentProfile.collect { profile ->
                 if (profile != null) {
                     currentProfile = profile
-                    // If scale root was following the instrument key, update it to the new key
-                    if (currentScaleRootNote == null) {
-                        currentScaleRootNote = profile.rootNote
+                    if (currentScaleRootNote == profile.rootNote) {
+                        currentScaleRootNote = null
                     }
                     _uiState.value = buildUiState(
                         profile = currentProfile,
                         scaleType = currentScaleType,
-                        scaleRootNote = currentScaleRootNote ?: profile.rootNote,
                         scaleRootReference = currentScaleRootReference,
                         profileStatus = appContext.getString(
                             R.string.scale_profile_status_using_saved,
@@ -79,10 +87,12 @@ class ScaleCalculationViewModel(
                     )
                 } else {
                     currentProfile = defaultInstrumentProfile()
+                    if (currentScaleRootNote == currentProfile.rootNote) {
+                        currentScaleRootNote = null
+                    }
                     _uiState.value = buildUiState(
                         profile = currentProfile,
                         scaleType = currentScaleType,
-                        scaleRootNote = currentScaleRootNote ?: currentProfile.rootNote,
                         scaleRootReference = currentScaleRootReference,
                         profileStatus = appContext.getString(
                             R.string.scale_profile_status_no_saved,
@@ -95,11 +105,10 @@ class ScaleCalculationViewModel(
     }
 
     fun onScaleRootNoteSelected(note: NoteName) {
-        currentScaleRootNote = note
+        currentScaleRootNote = note.takeUnless { it == currentProfile.rootNote }
         _uiState.value = buildUiState(
             profile = currentProfile,
             scaleType = currentScaleType,
-            scaleRootNote = note,
             scaleRootReference = currentScaleRootReference,
             profileStatus = _uiState.value.profileStatus
         )
@@ -110,7 +119,6 @@ class ScaleCalculationViewModel(
         _uiState.value = buildUiState(
             profile = currentProfile,
             scaleType = currentScaleType,
-            scaleRootNote = currentScaleRootNote ?: currentProfile.rootNote,
             scaleRootReference = currentScaleRootReference,
             profileStatus = _uiState.value.profileStatus
         )
@@ -121,7 +129,6 @@ class ScaleCalculationViewModel(
         _uiState.value = buildUiState(
             profile = currentProfile,
             scaleType = currentScaleType,
-            scaleRootNote = currentScaleRootNote ?: currentProfile.rootNote,
             scaleRootReference = currentScaleRootReference,
             profileStatus = _uiState.value.profileStatus
         )
@@ -130,12 +137,12 @@ class ScaleCalculationViewModel(
     private fun buildUiState(
         profile: InstrumentProfile,
         scaleType: ScaleType,
-        scaleRootNote: NoteName,
         scaleRootReference: ScaleRootReference,
         profileStatus: String
     ): ScaleCalculationUiState {
+        val scaleRootNote = effectiveScaleRootNote(profile)
         val isChromatic = profile.tuningMode == KoraTuningMode.PEG_TUNING
-        val allowRight1 = profile.stringCount >= 22
+        val allowRight1 = profile.stringCount >= 21
         val effectiveReference = if (!allowRight1 && scaleRootReference == ScaleRootReference.RIGHT_1) {
             currentScaleRootReference = ScaleRootReference.LEFT_1
             ScaleRootReference.LEFT_1
@@ -150,13 +157,21 @@ class ScaleCalculationViewModel(
                 scaleRootReference = effectiveReference
             )
         )
+        val orchestrationPlan = tuningLlmOrchestrator.orchestrate(result)
+        val versatilityAnalysis = versatilityAnalyzer.analyze(
+            stringCount = profile.stringCount,
+            instrumentKey = profile.rootNote
+        )
         return ScaleCalculationUiState(
+            instrumentKey = profile.rootNote,
             rootNote = scaleRootNote,
             scaleType = scaleType,
             scaleRootReference = effectiveReference,
             isChromatic = isChromatic,
             allowRight1 = allowRight1,
             profileStatus = profileStatus,
+            orchestrationPlan = orchestrationPlan,
+            versatilityAnalysis = versatilityAnalysis,
             result = result
         )
     }
@@ -164,13 +179,17 @@ class ScaleCalculationViewModel(
     companion object {
         private val DEFAULT_SCALE_TYPE = ScaleType.MAJOR
         private val DEFAULT_SCALE_ROOT_REFERENCE = ScaleRootReference.LEFT_1
+        private const val DEFAULT_PRESET_BASE_ID = "sauta"
 
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
+                val engine = ScaleCalculationEngine()
                 ScaleCalculationViewModel(
                     appContext = context.applicationContext,
                     repository = DataStoreInstrumentConfigRepository.create(context),
-                    engine = ScaleCalculationEngine()
+                    engine = engine,
+                    tuningLlmOrchestrator = StructuredTuningLlmOrchestrator(),
+                    versatilityAnalyzer = VersatilityAnalyzer(engine)
                 )
             }
         }
@@ -178,11 +197,21 @@ class ScaleCalculationViewModel(
         private const val DEFAULT_PROFILE_STRING_COUNT = 21
 
         private fun defaultInstrumentProfile(): InstrumentProfile {
-            return InstrumentProfile(
-                stringCount = DEFAULT_PROFILE_STRING_COUNT,
-                openPitches = StarterInstrumentProfiles.openPitches(DEFAULT_PROFILE_STRING_COUNT)
-            )
+            val defaultPresetId = "${DEFAULT_PRESET_BASE_ID}_$DEFAULT_PROFILE_STRING_COUNT"
+            return TraditionalPresets.presetsForStringCount(DEFAULT_PROFILE_STRING_COUNT)
+                .firstOrNull { preset -> preset.id == defaultPresetId }
+                ?.toInstrumentProfile()
+                ?: TraditionalPresets.presetsForStringCount(DEFAULT_PROFILE_STRING_COUNT).firstOrNull()?.toInstrumentProfile()
+                ?: InstrumentProfile(
+                    stringCount = DEFAULT_PROFILE_STRING_COUNT,
+                    openPitches = StarterInstrumentProfiles.openPitches(DEFAULT_PROFILE_STRING_COUNT),
+                    rootNote = NoteName.E
+                )
         }
+    }
+
+    private fun effectiveScaleRootNote(profile: InstrumentProfile): NoteName {
+        return currentScaleRootNote ?: profile.rootNote
     }
 }
 

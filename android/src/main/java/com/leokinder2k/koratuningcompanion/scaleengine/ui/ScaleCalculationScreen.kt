@@ -115,6 +115,10 @@ fun ScaleCalculationScreen(
                 text = stringResource(R.string.scale_root_note_label),
                 style = MaterialTheme.typography.titleMedium
             )
+            Text(
+                text = "${stringResource(R.string.instrument_config_section_root_note)}: ${uiState.instrumentKey.symbol}",
+                style = MaterialTheme.typography.bodyMedium
+            )
 
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(NoteName.entries) { note ->
@@ -151,6 +155,8 @@ fun ScaleCalculationScreen(
                 leverRetuneCount = uiState.result.leverOnlyTable.count { row -> row.pegRetuneRequired },
                 pegRetuneCount = uiState.result.pegCorrectTable.count { row -> row.pegRetuneRequired }
             )
+            TuningOrchestrationCard(plan = uiState.orchestrationPlan)
+            VersatilityRecommendationsCard(analysis = uiState.versatilityAnalysis)
 
             if (showLeverInfo) {
                 LeverOnlyTableCard(rows = uiState.result.leverOnlyTable)

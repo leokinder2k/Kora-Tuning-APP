@@ -91,7 +91,9 @@ data class LeverOnlyStringResult(
     val selectedLeverState: LeverState?,
     val selectedPitch: Pitch?,
     val pegRetuneRequired: Boolean,
-    val selectedIntonationCents: Double = 0.0
+    val selectedIntonationCents: Double = 0.0,
+    /** True when the selected lever state differs from the player's home/starting position. */
+    val leverChangeFromHome: Boolean = false
 )
 
 data class PegCorrectStringResult(
@@ -111,7 +113,9 @@ data class PegCorrectStringResult(
      * Positive = tune up, negative = tune down, zero = peg stays at home.
      * Combine with [selectedLeverState] to get the full physical instruction.
      */
-    val fromBaseSemitones: Int = 0
+    val fromBaseSemitones: Int = 0,
+    /** True when the selected lever state differs from the player's home/starting position. */
+    val leverChangeFromHome: Boolean = false
 )
 
 data class VoicingConflict(

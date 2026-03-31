@@ -1,6 +1,12 @@
 package com.leokinder2k.koratuningcompanion.instrumentconfig.model
 
 object StarterInstrumentProfiles {
+    // 19-string Kadanu starter (6 left strings + 13 right strings).
+    private val starter19 = listOf(
+        "A1", "C2", "D2", "E2", "G2", "A2",
+        "A2", "B2", "C3", "D3", "E3", "F3", "G3", "A3", "B3", "C4", "D4", "E4", "F4"
+    )
+
     private val starter21 = listOf(
         "E2", "F#2", "G#2", "A2", "B2", "C#3", "D#3",
         "E3", "F#3", "G#3", "A3", "B3", "C#4", "D#4",
@@ -10,9 +16,10 @@ object StarterInstrumentProfiles {
     private val starter22 = starter21 + "E5"
 
     fun openPitchTexts(stringCount: Int): List<String> = when (stringCount) {
+        19 -> starter19
         21 -> starter21
         22 -> starter22
-        else -> throw IllegalArgumentException("Supported string counts are 21 and 22.")
+        else -> throw IllegalArgumentException("Supported string counts are 19, 21, and 22.")
     }
 
     fun openPitches(stringCount: Int): List<Pitch> {

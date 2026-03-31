@@ -3,6 +3,7 @@ package com.leokinder2k.koratuningcompanion.scaleengine
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.InstrumentProfile
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.TraditionalPresets
 import com.leokinder2k.koratuningcompanion.scaleengine.model.EngineMode
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverState
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleCalculationRequest
@@ -109,23 +110,14 @@ class ScaleCalculationEngineTest {
     }
 
     @Test
-    fun root_isAnchoredToLeftBassString_andNamedNotesFollowKoraRoles() {
-        val profile = profileWithPitches(
-            overrides = mapOf(
-                1 to "F2",
-                2 to "C3",
-                3 to "D3",
-                4 to "E3",
-                6 to "G3",
-                8 to "A#3",
-                10 to "D4",
-                12 to "F4",
-                14 to "A4",
-                16 to "C5",
-                18 to "E5"
-            ),
-            fill = "F3",
+    fun instrumentKey_transposesOpenMap_andNamedNotesFollowKoraRoles() {
+        val silabaProfile = TraditionalPresets.presetsForStringCount(21)
+            .first { preset -> preset.id == "silaba_21" }
+        val profile = InstrumentProfile(
             stringCount = 21,
+            openPitches = silabaProfile.openPitches.map { pitch -> pitch.plusSemitones(-1) },
+            openIntonationCents = silabaProfile.openIntonationCents,
+            closedIntonationCents = silabaProfile.closedIntonationCents,
             rootNote = NoteName.E
         )
         val result = engine.calculate(
@@ -142,6 +134,9 @@ class ScaleCalculationEngineTest {
         assertEquals(NoteName.E, leftOpenNotes[0]) // root at left bass
         assertEquals(NoteName.B, leftOpenNotes[1]) // 5th
         assertEquals(NoteName.C_SHARP, leftOpenNotes[2]) // major 2nd
+        assertTrue(leftRows.take(3).all { row ->
+            !row.pegRetuneRequired && row.selectedLeverState == LeverState.OPEN
+        })
     }
 
     @Test
@@ -241,6 +236,64 @@ class ScaleCalculationEngineTest {
             11,
             result.leverOnlyTable.count { row -> row.role.side == StringSide.RIGHT }
         )
+    }
+
+    @Test
+    fun transposedInstrumentKey_keepsLeverPlanRelativeToWorkingOpenKey() {
+        val silabaProfile = TraditionalPresets.presetsForStringCount(21)
+            .first { preset -> preset.id == "silaba_21" }
+        val instrumentInE = InstrumentProfile(
+            stringCount = 21,
+            openPitches = silabaProfile.openPitches.map { pitch -> pitch.plusSemitones(-1) },
+            openIntonationCents = silabaProfile.openIntonationCents,
+            closedIntonationCents = silabaProfile.closedIntonationCents,
+            rootNote = NoteName.E,
+            basePitches = silabaProfile.openPitches
+        )
+
+        val result = engine.calculate(
+            ScaleCalculationRequest(
+                instrumentProfile = instrumentInE,
+                scaleType = ScaleType.MAJOR,
+                rootNote = NoteName.F
+            )
+        )
+
+        assertTrue(result.leverOnlyTable.all { row ->
+            !row.pegRetuneRequired && row.selectedLeverState == LeverState.CLOSED
+        })
+        assertTrue(result.pegCorrectTable.all { row ->
+            !row.pegRetuneRequired &&
+                row.selectedLeverState == LeverState.CLOSED &&
+                row.pegRetuneSemitones == 0
+        })
+    }
+
+    @Test
+    fun instrumentInC_rootD_requiresPegPlusOneAndClosedLeverAcrossPlan() {
+        val silabaProfile = TraditionalPresets.presetsForStringCount(21)
+            .first { preset -> preset.id == "silaba_21" }
+        val instrumentInC = InstrumentProfile(
+            stringCount = 21,
+            openPitches = silabaProfile.openPitches.map { pitch -> pitch.plusSemitones(-5) },
+            openIntonationCents = silabaProfile.openIntonationCents,
+            closedIntonationCents = silabaProfile.closedIntonationCents,
+            rootNote = NoteName.C
+        )
+
+        val result = engine.calculate(
+            ScaleCalculationRequest(
+                instrumentProfile = instrumentInC,
+                scaleType = ScaleType.MAJOR,
+                rootNote = NoteName.D
+            )
+        )
+
+        assertTrue(result.pegCorrectTable.all { row ->
+            row.selectedLeverState == LeverState.CLOSED &&
+                row.pegRetuneSemitones == 1 &&
+                row.leverChangeFromHome
+        })
     }
 
     private fun profileWithPitches(

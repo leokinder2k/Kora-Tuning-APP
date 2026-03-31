@@ -112,6 +112,10 @@ fun ScaleCalculationScreen(
                 text = stringResource(Res.string.scale_root_note_label),
                 style = MaterialTheme.typography.titleMedium
             )
+            Text(
+                text = "${stringResource(Res.string.instrument_config_section_root_note)}: ${uiState.instrumentKey.symbol}",
+                style = MaterialTheme.typography.bodyMedium
+            )
 
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(NoteName.entries) { note ->
@@ -380,8 +384,11 @@ private fun formatLeverOnlyRow(row: LeverOnlyStringResult): String {
     val leverLabel = row.selectedLeverState?.name ?: stringResource(Res.string.value_na)
     val selectedPitchLabel = row.selectedPitch?.asText() ?: "-"
     val pegLabel = if (row.pegRetuneRequired) stringResource(Res.string.value_yes) else stringResource(Res.string.value_no)
+    val leverChangeLabel = stringResource(Res.string.scale_engine_lever_change_indicator)
     return buildString {
-        append("${row.role.asLabel()} (S${row.stringNumber})\n")
+        append("${row.role.asLabel()} (S${row.stringNumber})")
+        if (row.leverChangeFromHome) { append("  $leverChangeLabel") }
+        append("\n")
         append(stringResource(Res.string.scale_engine_lever_only_row_open_closed, row.openPitch.asText(), row.closedPitch.asText()))
         append("\n")
         append(stringResource(Res.string.scale_engine_lever_only_row_lever_target, leverLabel, selectedPitchLabel))
@@ -394,8 +401,11 @@ private fun formatLeverOnlyRow(row: LeverOnlyStringResult): String {
 private fun formatPegCorrectRow(row: PegCorrectStringResult, showLeverInfo: Boolean): String {
     val retuneLabel = if (row.pegRetuneSemitones >= 0) "+${row.pegRetuneSemitones}" else row.pegRetuneSemitones.toString()
     val fromHomeLabel = if (row.fromBaseSemitones >= 0) "+${row.fromBaseSemitones}" else row.fromBaseSemitones.toString()
+    val leverChangeLabel = stringResource(Res.string.scale_engine_lever_change_indicator)
     return buildString {
-        append("${row.role.asLabel()} (S${row.stringNumber})\n")
+        append("${row.role.asLabel()} (S${row.stringNumber})")
+        if (showLeverInfo && row.leverChangeFromHome) { append("  $leverChangeLabel") }
+        append("\n")
         if (showLeverInfo) {
             append(stringResource(Res.string.scale_engine_peg_row_target_lever, row.selectedPitch.asText(), row.selectedLeverState.name))
             append("\n")

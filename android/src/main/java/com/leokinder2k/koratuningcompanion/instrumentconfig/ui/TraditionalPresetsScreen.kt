@@ -137,11 +137,6 @@ fun TraditionalPresetsScreen(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
-                    selected = uiState.stringCount == 19,
-                    onClick = { onStringCountSelected(19) },
-                    label = { Text("Kadanu") }
-                )
-                FilterChip(
                     selected = uiState.stringCount == 21,
                     onClick = { onStringCountSelected(21) },
                     label = { Text(stringResource(R.string.strings_count, 21)) }

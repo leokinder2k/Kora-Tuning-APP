@@ -411,6 +411,7 @@ fun InstantOverviewScreen(
             }
 
             OverviewSelectionControls(
+                instrumentKey = uiState.instrumentKey,
                 rootNote = uiState.rootNote,
                 scaleType = uiState.scaleType,
                 onScaleTypeSelected = onScaleTypeSelected
@@ -554,11 +555,16 @@ fun InstantOverviewScreen(
 
 @Composable
 private fun OverviewSelectionControls(
+    instrumentKey: NoteName,
     rootNote: NoteName,
     scaleType: ScaleType,
     onScaleTypeSelected: (ScaleType) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "${stringResource(Res.string.instrument_config_section_root_note)}: ${instrumentKey.symbol}",
+            style = MaterialTheme.typography.titleMedium
+        )
         Text(text = stringResource(Res.string.scale_root_note_label) + ": ${rootNote.symbol}", style = MaterialTheme.typography.titleMedium)
         Text(text = stringResource(Res.string.scale_type_label), style = MaterialTheme.typography.titleMedium)
         ScaleTypeDropdownMenus(selectedScaleType = scaleType, onScaleTypeSelected = onScaleTypeSelected)
@@ -1392,8 +1398,11 @@ private fun formatOverviewRow(row: PegCorrectStringResult, showLeverInfo: Boolea
     val pegIndicator = if (row.pegRetuneRequired) signed(row.pegRetuneSemitones) else "0"
     val shift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
     val pitchLabel = displayPitchLabel(row.selectedPitch, shift, true)
+    val leverChangeLabel = stringResource(Res.string.scale_engine_lever_change_indicator)
     return buildString {
-        append("${row.role.asLabel()} (S${row.stringNumber})\n")
+        append("${row.role.asLabel()} (S${row.stringNumber})")
+        if (showLeverInfo && row.leverChangeFromHome) { append("  $leverChangeLabel") }
+        append("\n")
         if (showLeverInfo) append(stringResource(Res.string.scale_engine_peg_row_target_lever, pitchLabel, row.selectedLeverState.name))
         else append(stringResource(Res.string.scale_engine_peg_tuning_row_target, pitchLabel))
         append("\n")

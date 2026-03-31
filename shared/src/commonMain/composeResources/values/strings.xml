@@ -47,6 +47,10 @@
     <string name="instrument_preset_manual">Manual</string>
 
     <!-- Home / Base Tuning -->
+    <string name="instrument_config_section_home_lever_position">Starting lever position</string>
+    <string name="instrument_config_home_lever_position_open">Open (levers up)</string>
+    <string name="instrument_config_home_lever_position_closed">Closed (levers down)</string>
+    <string name="scale_engine_lever_change_indicator">↕ lever change</string>
     <string name="instrument_config_section_home_tuning">Home Tuning (Levers Down)</string>
     <string name="instrument_config_home_tuning_description">The physical tuning of your kora when all levers are at rest (down). Retune instructions in the Scale tab show peg adjustments relative to these home pitches.</string>
     <string name="instrument_config_home_tuning_string_chip">S%1$d: %2$s</string>

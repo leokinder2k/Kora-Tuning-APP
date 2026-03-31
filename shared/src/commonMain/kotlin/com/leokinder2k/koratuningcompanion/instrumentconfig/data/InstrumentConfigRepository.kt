@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.HomeLeverPosition
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.InstrumentProfile
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
@@ -65,6 +66,10 @@ class DataStoreInstrumentConfigRepository(
             ?.takeIf { it.size == stringCount }
             ?: parsedPitches
 
+        val homeLeverPosition = preferences[HOME_LEVER_POSITION_KEY]
+            ?.let { raw -> runCatching { HomeLeverPosition.valueOf(raw) }.getOrNull() }
+            ?: HomeLeverPosition.OPEN
+
         InstrumentProfile(
             stringCount = stringCount,
             tuningMode = tuningMode,
@@ -72,7 +77,8 @@ class DataStoreInstrumentConfigRepository(
             openIntonationCents = openIntonation,
             closedIntonationCents = closedIntonation,
             rootNote = rootNote,
-            basePitches = basePitches
+            basePitches = basePitches,
+            homeLeverPosition = homeLeverPosition
         )
     }
 
@@ -97,6 +103,7 @@ class DataStoreInstrumentConfigRepository(
             preferences[BASE_TUNING_KEY] = profile.basePitches.joinToString(PITCH_DELIMITER) { pitch ->
                 pitch.asText()
             }
+            preferences[HOME_LEVER_POSITION_KEY] = profile.homeLeverPosition.name
         }
     }
 
@@ -161,7 +168,7 @@ class DataStoreInstrumentConfigRepository(
 
         private fun parseUserPresetRecord(record: String): UserPreset? {
             val fields = record.split(PRESET_FIELD_DELIMITER)
-            if (fields.size !in setOf(7, 8)) return null
+            if (fields.size !in setOf(7, 8, 9)) return null
 
             val id = decodeField(fields[0]) ?: return null
             val displayName = decodeField(fields[1]) ?: return null
@@ -196,6 +203,14 @@ class DataStoreInstrumentConfigRepository(
                 KoraTuningMode.LEVERED
             }
 
+            val homeLeverPosition = if (fields.size >= 9) {
+                decodeField(fields[8])
+                    ?.let { raw -> runCatching { HomeLeverPosition.valueOf(raw) }.getOrNull() }
+                    ?: HomeLeverPosition.OPEN
+            } else {
+                HomeLeverPosition.OPEN
+            }
+
             return UserPreset(
                 id = id,
                 displayName = displayName,
@@ -205,7 +220,8 @@ class DataStoreInstrumentConfigRepository(
                     tuningMode = tuningMode,
                     openPitches = openPitches,
                     openIntonationCents = openIntonation,
-                    closedIntonationCents = closedIntonation
+                    closedIntonationCents = closedIntonation,
+                    homeLeverPosition = homeLeverPosition
                 )
             )
         }
@@ -221,7 +237,8 @@ class DataStoreInstrumentConfigRepository(
                     encodeField(preset.profile.openPitches.joinToString(PITCH_DELIMITER) { pitch -> pitch.asText() }),
                     encodeField(preset.profile.openIntonationCents.joinToString(PITCH_DELIMITER) { cents -> cents.toString() }),
                     encodeField(preset.profile.closedIntonationCents.joinToString(PITCH_DELIMITER) { cents -> cents.toString() }),
-                    encodeField(preset.profile.tuningMode.name)
+                    encodeField(preset.profile.tuningMode.name),
+                    encodeField(preset.profile.homeLeverPosition.name)
                 ).joinToString(PRESET_FIELD_DELIMITER)
             }
         }

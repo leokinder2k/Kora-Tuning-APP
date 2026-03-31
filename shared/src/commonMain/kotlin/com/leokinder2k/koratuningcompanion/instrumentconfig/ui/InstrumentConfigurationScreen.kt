@@ -61,6 +61,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.generated.resources.Res
 import com.leokinder2k.koratuningcompanion.generated.resources.*
 import com.leokinder2k.koratuningcompanion.instrumentconfig.data.DataStoreInstrumentConfigRepository
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.HomeLeverPosition
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringLayout
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
@@ -97,6 +98,7 @@ fun InstrumentConfigurationRoute(
         tunerUiState = tunerUiState,
         onStringCountSelected = configViewModel::onStringCountSelected,
         onTuningModeSelected = configViewModel::onTuningModeSelected,
+        onHomeLeverPositionSelected = configViewModel::onHomeLeverPositionSelected,
         onRootNoteSelected = configViewModel::onRootNoteSelected,
         onOpenPitchChanged = configViewModel::onOpenPitchChanged,
         onOpenIntonationChanged = configViewModel::onOpenIntonationChanged,
@@ -123,6 +125,7 @@ fun InstrumentConfigurationScreen(
     tunerUiState: LiveTunerUiState,
     onStringCountSelected: (Int) -> Unit,
     onTuningModeSelected: (KoraTuningMode) -> Unit,
+    onHomeLeverPositionSelected: (HomeLeverPosition) -> Unit,
     onRootNoteSelected: (NoteName) -> Unit,
     onOpenPitchChanged: (rowIndex: Int, value: String) -> Unit,
     onOpenIntonationChanged: (rowIndex: Int, value: String) -> Unit,
@@ -308,6 +311,29 @@ fun InstrumentConfigurationScreen(
                         onClick = { onTuningModeSelected(KoraTuningMode.PEG_TUNING) },
                         label = { Text(stringResource(Res.string.instrument_type_pegs)) }
                     )
+                }
+            }
+
+            if (uiState.tuningMode == KoraTuningMode.LEVERED) {
+                item {
+                    Text(
+                        text = stringResource(Res.string.instrument_config_section_home_lever_position),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = uiState.homeLeverPosition == HomeLeverPosition.OPEN,
+                            onClick = { onHomeLeverPositionSelected(HomeLeverPosition.OPEN) },
+                            label = { Text(stringResource(Res.string.instrument_config_home_lever_position_open)) }
+                        )
+                        FilterChip(
+                            selected = uiState.homeLeverPosition == HomeLeverPosition.CLOSED,
+                            onClick = { onHomeLeverPositionSelected(HomeLeverPosition.CLOSED) },
+                            label = { Text(stringResource(Res.string.instrument_config_home_lever_position_closed)) }
+                        )
+                    }
                 }
             }
 

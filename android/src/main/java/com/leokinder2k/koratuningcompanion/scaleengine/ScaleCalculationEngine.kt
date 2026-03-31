@@ -1,18 +1,19 @@
 package com.leokinder2k.koratuningcompanion.scaleengine
 
-import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
-import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.HomeLeverPosition
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringLayout
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringSide
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.StringTuning
 import com.leokinder2k.koratuningcompanion.scaleengine.model.EngineMode
-import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleRootReference
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverOnlyStringResult
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverState
 import com.leokinder2k.koratuningcompanion.scaleengine.model.PegCorrectStringResult
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleCalculationRequest
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleCalculationResult
+import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleRootReference
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleStringRole
 import com.leokinder2k.koratuningcompanion.scaleengine.model.StringSide
 import com.leokinder2k.koratuningcompanion.scaleengine.model.VoicingConflict
@@ -28,6 +29,7 @@ class ScaleCalculationEngine {
         }
         val scaleNotes = request.scaleType.notesForRoot(request.rootNote)
         val includeClosedLever = request.instrumentProfile.tuningMode == KoraTuningMode.LEVERED
+        val homeLeverPosition = request.instrumentProfile.homeLeverPosition
 
         val leverRows = strings.map { string ->
             val role = roleForStringNumber(
@@ -43,16 +45,34 @@ class ScaleCalculationEngine {
                 includeClosedLever = includeClosedLever
             )
 
-            val selectedOption = selectLeverOnlyOption(options)
+            // The engine works in a virtual space shifted by profileTransposeSemitones for root
+            // anchoring. Lever states and pitches in that space must be translated back to the
+            // physical string the player actually hears and touches.
+            val selectedOption = selectLeverOnlyOption(options, homeLeverPosition)
+            val physicalOpenAbsolute = string.openPitch.absoluteSemitone() - profileTransposeSemitones
+            val physicalLeverState = toPhysicalLeverState(
+                targetAbsolute = selectedOption?.pitch?.absoluteSemitone(),
+                physicalOpenAbsolute = physicalOpenAbsolute,
+                includeClosedLever = includeClosedLever
+            )
+            val physicalIntonationCents = intonationForPhysicalLeverState(
+                physicalLeverState = physicalLeverState,
+                options = options
+            )
+            val leverChangeFromHome = physicalLeverState != null && isLeverChangeFromHome(
+                leverState = physicalLeverState,
+                homeLeverPosition = homeLeverPosition
+            )
             val leverResult = LeverOnlyStringResult(
                 stringNumber = string.stringNumber,
                 role = role,
-                openPitch = string.openPitch,
-                closedPitch = string.closedPitch,
-                selectedLeverState = selectedOption?.leverState,
+                openPitch = pitchFromAbsoluteSemitone(physicalOpenAbsolute),
+                closedPitch = pitchFromAbsoluteSemitone(physicalOpenAbsolute + 1),
+                selectedLeverState = physicalLeverState,
                 selectedPitch = selectedOption?.pitch,
-                pegRetuneRequired = selectedOption == null,
-                selectedIntonationCents = selectedOption?.intonationCents ?: 0.0
+                pegRetuneRequired = physicalLeverState == null,
+                selectedIntonationCents = physicalIntonationCents,
+                leverChangeFromHome = leverChangeFromHome
             )
 
             InternalLeverRow(
@@ -75,55 +95,81 @@ class ScaleCalculationEngine {
                 includeClosedLever = includeClosedLever
             )
 
+            // Base pitch for this string: physical home tuning before any peg adjustment.
+            // The engine transposes all strings by profileTransposeSemitones for root anchoring,
+            // so subtract that offset to get the actual physical peg target relative to home.
             val baseAbsolute = request.instrumentProfile.basePitches
                 .getOrNull(string.stringNumber - 1)?.absoluteSemitone()
                 ?: (string.openPitch.absoluteSemitone() - profileTransposeSemitones)
 
-            val leverOnlyOption = selectLeverOnlyOption(options)
-            if (leverOnlyOption != null) {
-                val physicalOpenAbsolute = string.openPitch.absoluteSemitone() - profileTransposeSemitones
+            val physicalOpenAbsolute = string.openPitch.absoluteSemitone() - profileTransposeSemitones
+            val physicalOpenPitch = pitchFromAbsoluteSemitone(physicalOpenAbsolute)
+            val physicalClosedPitch = pitchFromAbsoluteSemitone(physicalOpenAbsolute + 1)
+
+            val leverOnlyOption = selectLeverOnlyOption(options, homeLeverPosition)
+            val physicalLeverStateForLeverOnly = toPhysicalLeverState(
+                targetAbsolute = leverOnlyOption?.pitch?.absoluteSemitone(),
+                physicalOpenAbsolute = physicalOpenAbsolute,
+                includeClosedLever = includeClosedLever
+            )
+
+            if (leverOnlyOption != null && physicalLeverStateForLeverOnly != null) {
                 PegCorrectStringResult(
                     stringNumber = string.stringNumber,
                     role = role,
-                    originalOpenPitch = string.openPitch,
-                    originalClosedPitch = string.closedPitch,
-                    retunedOpenPitch = string.openPitch,
-                    retunedClosedPitch = string.closedPitch,
-                    selectedLeverState = leverOnlyOption.leverState,
+                    originalOpenPitch = physicalOpenPitch,
+                    originalClosedPitch = physicalClosedPitch,
+                    retunedOpenPitch = physicalOpenPitch,
+                    retunedClosedPitch = physicalClosedPitch,
+                    selectedLeverState = physicalLeverStateForLeverOnly,
                     selectedPitch = leverOnlyOption.pitch,
                     pegRetuneSemitones = 0,
                     pegRetuneRequired = false,
-                    selectedIntonationCents = leverOnlyOption.intonationCents,
-                    fromBaseSemitones = physicalOpenAbsolute - baseAbsolute
+                    selectedIntonationCents = intonationForPhysicalLeverState(
+                        physicalLeverState = physicalLeverStateForLeverOnly,
+                        options = options
+                    ),
+                    fromBaseSemitones = physicalOpenAbsolute - baseAbsolute,
+                    leverChangeFromHome = isLeverChangeFromHome(physicalLeverStateForLeverOnly, homeLeverPosition)
                 )
             } else {
-                val retune = selectBestRetune(
-                    originalOpenPitch = string.openPitch,
-                    scaleNotes = scaleNotes,
-                    allowClosedLever = includeClosedLever
-                )
-                val retunedOpen = pitchFromAbsoluteSemitone(retune.retunedOpenAbsolute)
-                val retunedClosed = retunedOpen.plusSemitones(1)
-                val selectedPitch = if (retune.selectedLeverState == LeverState.OPEN) {
-                    retunedOpen
+                val retune = if (options.isNotEmpty()) {
+                    selectBestRetuneForTargetPitches(
+                        originalOpenPitch = physicalOpenPitch,
+                        targetPitches = options.map { option -> option.pitch },
+                        allowClosedLever = includeClosedLever,
+                        homeLeverPosition = homeLeverPosition
+                    )
                 } else {
-                    retunedClosed
+                    selectBestRetuneForScale(
+                        originalOpenPitch = physicalOpenPitch,
+                        scaleNotes = scaleNotes,
+                        allowClosedLever = includeClosedLever,
+                        homeLeverPosition = homeLeverPosition
+                    )
                 }
-                val physicalRetunedAbsolute = retune.retunedOpenAbsolute - profileTransposeSemitones
+                val physicalRetunedAbsolute = retune.retunedOpenAbsolute
+                val physicalRetunedOpen = pitchFromAbsoluteSemitone(physicalRetunedAbsolute)
+                val physicalRetunedClosed = physicalRetunedOpen.plusSemitones(1)
+                val physicalSelectedPitch = pitchFromAbsoluteSemitone(retune.targetAbsolute)
 
                 PegCorrectStringResult(
                     stringNumber = string.stringNumber,
                     role = role,
-                    originalOpenPitch = string.openPitch,
-                    originalClosedPitch = string.closedPitch,
-                    retunedOpenPitch = retunedOpen,
-                    retunedClosedPitch = retunedClosed,
+                    originalOpenPitch = physicalOpenPitch,
+                    originalClosedPitch = physicalClosedPitch,
+                    retunedOpenPitch = physicalRetunedOpen,
+                    retunedClosedPitch = physicalRetunedClosed,
                     selectedLeverState = retune.selectedLeverState,
-                    selectedPitch = selectedPitch,
-                    pegRetuneSemitones = retune.retunedOpenAbsolute - string.openPitch.absoluteSemitone(),
-                    pegRetuneRequired = retune.retunedOpenAbsolute != string.openPitch.absoluteSemitone(),
-                    selectedIntonationCents = 0.0,
-                    fromBaseSemitones = physicalRetunedAbsolute - baseAbsolute
+                    selectedPitch = physicalSelectedPitch,
+                    pegRetuneSemitones = physicalRetunedAbsolute - physicalOpenAbsolute,
+                    pegRetuneRequired = physicalRetunedAbsolute != physicalOpenAbsolute,
+                    selectedIntonationCents = when (retune.selectedLeverState) {
+                        LeverState.OPEN -> string.openIntonationCents
+                        LeverState.CLOSED -> string.closedIntonationCents
+                    },
+                    fromBaseSemitones = physicalRetunedAbsolute - baseAbsolute,
+                    leverChangeFromHome = isLeverChangeFromHome(retune.selectedLeverState, homeLeverPosition)
                 )
             }
         }
@@ -188,24 +234,27 @@ class ScaleCalculationEngine {
         return options
     }
 
-    private fun selectLeverOnlyOption(options: List<LeverOption>): LeverOption? {
+    private fun selectLeverOnlyOption(options: List<LeverOption>, homeLeverPosition: HomeLeverPosition): LeverOption? {
         if (options.isEmpty()) {
             return null
         }
         return options.minBy { option ->
             when (option.leverState) {
-                LeverState.OPEN -> 0
-                LeverState.CLOSED -> 1
+                LeverState.OPEN -> if (homeLeverPosition == HomeLeverPosition.OPEN) 0 else 1
+                LeverState.CLOSED -> if (homeLeverPosition == HomeLeverPosition.CLOSED) 0 else 1
             }
         }
     }
 
-    private fun selectBestRetune(
+    private fun selectBestRetuneForScale(
         originalOpenPitch: Pitch,
         scaleNotes: Set<NoteName>,
-        allowClosedLever: Boolean
+        allowClosedLever: Boolean,
+        homeLeverPosition: HomeLeverPosition
     ): RetuneCandidate {
         val openAbsolute = originalOpenPitch.absoluteSemitone()
+        val openLeverPenalty = if (homeLeverPosition == HomeLeverPosition.OPEN) 0 else 1
+        val closedLeverPenalty = if (homeLeverPosition == HomeLeverPosition.CLOSED) 0 else 1
         var best: RetuneCandidate? = null
 
         for (octave in originalOpenPitch.octave - 2..originalOpenPitch.octave + 2) {
@@ -214,10 +263,11 @@ class ScaleCalculationEngine {
 
                 considerRetuneCandidate(
                     candidate = RetuneCandidate(
+                        targetAbsolute = targetAbsolute,
                         retunedOpenAbsolute = targetAbsolute,
                         selectedLeverState = LeverState.OPEN,
                         absoluteRetuneDistance = abs(targetAbsolute - openAbsolute),
-                        leverPenalty = 0
+                        leverPenalty = openLeverPenalty
                     ),
                     currentBest = best
                 )?.let { better ->
@@ -228,10 +278,11 @@ class ScaleCalculationEngine {
                     val closedRetunedOpen = targetAbsolute - 1
                     considerRetuneCandidate(
                         candidate = RetuneCandidate(
+                            targetAbsolute = targetAbsolute,
                             retunedOpenAbsolute = closedRetunedOpen,
                             selectedLeverState = LeverState.CLOSED,
                             absoluteRetuneDistance = abs(closedRetunedOpen - openAbsolute),
-                            leverPenalty = 1
+                            leverPenalty = closedLeverPenalty
                         ),
                         currentBest = best
                     )?.let { better ->
@@ -243,6 +294,56 @@ class ScaleCalculationEngine {
 
         return requireNotNull(best) {
             "Scale notes must not be empty."
+        }
+    }
+
+    private fun selectBestRetuneForTargetPitches(
+        originalOpenPitch: Pitch,
+        targetPitches: List<Pitch>,
+        allowClosedLever: Boolean,
+        homeLeverPosition: HomeLeverPosition
+    ): RetuneCandidate {
+        val openAbsolute = originalOpenPitch.absoluteSemitone()
+        val openLeverPenalty = if (homeLeverPosition == HomeLeverPosition.OPEN) 0 else 1
+        val closedLeverPenalty = if (homeLeverPosition == HomeLeverPosition.CLOSED) 0 else 1
+        var best: RetuneCandidate? = null
+
+        targetPitches
+            .map { pitch -> pitch.absoluteSemitone() }
+            .distinct()
+            .forEach { targetAbsolute ->
+                considerRetuneCandidate(
+                    candidate = RetuneCandidate(
+                        targetAbsolute = targetAbsolute,
+                        retunedOpenAbsolute = targetAbsolute,
+                        selectedLeverState = LeverState.OPEN,
+                        absoluteRetuneDistance = abs(targetAbsolute - openAbsolute),
+                        leverPenalty = openLeverPenalty
+                    ),
+                    currentBest = best
+                )?.let { better ->
+                    best = better
+                }
+
+                if (allowClosedLever) {
+                    val closedRetunedOpen = targetAbsolute - 1
+                    considerRetuneCandidate(
+                        candidate = RetuneCandidate(
+                            targetAbsolute = targetAbsolute,
+                            retunedOpenAbsolute = closedRetunedOpen,
+                            selectedLeverState = LeverState.CLOSED,
+                            absoluteRetuneDistance = abs(closedRetunedOpen - openAbsolute),
+                            leverPenalty = closedLeverPenalty
+                        ),
+                        currentBest = best
+                    )?.let { better ->
+                        best = better
+                    }
+                }
+            }
+
+        return requireNotNull(best) {
+            "Target pitches must not be empty."
         }
     }
 
@@ -340,16 +441,16 @@ class ScaleCalculationEngine {
             ScaleRootReference.LEFT_4 -> leftOrder.getOrNull(3) ?: leftOrder.firstOrNull() ?: 1
             ScaleRootReference.RIGHT_1 -> KoraStringLayout.rightOrder(stringCount).getOrNull(0) ?: 1
         }
-        // Use the physical home tuning (basePitches) of the reference string so that
-        // the root-anchor calculation is always relative to the unmodified instrument,
-        // regardless of any working transposition already applied to openPitches.
-        val referencePitch = request.instrumentProfile.basePitches
+        // Use the current working open pitch of the reference string so that the root-anchor
+        // calculation correctly handles instruments whose openPitches have already been
+        // transposed. Using basePitches here caused a double transposition.
+        val referencePitch = request.instrumentProfile.openPitches
             .getOrNull(referenceStringNumber - 1)
-            ?: request.instrumentProfile.basePitches.firstOrNull()
+            ?: request.instrumentProfile.openPitches.firstOrNull()
             ?: return 0
 
         val rawDelta = request.rootNote.semitone - referencePitch.note.semitone
-        val normalizedDelta = Math.floorMod(rawDelta, 12)
+        val normalizedDelta = rawDelta.mod(12)
         return if (normalizedDelta > 6) {
             normalizedDelta - 12
         } else {
@@ -422,9 +523,38 @@ class ScaleCalculationEngine {
         )
     }
 
+    private fun toPhysicalLeverState(
+        targetAbsolute: Int?,
+        physicalOpenAbsolute: Int,
+        includeClosedLever: Boolean
+    ): LeverState? {
+        targetAbsolute ?: return null
+        return when (targetAbsolute) {
+            physicalOpenAbsolute -> LeverState.OPEN
+            physicalOpenAbsolute + 1 -> if (includeClosedLever) LeverState.CLOSED else null
+            else -> null
+        }
+    }
+
+    private fun intonationForPhysicalLeverState(
+        physicalLeverState: LeverState?,
+        options: List<LeverOption>
+    ): Double = when (physicalLeverState) {
+        LeverState.OPEN -> options.firstOrNull { it.leverState == LeverState.OPEN }?.intonationCents ?: 0.0
+        LeverState.CLOSED -> options.firstOrNull { it.leverState == LeverState.CLOSED }?.intonationCents ?: 0.0
+        null -> 0.0
+    }
+
+    private fun isLeverChangeFromHome(leverState: LeverState, homeLeverPosition: HomeLeverPosition): Boolean {
+        return when (homeLeverPosition) {
+            HomeLeverPosition.OPEN -> leverState == LeverState.CLOSED
+            HomeLeverPosition.CLOSED -> leverState == LeverState.OPEN
+        }
+    }
+
     private fun pitchFromAbsoluteSemitone(value: Int): Pitch {
         val note = NoteName.fromSemitone(value)
-        val octave = Math.floorDiv(value, 12)
+        val octave = value.floorDiv(12)
         return Pitch(note = note, octave = octave)
     }
 
@@ -463,10 +593,10 @@ class ScaleCalculationEngine {
     )
 
     private data class RetuneCandidate(
+        val targetAbsolute: Int,
         val retunedOpenAbsolute: Int,
         val selectedLeverState: LeverState,
         val absoluteRetuneDistance: Int,
         val leverPenalty: Int
     )
 }
-

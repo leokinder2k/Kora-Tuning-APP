@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.leokinder2k.koratuningcompanion.instrumentconfig.data.DataStoreInstrumentConfigRepository
 import com.leokinder2k.koratuningcompanion.instrumentconfig.data.InstrumentConfigRepository
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.HomeLeverPosition
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.InstrumentProfile
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringLayout
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
@@ -48,7 +49,9 @@ data class InstrumentConfigurationUiState(
     val statusMessage: String?,
     /** Physical home tuning — per-string pitches when all levers are down at rest. */
     val basePitchInputs: List<String>,
-    val basePitchErrors: List<String?>
+    val basePitchErrors: List<String?>,
+    /** The lever state all strings start from at the beginning of a piece. */
+    val homeLeverPosition: HomeLeverPosition = HomeLeverPosition.OPEN
 )
 
 class InstrumentConfigurationViewModel(
@@ -69,6 +72,7 @@ class InstrumentConfigurationViewModel(
 
     // Tracks the home/base tuning inputs separately from the working open pitches.
     private var currentBasePitchInputs: List<String> = StarterInstrumentProfiles.openPitchTexts(DEFAULT_STRING_COUNT)
+    private var currentHomeLeverPosition: HomeLeverPosition = HomeLeverPosition.OPEN
 
     private val _uiState = MutableStateFlow(buildDefaultUiState())
     val uiState: StateFlow<InstrumentConfigurationUiState> = _uiState.asStateFlow()
@@ -84,6 +88,7 @@ class InstrumentConfigurationViewModel(
                     ?: DEFAULT_LOWEST_LEFT_PITCH_TEXT
 
                 currentBasePitchInputs = profile.basePitches.map(Pitch::asText)
+                currentHomeLeverPosition = profile.homeLeverPosition
 
                 _uiState.value = buildUiState(
                     stringCount = profile.stringCount,
@@ -145,6 +150,7 @@ class InstrumentConfigurationViewModel(
         if (stringCount !in SUPPORTED_STRING_COUNTS) return
 
         val currentState = _uiState.value
+        val currentOpenPitchInputs = currentState.rows.map { it.openPitchInput }
         val nextPresetId = mapPresetIdToStringCount(
             presetId = currentState.selectedPresetId,
             stringCount = stringCount
@@ -156,6 +162,11 @@ class InstrumentConfigurationViewModel(
                 presetId = nextPresetId,
                 lowestLeftPitchInput = currentState.lowestLeftPitchInput
             )
+            updateLinkedBasePitchInputs(
+                currentOpenPitchInputs = currentOpenPitchInputs,
+                nextOpenPitchInputs = calibrated.openPitchInputs,
+                stringCount = stringCount
+            )
             buildUiState(
                 stringCount = stringCount,
                 tuningMode = currentState.tuningMode,
@@ -166,9 +177,16 @@ class InstrumentConfigurationViewModel(
                 openPitchInputs = calibrated.openPitchInputs,
                 openIntonationInputs = calibrated.openIntonationInputs,
                 closedIntonationInputs = calibrated.closedIntonationInputs,
+                basePitchInputs = currentBasePitchInputs,
                 statusMessage = null
             )
         } else {
+            val resizedPitchInputs = resizePitchInputCount(currentOpenPitchInputs, stringCount)
+            updateLinkedBasePitchInputs(
+                currentOpenPitchInputs = currentOpenPitchInputs,
+                nextOpenPitchInputs = resizedPitchInputs,
+                stringCount = stringCount
+            )
             buildUiState(
                 stringCount = stringCount,
                 tuningMode = currentState.tuningMode,
@@ -176,9 +194,10 @@ class InstrumentConfigurationViewModel(
                 selectedPresetId = MANUAL_PRESET_ID,
                 lowestLeftPitchInput = currentState.lowestLeftPitchInput,
                 autoCalibrateEnabled = false,
-                openPitchInputs = resizePitchInputCount(currentState.rows.map { it.openPitchInput }, stringCount),
+                openPitchInputs = resizedPitchInputs,
                 openIntonationInputs = resizeIntonationInputCount(currentState.rows.map { it.openIntonationInput }, stringCount),
                 closedIntonationInputs = resizeIntonationInputCount(currentState.rows.map { it.closedIntonationInput }, stringCount),
+                basePitchInputs = currentBasePitchInputs,
                 statusMessage = null
             )
         }
@@ -217,6 +236,11 @@ class InstrumentConfigurationViewModel(
             presetId = presetId,
             lowestLeftPitchInput = currentState.lowestLeftPitchInput
         )
+        updateLinkedBasePitchInputs(
+            currentOpenPitchInputs = currentState.rows.map { it.openPitchInput },
+            nextOpenPitchInputs = calibrated.openPitchInputs,
+            stringCount = currentState.stringCount
+        )
 
         val nextState = buildUiState(
             stringCount = currentState.stringCount,
@@ -228,6 +252,7 @@ class InstrumentConfigurationViewModel(
             openPitchInputs = calibrated.openPitchInputs,
             openIntonationInputs = calibrated.openIntonationInputs,
             closedIntonationInputs = calibrated.closedIntonationInputs,
+            basePitchInputs = currentBasePitchInputs,
             statusMessage = null
         )
 
@@ -244,6 +269,11 @@ class InstrumentConfigurationViewModel(
             presetId = currentState.selectedPresetId,
             lowestLeftPitchInput = pitchText
         )
+        updateLinkedBasePitchInputs(
+            currentOpenPitchInputs = currentState.rows.map { it.openPitchInput },
+            nextOpenPitchInputs = calibrated.openPitchInputs,
+            stringCount = currentState.stringCount
+        )
 
         val nextState = buildUiState(
             stringCount = currentState.stringCount,
@@ -255,6 +285,7 @@ class InstrumentConfigurationViewModel(
             openPitchInputs = calibrated.openPitchInputs,
             openIntonationInputs = calibrated.openIntonationInputs,
             closedIntonationInputs = calibrated.closedIntonationInputs,
+            basePitchInputs = currentBasePitchInputs,
             statusMessage = null
         )
 
@@ -266,6 +297,11 @@ class InstrumentConfigurationViewModel(
         val stringCount = _uiState.value.stringCount
         val l01Index = lowestLeftStringIndex(stringCount)
         val openPitchInputs = StarterInstrumentProfiles.openPitchTexts(stringCount)
+        updateLinkedBasePitchInputs(
+            currentOpenPitchInputs = _uiState.value.rows.map { it.openPitchInput },
+            nextOpenPitchInputs = openPitchInputs,
+            stringCount = stringCount
+        )
         val nextState = buildUiState(
             stringCount = stringCount,
             tuningMode = _uiState.value.tuningMode,
@@ -276,6 +312,7 @@ class InstrumentConfigurationViewModel(
             openPitchInputs = openPitchInputs,
             openIntonationInputs = defaultIntonationInputs(stringCount),
             closedIntonationInputs = defaultIntonationInputs(stringCount),
+            basePitchInputs = currentBasePitchInputs,
             statusMessage = "Loaded starter profile for $stringCount strings."
         )
         _uiState.value = nextState
@@ -289,6 +326,11 @@ class InstrumentConfigurationViewModel(
         val updatedInputs = currentState.rows.mapIndexed { index, row ->
             if (index == rowIndex) newValue else row.openPitchInput
         }
+        updateLinkedBasePitchInputs(
+            currentOpenPitchInputs = currentState.rows.map { it.openPitchInput },
+            nextOpenPitchInputs = updatedInputs,
+            stringCount = currentState.stringCount
+        )
 
         val l01Index = lowestLeftStringIndex(currentState.stringCount)
         val nextState = buildUiState(
@@ -301,6 +343,7 @@ class InstrumentConfigurationViewModel(
             openPitchInputs = updatedInputs,
             openIntonationInputs = currentState.rows.map { it.openIntonationInput },
             closedIntonationInputs = currentState.rows.map { it.closedIntonationInput },
+            basePitchInputs = currentBasePitchInputs,
             statusMessage = null
         )
         _uiState.value = nextState
@@ -374,24 +417,39 @@ class InstrumentConfigurationViewModel(
         persistProfileIfValid(nextState)
     }
 
+    fun onHomeLeverPositionSelected(position: HomeLeverPosition) {
+        if (position == _uiState.value.homeLeverPosition) return
+        currentHomeLeverPosition = position
+        val nextState = _uiState.value.copy(homeLeverPosition = position, statusMessage = null)
+        _uiState.value = nextState
+        persistProfileIfValid(nextState)
+    }
+
     fun onRootNoteSelected(rootNote: NoteName) {
         if (rootNote == _uiState.value.rootNote) return
         val currentState = _uiState.value
         val rawDelta = rootNote.semitone - currentState.rootNote.semitone
         val semitones = rawDelta.mod(12).let { if (it > 6) it - 12 else it }
-        val transposedPitchInputs = currentState.rows.map { row ->
-            Pitch.parse(row.openPitchInput)?.plusSemitones(semitones)?.asText() ?: row.openPitchInput
-        }
+        val transposedPitchInputs = transposePitchInputs(
+            inputs = currentState.rows.map { it.openPitchInput },
+            semitones = semitones
+        )
+        updateLinkedBasePitchInputs(
+            currentOpenPitchInputs = currentState.rows.map { it.openPitchInput },
+            nextOpenPitchInputs = transposedPitchInputs,
+            stringCount = currentState.stringCount
+        )
         val nextState = buildUiState(
             stringCount = currentState.stringCount,
             tuningMode = currentState.tuningMode,
             rootNote = rootNote,
             selectedPresetId = currentState.selectedPresetId,
-            lowestLeftPitchInput = currentState.lowestLeftPitchInput,
+            lowestLeftPitchInput = transposePitchInput(currentState.lowestLeftPitchInput, semitones),
             autoCalibrateEnabled = currentState.autoCalibrateEnabled,
             openPitchInputs = transposedPitchInputs,
             openIntonationInputs = currentState.rows.map { it.openIntonationInput },
             closedIntonationInputs = currentState.rows.map { it.closedIntonationInput },
+            basePitchInputs = currentBasePitchInputs,
             statusMessage = null
         )
         _uiState.value = nextState
@@ -429,7 +487,8 @@ class InstrumentConfigurationViewModel(
             openIntonationCents = openIntonationCents,
             closedIntonationCents = closedIntonationCents,
             rootNote = currentState.rootNote,
-            basePitches = basePitches
+            basePitches = basePitches,
+            homeLeverPosition = currentState.homeLeverPosition
         )
 
         viewModelScope.launch {
@@ -460,7 +519,8 @@ class InstrumentConfigurationViewModel(
             openIntonationCents = openIntonationCents,
             closedIntonationCents = closedIntonationCents,
             rootNote = state.rootNote,
-            basePitches = basePitches
+            basePitches = basePitches,
+            homeLeverPosition = state.homeLeverPosition
         )
 
         viewModelScope.launch {
@@ -470,9 +530,9 @@ class InstrumentConfigurationViewModel(
 
     companion object {
         private const val DEFAULT_STRING_COUNT = 21
-        private val SUPPORTED_STRING_COUNTS = setOf(21, 22)
+        private val SUPPORTED_STRING_COUNTS = setOf(19, 21, 22)
         const val MANUAL_PRESET_ID = "manual"
-        private const val DEFAULT_PRESET_BASE_ID = "silaba"
+        private const val DEFAULT_PRESET_BASE_ID = "sauta"
         private const val DEFAULT_LOWEST_LEFT_PITCH_TEXT = "F2"
         private const val DEFAULT_INTONATION_INPUT = "0.0"
 
@@ -563,7 +623,8 @@ class InstrumentConfigurationViewModel(
             canSave = canSave,
             statusMessage = statusMessage,
             basePitchInputs = resolvedBase,
-            basePitchErrors = buildBasePitchErrors(resolvedBase)
+            basePitchErrors = buildBasePitchErrors(resolvedBase),
+            homeLeverPosition = currentHomeLeverPosition
         )
     }
 
@@ -578,6 +639,8 @@ class InstrumentConfigurationViewModel(
             presetId = presetId,
             lowestLeftPitchInput = DEFAULT_LOWEST_LEFT_PITCH_TEXT
         )
+        currentBasePitchInputs = calibrated.openPitchInputs
+        currentHomeLeverPosition = HomeLeverPosition.OPEN
         return buildUiState(
             stringCount = stringCount,
             tuningMode = KoraTuningMode.LEVERED,
@@ -588,6 +651,7 @@ class InstrumentConfigurationViewModel(
             openPitchInputs = calibrated.openPitchInputs,
             openIntonationInputs = calibrated.openIntonationInputs,
             closedIntonationInputs = calibrated.closedIntonationInputs,
+            basePitchInputs = currentBasePitchInputs,
             statusMessage = null
         )
     }
@@ -668,4 +732,41 @@ class InstrumentConfigurationViewModel(
     }
 
     private fun totalSemitones(pitch: Pitch): Int = pitch.octave * 12 + pitch.note.semitone
+
+    private fun updateLinkedBasePitchInputs(
+        currentOpenPitchInputs: List<String>,
+        nextOpenPitchInputs: List<String>,
+        stringCount: Int
+    ) {
+        currentBasePitchInputs = if (baseTracksCurrentWorkingTuning(currentOpenPitchInputs, stringCount)) {
+            resizePitchInputCount(nextOpenPitchInputs, stringCount)
+        } else {
+            resizePitchInputCount(currentBasePitchInputs, stringCount)
+        }
+    }
+
+    private fun baseTracksCurrentWorkingTuning(
+        currentOpenPitchInputs: List<String>,
+        stringCount: Int
+    ): Boolean {
+        val normalizedBase = resizePitchInputCount(currentBasePitchInputs, stringCount)
+        val normalizedOpen = resizePitchInputCount(currentOpenPitchInputs, stringCount)
+        return normalizedBase.indices.all { index ->
+            normalizedPitchInput(normalizedBase[index]) == normalizedPitchInput(normalizedOpen[index])
+        }
+    }
+
+    private fun transposePitchInputs(inputs: List<String>, semitones: Int): List<String> {
+        if (semitones == 0) return inputs
+        return inputs.map { input -> transposePitchInput(input, semitones) }
+    }
+
+    private fun transposePitchInput(input: String, semitones: Int): String {
+        if (semitones == 0) return input
+        return Pitch.parse(input)?.plusSemitones(semitones)?.asText() ?: input
+    }
+
+    private fun normalizedPitchInput(input: String): String {
+        return Pitch.parse(input)?.asText() ?: input.trim()
+    }
 }
