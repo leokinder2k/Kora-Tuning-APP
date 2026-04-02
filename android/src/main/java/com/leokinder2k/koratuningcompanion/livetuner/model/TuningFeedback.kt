@@ -7,7 +7,7 @@ enum class TuningFeedbackState {
 }
 
 object TuningFeedbackClassifier {
-    const val DEFAULT_IN_TUNE_THRESHOLD_CENTS: Double = 5.0
+    const val DEFAULT_IN_TUNE_THRESHOLD_CENTS: Double = 1.0
 
     fun classify(
         centsDeviation: Double,

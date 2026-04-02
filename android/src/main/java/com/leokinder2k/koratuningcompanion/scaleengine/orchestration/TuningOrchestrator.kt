@@ -49,11 +49,11 @@ data class TuningOrchestrationPlan(
     val stringPlans: List<TuningStringPlan>
 )
 
-interface TuningLlmOrchestrator {
+interface TuningOrchestrator {
     fun orchestrate(result: ScaleCalculationResult): TuningOrchestrationPlan
 }
 
-class StructuredTuningLlmOrchestrator : TuningLlmOrchestrator {
+class StructuredTuningOrchestrator : TuningOrchestrator {
 
     override fun orchestrate(result: ScaleCalculationResult): TuningOrchestrationPlan {
         val request = result.request
@@ -108,7 +108,7 @@ class StructuredTuningLlmOrchestrator : TuningLlmOrchestrator {
     }
 
     companion object {
-        const val PLANNER_ID = "llm-structured-tuning-plan-v1"
+        const val PLANNER_ID = "structured-tuning-plan-v1"
 
         private fun signedSemitoneDelta(from: NoteName, to: NoteName): Int {
             val rawDelta = to.semitone - from.semitone

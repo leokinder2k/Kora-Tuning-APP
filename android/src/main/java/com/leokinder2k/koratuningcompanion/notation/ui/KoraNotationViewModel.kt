@@ -90,6 +90,11 @@ class KoraNotationViewModel(
         previewPlayer = null
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        stopPreview()
+    }
+
     fun previewTransposeDelta(deltaFromCurrent: Int) {
         val audio = currentKoraAudioBase64
         if (audio.isBlank()) return
@@ -134,7 +139,8 @@ class KoraNotationViewModel(
                     else -> fileName.substringAfterLast('.', "").lowercase()
                 }
                 val paramsJson = withContext(Dispatchers.IO) {
-                    val bytes = context.contentResolver.openInputStream(uri)!!.use { it.readBytes() }
+                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        ?: throw IllegalStateException("Cannot open URI: $uri")
                     val title = fileName.substringBeforeLast('.')
                     when (ext) {
                         "mid", "midi" -> {
@@ -339,8 +345,9 @@ class KoraNotationViewModel(
                 val m = Regex("""<rootfile\b[^>]*\bfull-path="([^"]+)"""").find(containerXml)
                 rootXmlPath = m?.groupValues?.get(1)
             }
-            if (rootXmlPath != null && entries.containsKey(rootXmlPath)) {
-                return entries[rootXmlPath]!!.decodeToString()
+            if (rootXmlPath != null) {
+                val xmlBytes = entries[rootXmlPath]
+                if (xmlBytes != null) return xmlBytes.decodeToString()
             }
             // Fallback: first .xml entry that isn't container.xml
             return entries.entries

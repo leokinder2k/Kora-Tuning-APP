@@ -36,9 +36,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -108,7 +108,6 @@ fun LiveTunerRoute(
         tunerUiState = tunerUiState,
         onScaleTypeSelected = onScaleTypeSelected,
         onAudioPermissionChanged = viewModel::onAudioPermissionChanged,
-        onPerformanceModeSelected = viewModel::onPerformanceModeSelected,
         onStartListening = viewModel::startListening,
         onStopListening = viewModel::stopListening,
         isMuted = isMuted,
@@ -124,7 +123,6 @@ fun LiveTunerScreen(
     tunerUiState: LiveTunerUiState,
     onScaleTypeSelected: (ScaleType) -> Unit,
     onAudioPermissionChanged: (Boolean) -> Unit,
-    onPerformanceModeSelected: (LiveTunerPerformanceMode) -> Unit,
     onStartListening: () -> Unit,
     onStopListening: () -> Unit,
     isMuted: Boolean = false,
@@ -327,19 +325,6 @@ fun LiveTunerScreen(
                     Text(
                         text = stringResource(R.string.live_tuner_microphone_mode_label),
                         style = MaterialTheme.typography.bodyMedium
-                    )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(LiveTunerPerformanceMode.entries) { mode ->
-                            FilterChip(
-                                selected = mode == tunerUiState.performanceMode,
-                                onClick = { onPerformanceModeSelected(mode) },
-                                label = { Text(liveTunerPerformanceModeLabel(mode)) }
-                            )
-                        }
-                    }
-                    Text(
-                        text = liveTunerPerformanceModeSummary(tunerUiState.performanceMode),
-                        style = MaterialTheme.typography.bodySmall
                     )
                     if (!tunerUiState.hasAudioPermission) {
                         Button(
@@ -625,7 +610,7 @@ private fun ChromaticTunerDial(
         targetValue = if (isActive && centsDeviation != null)
             ((centsDeviation.coerceIn(-50.0, 50.0) + 50.0) / 100.0).toFloat()
         else 0.5f,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "chromatic_needle"
     )
 
@@ -695,20 +680,20 @@ private fun ChromaticTunerDial(
             )
             val needleAlpha = if (isActive) 1f else 0.25f
             drawLine(
-                color = Color.Black.copy(alpha = 0.35f),
-                start = Offset(cx + 2f, cy + 2f),
-                end = Offset(needleEnd.x + 2f, needleEnd.y + 2f),
-                strokeWidth = 5f,
+                color = Color.Black.copy(alpha = 0.40f),
+                start = Offset(cx + 3f, cy + 3f),
+                end = Offset(needleEnd.x + 3f, needleEnd.y + 3f),
+                strokeWidth = 10f,
                 cap = StrokeCap.Round
             )
             drawLine(
                 color = Color.White.copy(alpha = needleAlpha),
                 start = center,
                 end = needleEnd,
-                strokeWidth = 4f,
+                strokeWidth = 8f,
                 cap = StrokeCap.Round
             )
-            drawCircle(Color.White.copy(alpha = needleAlpha), radius = 7f, center = center)
+            drawCircle(Color.White.copy(alpha = needleAlpha), radius = 11f, center = center)
         }
 
         Column(
@@ -1170,18 +1155,3 @@ private const val REFERENCE_TONE_OCTAVE_MULTIPLIER = 2.0
 private const val PEG_TUNING_IN_TUNE_THRESHOLD_CENTS = 200.0
 private const val LIVE_TUNER_GRADIENT_RANGE_CENTS = 50.0
 
-@Composable
-private fun liveTunerPerformanceModeLabel(mode: LiveTunerPerformanceMode): String {
-    return when (mode) {
-        LiveTunerPerformanceMode.REALTIME -> stringResource(R.string.live_tuner_mode_realtime_label)
-        LiveTunerPerformanceMode.PRECISION -> stringResource(R.string.live_tuner_mode_precision_label)
-    }
-}
-
-@Composable
-private fun liveTunerPerformanceModeSummary(mode: LiveTunerPerformanceMode): String {
-    return when (mode) {
-        LiveTunerPerformanceMode.REALTIME -> stringResource(R.string.live_tuner_mode_realtime_summary)
-        LiveTunerPerformanceMode.PRECISION -> stringResource(R.string.live_tuner_mode_precision_summary)
-    }
-}

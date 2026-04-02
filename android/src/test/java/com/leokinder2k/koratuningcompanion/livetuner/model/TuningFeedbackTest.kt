@@ -14,7 +14,7 @@ class TuningFeedbackTest {
 
     @Test
     fun classify_returnsInTune_withinThreshold() {
-        val state = TuningFeedbackClassifier.classify(centsDeviation = 2.4)
+        val state = TuningFeedbackClassifier.classify(centsDeviation = 0.4)
 
         assertEquals(TuningFeedbackState.IN_TUNE, state)
     }

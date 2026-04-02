@@ -19,15 +19,18 @@ import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleCalculationReq
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleCalculationResult
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleRootReference
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
-import com.leokinder2k.koratuningcompanion.scaleengine.orchestration.StructuredTuningLlmOrchestrator
-import com.leokinder2k.koratuningcompanion.scaleengine.orchestration.TuningLlmOrchestrator
+import com.leokinder2k.koratuningcompanion.scaleengine.orchestration.StructuredTuningOrchestrator
+import com.leokinder2k.koratuningcompanion.scaleengine.orchestration.TuningOrchestrator
 import com.leokinder2k.koratuningcompanion.scaleengine.orchestration.TuningOrchestrationPlan
 import com.leokinder2k.koratuningcompanion.scaleengine.recommendation.VersatilityAnalysis
 import com.leokinder2k.koratuningcompanion.scaleengine.recommendation.VersatilityAnalyzer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class ScaleCalculationUiState(
     val instrumentKey: NoteName,
@@ -46,7 +49,7 @@ class ScaleCalculationViewModel(
     private val appContext: Context,
     private val repository: InstrumentConfigRepository,
     private val engine: ScaleCalculationEngine,
-    private val tuningLlmOrchestrator: TuningLlmOrchestrator,
+    private val tuningOrchestrator: TuningOrchestrator,
     private val versatilityAnalyzer: VersatilityAnalyzer
 ) : ViewModel() {
 
@@ -54,6 +57,8 @@ class ScaleCalculationViewModel(
     private var currentScaleType = DEFAULT_SCALE_TYPE
     private var currentScaleRootNote: NoteName? = null  // null = follow instrument key
     private var currentScaleRootReference = DEFAULT_SCALE_ROOT_REFERENCE
+    private var analysisJob: Job? = null
+    private var loadedAnalysisKey: Pair<Int, NoteName>? = null
 
     private val _uiState = MutableStateFlow(
         buildUiState(
@@ -63,7 +68,8 @@ class ScaleCalculationViewModel(
             profileStatus = appContext.getString(
                 R.string.scale_profile_status_no_saved,
                 DEFAULT_PROFILE_STRING_COUNT
-            )
+            ),
+            versatilityAnalysis = emptyVersatilityAnalysis(currentProfile.rootNote)
         )
     )
     val uiState: StateFlow<ScaleCalculationUiState> = _uiState.asStateFlow()
@@ -76,10 +82,7 @@ class ScaleCalculationViewModel(
                     if (currentScaleRootNote == profile.rootNote) {
                         currentScaleRootNote = null
                     }
-                    _uiState.value = buildUiState(
-                        profile = currentProfile,
-                        scaleType = currentScaleType,
-                        scaleRootReference = currentScaleRootReference,
+                    rebuildUiState(
                         profileStatus = appContext.getString(
                             R.string.scale_profile_status_using_saved,
                             profile.stringCount
@@ -90,10 +93,7 @@ class ScaleCalculationViewModel(
                     if (currentScaleRootNote == currentProfile.rootNote) {
                         currentScaleRootNote = null
                     }
-                    _uiState.value = buildUiState(
-                        profile = currentProfile,
-                        scaleType = currentScaleType,
-                        scaleRootReference = currentScaleRootReference,
+                    rebuildUiState(
                         profileStatus = appContext.getString(
                             R.string.scale_profile_status_no_saved,
                             DEFAULT_PROFILE_STRING_COUNT
@@ -106,39 +106,68 @@ class ScaleCalculationViewModel(
 
     fun onScaleRootNoteSelected(note: NoteName) {
         currentScaleRootNote = note.takeUnless { it == currentProfile.rootNote }
-        _uiState.value = buildUiState(
-            profile = currentProfile,
-            scaleType = currentScaleType,
-            scaleRootReference = currentScaleRootReference,
-            profileStatus = _uiState.value.profileStatus
-        )
+        rebuildUiState(profileStatus = _uiState.value.profileStatus)
     }
 
     fun onScaleTypeSelected(scaleType: ScaleType) {
         currentScaleType = scaleType
-        _uiState.value = buildUiState(
-            profile = currentProfile,
-            scaleType = currentScaleType,
-            scaleRootReference = currentScaleRootReference,
-            profileStatus = _uiState.value.profileStatus
-        )
+        rebuildUiState(profileStatus = _uiState.value.profileStatus)
     }
 
     fun onScaleRootReferenceSelected(reference: ScaleRootReference) {
         currentScaleRootReference = reference
+        rebuildUiState(profileStatus = _uiState.value.profileStatus)
+    }
+
+    private fun rebuildUiState(profileStatus: String) {
         _uiState.value = buildUiState(
             profile = currentProfile,
             scaleType = currentScaleType,
             scaleRootReference = currentScaleRootReference,
-            profileStatus = _uiState.value.profileStatus
+            profileStatus = profileStatus,
+            versatilityAnalysis = currentVersatilityAnalysis()
         )
+        ensureVersatilityAnalysisLoaded()
+    }
+
+    private fun currentVersatilityAnalysis(): VersatilityAnalysis {
+        val currentAnalysis = _uiState.value.versatilityAnalysis
+        return if (loadedAnalysisKey == analysisKey(currentProfile)) {
+            currentAnalysis
+        } else {
+            emptyVersatilityAnalysis(currentProfile.rootNote)
+        }
+    }
+
+    private fun ensureVersatilityAnalysisLoaded() {
+        val key = analysisKey(currentProfile)
+        if (loadedAnalysisKey == key) {
+            return
+        }
+
+        analysisJob?.cancel()
+        val profile = currentProfile
+        analysisJob = viewModelScope.launch {
+            val analysis = withContext(Dispatchers.Default) {
+                versatilityAnalyzer.analyze(
+                    stringCount = profile.stringCount,
+                    instrumentKey = profile.rootNote
+                )
+            }
+            if (analysisKey(currentProfile) != key) {
+                return@launch
+            }
+            loadedAnalysisKey = key
+            _uiState.value = _uiState.value.copy(versatilityAnalysis = analysis)
+        }
     }
 
     private fun buildUiState(
         profile: InstrumentProfile,
         scaleType: ScaleType,
         scaleRootReference: ScaleRootReference,
-        profileStatus: String
+        profileStatus: String,
+        versatilityAnalysis: VersatilityAnalysis
     ): ScaleCalculationUiState {
         val scaleRootNote = effectiveScaleRootNote(profile)
         val isChromatic = profile.tuningMode == KoraTuningMode.PEG_TUNING
@@ -157,11 +186,7 @@ class ScaleCalculationViewModel(
                 scaleRootReference = effectiveReference
             )
         )
-        val orchestrationPlan = tuningLlmOrchestrator.orchestrate(result)
-        val versatilityAnalysis = versatilityAnalyzer.analyze(
-            stringCount = profile.stringCount,
-            instrumentKey = profile.rootNote
-        )
+        val orchestrationPlan = tuningOrchestrator.orchestrate(result)
         return ScaleCalculationUiState(
             instrumentKey = profile.rootNote,
             rootNote = scaleRootNote,
@@ -188,13 +213,26 @@ class ScaleCalculationViewModel(
                     appContext = context.applicationContext,
                     repository = DataStoreInstrumentConfigRepository.create(context),
                     engine = engine,
-                    tuningLlmOrchestrator = StructuredTuningLlmOrchestrator(),
+                    tuningOrchestrator = StructuredTuningOrchestrator(),
                     versatilityAnalyzer = VersatilityAnalyzer(engine)
                 )
             }
         }
 
         private const val DEFAULT_PROFILE_STRING_COUNT = 21
+
+        private fun emptyVersatilityAnalysis(instrumentKey: NoteName): VersatilityAnalysis {
+            return VersatilityAnalysis(
+                instrumentKey = instrumentKey,
+                evaluatedRoots = 0,
+                evaluatedScaleTypes = 0,
+                evaluatedReferences = 0,
+                tuningSummaries = emptyList(),
+                commonKeySuggestions = emptyList(),
+                commonKeyRouteOptions = emptyList(),
+                recommendedRoute = emptyList()
+            )
+        }
 
         private fun defaultInstrumentProfile(): InstrumentProfile {
             val defaultPresetId = "${DEFAULT_PRESET_BASE_ID}_$DEFAULT_PROFILE_STRING_COUNT"
@@ -213,5 +251,8 @@ class ScaleCalculationViewModel(
     private fun effectiveScaleRootNote(profile: InstrumentProfile): NoteName {
         return currentScaleRootNote ?: profile.rootNote
     }
-}
 
+    private fun analysisKey(profile: InstrumentProfile): Pair<Int, NoteName> {
+        return profile.stringCount to profile.rootNote
+    }
+}

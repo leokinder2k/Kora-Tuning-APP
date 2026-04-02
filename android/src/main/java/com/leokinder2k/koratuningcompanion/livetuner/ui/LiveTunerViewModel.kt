@@ -9,7 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.leokinder2k.koratuningcompanion.R
 import com.leokinder2k.koratuningcompanion.livetuner.LiveTunerEngine
 import com.leokinder2k.koratuningcompanion.livetuner.audio.AudioRecordFrameSource
-import com.leokinder2k.koratuningcompanion.livetuner.detection.AutocorrelationPitchDetector
+import com.leokinder2k.koratuningcompanion.livetuner.detection.YinPitchDetector
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 enum class LiveTunerPerformanceMode {
-    REALTIME,
     PRECISION
 }
 
@@ -143,28 +142,24 @@ class LiveTunerViewModel(
             initializer {
                 LiveTunerViewModel(
                     appContext = context.applicationContext,
-                    engineFactory = { mode ->
-                        when (mode) {
-                            LiveTunerPerformanceMode.REALTIME -> LiveTunerEngine(
-                                frameSource = AudioRecordFrameSource(),
-                                pitchDetector = AutocorrelationPitchDetector(
-                                    correlationThreshold = 0.50,
-                                    refinementSearchHz = 8.0,
-                                    refinementIterations = 10
-                                ),
-                                frameSize = 4096
-                            )
-
-                            LiveTunerPerformanceMode.PRECISION -> LiveTunerEngine(
-                                frameSource = AudioRecordFrameSource(),
-                                pitchDetector = AutocorrelationPitchDetector(
-                                    correlationThreshold = 0.55,
-                                    refinementSearchHz = 4.0,
-                                    refinementIterations = 22
-                                ),
-                                frameSize = 16384
-                            )
-                        }
+                    engineFactory = { _ ->
+                        // 8192 samples @ 44100 Hz ≈ 186 ms/frame (~200 ms target)
+                        // 3 stable frames ≈ 558 ms lock-on; EMA α=0.55 ≈ 200 ms time constant
+                        LiveTunerEngine(
+                            frameSource = AudioRecordFrameSource(),
+                            pitchDetector = YinPitchDetector(
+                                rmsGate = 0.001,               // ≈ -60 dBFS
+                                yinThreshold = 0.15,
+                                lowStringMaxHz = 200.0,
+                                lowStringMinConfidence = 0.65,
+                                highStringMinConfidence = 0.48,
+                            ),
+                            frameSize = 8192,
+                            minStableFrames = 3,
+                            stabilityToleranceCents = 20.0,
+                            smoothingAlpha = 0.55,
+                            historyWindowFrames = 5,
+                        )
                     }
                 )
             }

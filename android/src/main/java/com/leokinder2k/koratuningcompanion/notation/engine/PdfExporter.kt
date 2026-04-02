@@ -388,7 +388,7 @@ fun exportLessonToPdfBytes(
         cv!!.drawText("No notes to display.", MARGIN_L, curY + 20f, mkPaint(size = 10f))
         page?.let { document.finishPage(it) }
         val out = ByteArrayOutputStream()
-        document.writeTo(out); document.close()
+        try { document.writeTo(out) } finally { document.close() }
         return out.toByteArray()
     }
 
@@ -430,7 +430,6 @@ fun exportLessonToPdfBytes(
 
     page?.let { document.finishPage(it) }
     val out = ByteArrayOutputStream()
-    document.writeTo(out)
-    document.close()
+    try { document.writeTo(out) } finally { document.close() }
     return out.toByteArray()
 }

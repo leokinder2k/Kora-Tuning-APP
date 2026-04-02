@@ -109,7 +109,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -127,6 +126,7 @@ import com.leokinder2k.koratuningcompanion.scaleengine.chords.ChordPlanner
 import com.leokinder2k.koratuningcompanion.scaleengine.chords.ChordQuality
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverState
 import com.leokinder2k.koratuningcompanion.scaleengine.model.PegCorrectStringResult
+import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleRootReference
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
 import com.leokinder2k.koratuningcompanion.scaleengine.model.StringSide
 import com.leokinder2k.koratuningcompanion.scaleengine.orchestration.TuningStringPlan
@@ -135,6 +135,7 @@ import com.leokinder2k.koratuningcompanion.ui.theme.KoraCombinedChangesColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraActionBadgeColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraDetunedColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraLeverClosedStringColor
+import com.leokinder2k.koratuningcompanion.ui.components.ExpandableText
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraOpenLeverColor
 import java.io.File
 import java.io.FileOutputStream
@@ -150,30 +151,6 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-@Composable
-private fun ExpandableText(text: String, modifier: Modifier = Modifier) {
-    var expanded by remember { mutableStateOf(false) }
-    var isOverflowing by remember { mutableStateOf(false) }
-    Column(modifier = modifier) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            maxLines = if (expanded) Int.MAX_VALUE else 3,
-            overflow = if (expanded) TextOverflow.Clip else TextOverflow.Ellipsis,
-            onTextLayout = { result ->
-                if (!expanded) isOverflowing = result.hasVisualOverflow
-            }
-        )
-        if (isOverflowing || expanded) {
-            Text(
-                text = if (expanded) "Show less" else "Show more…",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { expanded = !expanded }
-            )
-        }
-    }
-}
 
 private enum class OverviewViewMode {
     DIAGRAM,
@@ -215,6 +192,7 @@ private data class DiagramStringSegment(
 fun InstantOverviewScreen(
     uiState: ScaleCalculationUiState,
     onScaleTypeSelected: (ScaleType) -> Unit,
+    onScaleRootReferenceSelected: (ScaleRootReference) -> Unit = {},
     isMuted: Boolean = false,
     onToggleMute: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -745,7 +723,10 @@ fun InstantOverviewScreen(
                 instrumentKey = uiState.instrumentKey,
                 rootNote = uiState.rootNote,
                 scaleType = uiState.scaleType,
-                onScaleTypeSelected = onScaleTypeSelected
+                onScaleTypeSelected = onScaleTypeSelected,
+                scaleRootReference = uiState.scaleRootReference,
+                allowRight1 = uiState.allowRight1,
+                onScaleRootReferenceSelected = onScaleRootReferenceSelected
             )
             TuningOrchestrationCard(
                 plan = uiState.orchestrationPlan,
@@ -921,11 +902,15 @@ fun InstantOverviewScreen(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun OverviewSelectionControls(
     instrumentKey: NoteName,
     rootNote: NoteName,
     scaleType: ScaleType,
-    onScaleTypeSelected: (ScaleType) -> Unit
+    onScaleTypeSelected: (ScaleType) -> Unit,
+    scaleRootReference: ScaleRootReference,
+    allowRight1: Boolean,
+    onScaleRootReferenceSelected: (ScaleRootReference) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -936,6 +921,40 @@ private fun OverviewSelectionControls(
             text = stringResource(R.string.scale_root_note_label) + ": ${rootNote.symbol}",
             style = MaterialTheme.typography.titleMedium
         )
+
+        Text(
+            text = stringResource(R.string.scale_root_reference_label),
+            style = MaterialTheme.typography.titleMedium
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = scaleRootReference == ScaleRootReference.LEFT_1,
+                onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_1) },
+                label = { Text(stringResource(R.string.scale_root_reference_left_1)) }
+            )
+            FilterChip(
+                selected = scaleRootReference == ScaleRootReference.LEFT_2,
+                onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_2) },
+                label = { Text(stringResource(R.string.scale_root_reference_left_2)) }
+            )
+            FilterChip(
+                selected = scaleRootReference == ScaleRootReference.LEFT_3,
+                onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_3) },
+                label = { Text(stringResource(R.string.scale_root_reference_left_3)) }
+            )
+            FilterChip(
+                selected = scaleRootReference == ScaleRootReference.LEFT_4,
+                onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_4) },
+                label = { Text(stringResource(R.string.scale_root_reference_left_4)) }
+            )
+            if (allowRight1) {
+                FilterChip(
+                    selected = scaleRootReference == ScaleRootReference.RIGHT_1,
+                    onClick = { onScaleRootReferenceSelected(ScaleRootReference.RIGHT_1) },
+                    label = { Text(stringResource(R.string.scale_root_reference_right_1)) }
+                )
+            }
+        }
 
         Text(
             text = stringResource(R.string.scale_type_label),
@@ -1051,6 +1070,15 @@ private fun DiagramOverview(
     val maxTapDistancePx = with(density) { 20.dp.toPx() }
     var diagramSize by remember { mutableStateOf(IntSize.Zero) }
     val currentOnStringTouched by rememberUpdatedState(onStringTouched)
+    var panOffsetX by remember { mutableFloatStateOf(0f) }
+    var panOffsetY by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(diagramZoom) {
+        if (diagramZoom <= 1f) { panOffsetX = 0f; panOffsetY = 0f }
+    }
+    val currentDiagramZoom by rememberUpdatedState(diagramZoom)
+    val currentOnDiagramZoomChanged by rememberUpdatedState(onDiagramZoomChanged)
+    val currentPanOffsetX by rememberUpdatedState(panOffsetX)
+    val currentPanOffsetY by rememberUpdatedState(panOffsetY)
 
     val infiniteTransition = rememberInfiniteTransition(label = "string_vibration")
     val rawVibrationPhase by infiniteTransition.animateFloat(
@@ -1096,41 +1124,77 @@ private fun DiagramOverview(
                         .height(StickyDiagramHeight)
                         .clipToBounds()
                         .onSizeChanged { size -> diagramSize = size }
-                        .pointerInput(diagramZoom) {
-                            detectTransformGestures { _, _, zoomChange, _ ->
-                                onDiagramZoomChanged((diagramZoom * zoomChange).coerceIn(1f, 3f))
-                            }
-                        }
-                        .pointerInput(left, right, diagramZoom, diagramSize) {
+                        .pointerInput(left, right, diagramSize) {
                             awaitEachGesture {
-                                // Track which string each pointer is currently over
                                 val activeStringByPointer = mutableMapOf<Long, Int>()
+                                var prevPositions: Map<Long, Offset> = emptyMap()
                                 var event = awaitPointerEvent()
                                 while (true) {
-                                    event.changes.forEach { change ->
-                                        if (!change.pressed) {
-                                            activeStringByPointer.remove(change.id.value)
-                                            return@forEach
+                                    val pressedChanges = event.changes.filter { it.pressed }
+                                    if (pressedChanges.isEmpty()) break
+                                    val pointerCount = pressedChanges.size
+                                    val currentPositions = pressedChanges.associate { it.id.value to it.position }
+                                    when {
+                                        pointerCount >= 2 -> {
+                                            // Pinch zoom
+                                            activeStringByPointer.clear()
+                                            val keys = currentPositions.keys.toList()
+                                            if (keys.size >= 2) {
+                                                val prevA = prevPositions[keys[0]]
+                                                val prevB = prevPositions[keys[1]]
+                                                val curA = currentPositions[keys[0]]
+                                                val curB = currentPositions[keys[1]]
+                                                if (prevA != null && prevB != null && curA != null && curB != null) {
+                                                    val dPrev = prevA - prevB
+                                                    val dCur = curA - curB
+                                                    val prevDist = sqrt(dPrev.x * dPrev.x + dPrev.y * dPrev.y)
+                                                    val curDist = sqrt(dCur.x * dCur.x + dCur.y * dCur.y)
+                                                    if (prevDist > 0f) {
+                                                        currentOnDiagramZoomChanged(
+                                                            (currentDiagramZoom * (curDist / prevDist)).coerceIn(1f, 3f)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            event.changes.forEach { it.consume() }
                                         }
-                                        val hit = resolveDiagramHit(
-                                            tapOffset = change.position,
-                                            diagramSize = diagramSize,
-                                            zoom = diagramZoom,
-                                            leftRows = left,
-                                            rightRows = right,
-                                            maxDistancePx = maxTapDistancePx
-                                        )
-                                        val newString = hit?.stringNumber
-                                        val prevString = activeStringByPointer[change.id.value]
-                                        if (newString != null && newString != prevString) {
-                                            // Finger pressed or slid onto a new string → play it
-                                            activeStringByPointer[change.id.value] = newString
-                                            currentOnStringTouched(hit)
-                                        } else if (newString == null) {
-                                            activeStringByPointer.remove(change.id.value)
+                                        pointerCount == 1 && currentDiagramZoom > 1f -> {
+                                            // One-finger pan when zoomed in
+                                            val change = pressedChanges.first()
+                                            val prevPos = prevPositions[change.id.value]
+                                            if (prevPos != null) {
+                                                val delta = change.position - prevPos
+                                                val halfExtentX = diagramSize.width * (currentDiagramZoom - 1f) / 2f
+                                                val halfExtentY = diagramSize.height * (currentDiagramZoom - 1f) / 2f
+                                                panOffsetX = (currentPanOffsetX + delta.x).coerceIn(-halfExtentX, halfExtentX)
+                                                panOffsetY = (currentPanOffsetY + delta.y).coerceIn(-halfExtentY, halfExtentY)
+                                            }
+                                            change.consume()
+                                        }
+                                        else -> {
+                                            // String tap detection (not zoomed, single finger)
+                                            pressedChanges.forEach { change ->
+                                                val hit = resolveDiagramHit(
+                                                    tapOffset = change.position,
+                                                    diagramSize = diagramSize,
+                                                    zoom = currentDiagramZoom,
+                                                    leftRows = left,
+                                                    rightRows = right,
+                                                    maxDistancePx = maxTapDistancePx
+                                                )
+                                                val newString = hit?.stringNumber
+                                                val prevString = activeStringByPointer[change.id.value]
+                                                if (newString != null && newString != prevString) {
+                                                    activeStringByPointer[change.id.value] = newString
+                                                    currentOnStringTouched(hit)
+                                                } else if (newString == null) {
+                                                    activeStringByPointer.remove(change.id.value)
+                                                }
+                                            }
+                                            // Do not consume — allows parent verticalScroll when zoom == 1f
                                         }
                                     }
-                                    if (event.changes.none { it.pressed }) break
+                                    prevPositions = currentPositions
                                     event = awaitPointerEvent()
                                 }
                             }
@@ -1141,7 +1205,9 @@ private fun DiagramOverview(
                             .fillMaxSize()
                             .graphicsLayer(
                                 scaleX = diagramZoom,
-                                scaleY = diagramZoom
+                                scaleY = diagramZoom,
+                                translationX = panOffsetX,
+                                translationY = panOffsetY
                             )
                     ) {
                         Canvas(modifier = Modifier.fillMaxSize()) {

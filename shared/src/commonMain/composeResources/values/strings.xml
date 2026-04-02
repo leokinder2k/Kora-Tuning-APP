@@ -42,7 +42,7 @@
     <string name="instrument_config_quick_start_step_3">3. Save profile, then use Scale/Overview and the merged Tuner workflow.</string>
     <string name="instrument_config_auto_save_note">String notes and cents are auto-saved when entries are valid.</string>
     <string name="instrument_config_action_load_starter_profile">Load Starter Profile</string>
-    <string name="instrument_config_action_play_all_strings">Play All Strings</string>
+    <string name="instrument_config_action_play_all_strings">Play Reference Note</string>
     <string name="instrument_config_action_save_profile">Save Instrument Profile</string>
     <string name="instrument_preset_manual">Manual</string>
 

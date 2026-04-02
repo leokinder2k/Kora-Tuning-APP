@@ -12,10 +12,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class StructuredTuningLlmOrchestratorTest {
+class StructuredTuningOrchestratorTest {
 
     private val engine = ScaleCalculationEngine()
-    private val orchestrator = StructuredTuningLlmOrchestrator()
+    private val orchestrator = StructuredTuningOrchestrator()
 
     @Test
     fun transposedInstrumentKey_planClosesAllLeversWithoutPegMoves() {

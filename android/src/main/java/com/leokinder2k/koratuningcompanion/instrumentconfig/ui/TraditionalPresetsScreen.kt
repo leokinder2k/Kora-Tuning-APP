@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.R
+import com.leokinder2k.koratuningcompanion.ui.components.ExpandableText
 
 @Composable
 fun TraditionalPresetsRoute(modifier: Modifier = Modifier) {
@@ -66,7 +67,7 @@ fun TraditionalPresetsScreen(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-            Text(
+            ExpandableText(
                 text = stringResource(R.string.traditional_presets_intro),
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -128,9 +129,8 @@ fun TraditionalPresetsScreen(
                         text = stringResource(R.string.traditional_presets_workflow_title),
                         style = MaterialTheme.typography.titleSmall
                     )
-                    Text(
-                        text = stringResource(R.string.traditional_presets_workflow_body),
-                        style = MaterialTheme.typography.bodySmall
+                    ExpandableText(
+                        text = stringResource(R.string.traditional_presets_workflow_body)
                     )
                 }
             }
@@ -213,10 +213,7 @@ fun TraditionalPresetsScreen(
                             },
                             style = MaterialTheme.typography.titleMedium
                         )
-                        Text(
-                            text = preset.description,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        ExpandableText(text = preset.description)
                         Text(
                             text = stringResource(
                                 R.string.traditional_presets_open_tuning_preview,

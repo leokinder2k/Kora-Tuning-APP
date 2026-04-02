@@ -154,6 +154,7 @@ fun KoraAuthorityApp(
                     AppDestination.INSTANT_OVERVIEW -> InstantOverviewScreen(
                         uiState = scaleUiState,
                         onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
+                        onScaleRootReferenceSelected = scaleViewModel::onScaleRootReferenceSelected,
                         isMuted = isMuted,
                         onToggleMute = { isMuted = !isMuted }
                     )

@@ -4,8 +4,10 @@ import android.content.Intent
 import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.pager.HorizontalPager
@@ -56,6 +58,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -79,11 +82,10 @@ fun KoraAuthorityApp(
     themeMode: String = "SYSTEM",
     onThemeModeChange: (String) -> Unit = {}
 ) {
-    val context = LocalContext.current.applicationContext
-    val scaleViewModel: ScaleCalculationViewModel = viewModel(
-        factory = ScaleCalculationViewModel.factory(context)
-    )
-    val scaleUiState by scaleViewModel.uiState.collectAsStateWithLifecycle()
+    val appContext = LocalContext.current.applicationContext
+    val scaleViewModelFactory = remember(appContext) {
+        ScaleCalculationViewModel.factory(appContext)
+    }
 
     val destinations = AppDestination.entries
     val pagerState = rememberPagerState(
@@ -175,13 +177,19 @@ fun KoraAuthorityApp(
                 )
             }
         ) { innerPadding ->
-            HorizontalPager(
-                state = pagerState,
-                beyondViewportPageCount = 1,
-                key = { page -> destinations[page].name },
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
+                    .padding(innerPadding),
+                contentAlignment = androidx.compose.ui.Alignment.TopCenter
+            ) {
+            HorizontalPager(
+                state = pagerState,
+                beyondViewportPageCount = 0,
+                key = { page -> destinations[page].name },
+                modifier = Modifier
+                    .widthIn(max = 840.dp)
+                    .fillMaxHeight()
             ) { page ->
                 when (destinations[page]) {
                     AppDestination.INSTRUMENT_CONFIG -> InstrumentConfigurationRoute(
@@ -189,28 +197,48 @@ fun KoraAuthorityApp(
                         onToggleMute = { isMuted = !isMuted },
                         isActive = page == selectedPage
                     )
-                    AppDestination.SCALE_ENGINE -> ScaleCalculationScreen(
-                        uiState = scaleUiState,
-                        onRootNoteSelected = scaleViewModel::onScaleRootNoteSelected,
-                        onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
-                        onScaleRootReferenceSelected = scaleViewModel::onScaleRootReferenceSelected
-                    )
-                    AppDestination.INSTANT_OVERVIEW -> InstantOverviewScreen(
-                        uiState = scaleUiState,
-                        onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
-                        isMuted = isMuted,
-                        onToggleMute = { isMuted = !isMuted }
-                    )
-                    AppDestination.LIVE_TUNER -> LiveTunerRoute(
-                        scaleUiState = scaleUiState,
-                        onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
-                        isMuted = isMuted,
-                        onToggleMute = { isMuted = !isMuted }
-                    )
+                    AppDestination.SCALE_ENGINE -> {
+                        val scaleViewModel: ScaleCalculationViewModel = viewModel(
+                            factory = scaleViewModelFactory
+                        )
+                        val scaleUiState by scaleViewModel.uiState.collectAsStateWithLifecycle()
+                        ScaleCalculationScreen(
+                            uiState = scaleUiState,
+                            onRootNoteSelected = scaleViewModel::onScaleRootNoteSelected,
+                            onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
+                            onScaleRootReferenceSelected = scaleViewModel::onScaleRootReferenceSelected
+                        )
+                    }
+                    AppDestination.INSTANT_OVERVIEW -> {
+                        val scaleViewModel: ScaleCalculationViewModel = viewModel(
+                            factory = scaleViewModelFactory
+                        )
+                        val scaleUiState by scaleViewModel.uiState.collectAsStateWithLifecycle()
+                        InstantOverviewScreen(
+                            uiState = scaleUiState,
+                            onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
+                            onScaleRootReferenceSelected = scaleViewModel::onScaleRootReferenceSelected,
+                            isMuted = isMuted,
+                            onToggleMute = { isMuted = !isMuted }
+                        )
+                    }
+                    AppDestination.LIVE_TUNER -> {
+                        val scaleViewModel: ScaleCalculationViewModel = viewModel(
+                            factory = scaleViewModelFactory
+                        )
+                        val scaleUiState by scaleViewModel.uiState.collectAsStateWithLifecycle()
+                        LiveTunerRoute(
+                            scaleUiState = scaleUiState,
+                            onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
+                            isMuted = isMuted,
+                            onToggleMute = { isMuted = !isMuted }
+                        )
+                    }
                     AppDestination.PRESETS -> TraditionalPresetsRoute()
                     AppDestination.NOTATION -> KoraNotationRoute()
                 }
             }
+            } // Box
         }
     }
 

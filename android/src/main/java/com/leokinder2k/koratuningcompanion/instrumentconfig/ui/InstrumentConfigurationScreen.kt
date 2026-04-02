@@ -83,6 +83,7 @@ import com.leokinder2k.koratuningcompanion.livetuner.model.TuningFeedbackState
 import com.leokinder2k.koratuningcompanion.livetuner.ui.LiveTunerPerformanceMode
 import com.leokinder2k.koratuningcompanion.livetuner.ui.LiveTunerUiState
 import com.leokinder2k.koratuningcompanion.livetuner.ui.LiveTunerViewModel
+import com.leokinder2k.koratuningcompanion.ui.components.ExpandableText
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraFlatColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraInTuneColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraSharpColor
@@ -121,7 +122,6 @@ fun InstrumentConfigurationRoute(
         onSetCurrentAsHome = configViewModel::setCurrentAsBase,
         onRestoreToHome = configViewModel::restoreToBase,
         onAudioPermissionChanged = tunerViewModel::onAudioPermissionChanged,
-        onPerformanceModeSelected = tunerViewModel::onPerformanceModeSelected,
         onStartListening = tunerViewModel::startListening,
         onStopListening = tunerViewModel::stopListening,
         isMuted = isMuted,
@@ -148,7 +148,6 @@ fun InstrumentConfigurationScreen(
     onSetCurrentAsHome: () -> Unit,
     onRestoreToHome: () -> Unit,
     onAudioPermissionChanged: (Boolean) -> Unit,
-    onPerformanceModeSelected: (LiveTunerPerformanceMode) -> Unit,
     onStartListening: () -> Unit,
     onStopListening: () -> Unit,
     isMuted: Boolean = false,
@@ -230,7 +229,18 @@ fun InstrumentConfigurationScreen(
         }
     }
 
-    val allRows = uiState.rows.sortedBy { it.stringNumber }
+    var playbackDirection by rememberSaveable { mutableStateOf(PlaybackDirection.HIGH_TO_LOW) }
+    var playbackSideOrder by rememberSaveable { mutableStateOf(PlaybackSideOrder.LEFT_FIRST) }
+
+    val allRows = run {
+        val rowsByNumber = uiState.rows.associateBy { it.stringNumber }
+        val left = KoraStringLayout.leftOrder(uiState.stringCount)
+        val right = KoraStringLayout.rightOrder(uiState.stringCount)
+        val leftOrdered = if (playbackDirection == PlaybackDirection.HIGH_TO_LOW) left.reversed() else left
+        val rightOrdered = if (playbackDirection == PlaybackDirection.HIGH_TO_LOW) right.reversed() else right
+        val ordered = if (playbackSideOrder == PlaybackSideOrder.LEFT_FIRST) leftOrdered + rightOrdered else rightOrdered + leftOrdered
+        ordered.mapNotNull { rowsByNumber[it] }
+    }
     LaunchedEffect(isPlayingAll, isMuted, isActive) {
         if (!isPlayingAll || isMuted || !isActive) return@LaunchedEffect
         isReferenceTonePlaying = true
@@ -243,7 +253,7 @@ fun InstrumentConfigurationScreen(
                 selectedTuningRowIndex = uiState.rows.indexOf(row).coerceAtLeast(0)
                 referenceTonePlayer.play(freq * 2.0)
             }
-            delay(3000L)
+            delay(4000L)
         }
         isPlayingAll = false
         isReferenceTonePlaying = false
@@ -311,7 +321,7 @@ fun InstrumentConfigurationScreen(
             }
 
             item {
-                Text(
+                ExpandableText(
                     text = when (uiState.tuningMode) {
                         KoraTuningMode.LEVERED -> stringResource(R.string.instrument_config_description_levered)
                         KoraTuningMode.PEG_TUNING -> stringResource(R.string.instrument_config_description_peg_tuning)
@@ -350,7 +360,7 @@ fun InstrumentConfigurationScreen(
             }
 
             item {
-                Text(
+                ExpandableText(
                     text = stringResource(R.string.instrument_config_description_instrument_key),
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -429,6 +439,10 @@ fun InstrumentConfigurationScreen(
                         tunerUiState = tunerUiState,
                         isReferenceTonePlaying = isReferenceTonePlaying || isPlayingAll,
                         isPlayingAll = isPlayingAll,
+                        playbackDirection = playbackDirection,
+                        playbackSideOrder = playbackSideOrder,
+                        onPlaybackDirectionSelected = { playbackDirection = it },
+                        onPlaybackSideOrderSelected = { playbackSideOrder = it },
                         onPlayAll = { isPlayingAll = true },
                         onStopReferenceTone = {
                             isPlayingAll = false
@@ -437,7 +451,6 @@ fun InstrumentConfigurationScreen(
                         onRequestPermission = {
                             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         },
-                        onPerformanceModeSelected = onPerformanceModeSelected,
                         onStartListening = onStartListening,
                         onStopListening = onStopListening
                     )
@@ -596,10 +609,13 @@ private fun InstrumentTuningAssistantCard(
     tunerUiState: LiveTunerUiState,
     isReferenceTonePlaying: Boolean,
     isPlayingAll: Boolean,
+    playbackDirection: PlaybackDirection,
+    playbackSideOrder: PlaybackSideOrder,
+    onPlaybackDirectionSelected: (PlaybackDirection) -> Unit,
+    onPlaybackSideOrderSelected: (PlaybackSideOrder) -> Unit,
     onPlayAll: () -> Unit,
     onStopReferenceTone: () -> Unit,
     onRequestPermission: () -> Unit,
-    onPerformanceModeSelected: (LiveTunerPerformanceMode) -> Unit,
     onStartListening: () -> Unit,
     onStopListening: () -> Unit
 ) {
@@ -672,19 +688,6 @@ private fun InstrumentTuningAssistantCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                LiveTunerPerformanceMode.entries.forEach { mode ->
-                    FilterChip(
-                        selected = mode == tunerUiState.performanceMode,
-                        onClick = { onPerformanceModeSelected(mode) },
-                        label = { Text(liveTunerPerformanceModeLabel(mode)) }
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Column(
@@ -743,6 +746,36 @@ private fun InstrumentTuningAssistantCard(
                 selectedCentsDeviation = selectedCentsDeviation,
                 showActiveIndicators = showActiveTuningIndicators
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                FilterChip(
+                    selected = playbackDirection == PlaybackDirection.HIGH_TO_LOW,
+                    onClick = { onPlaybackDirectionSelected(PlaybackDirection.HIGH_TO_LOW) },
+                    label = { Text("High→Low", style = MaterialTheme.typography.labelSmall) },
+                    enabled = !isPlayingAll
+                )
+                FilterChip(
+                    selected = playbackDirection == PlaybackDirection.LOW_TO_HIGH,
+                    onClick = { onPlaybackDirectionSelected(PlaybackDirection.LOW_TO_HIGH) },
+                    label = { Text("Low→High", style = MaterialTheme.typography.labelSmall) },
+                    enabled = !isPlayingAll
+                )
+                FilterChip(
+                    selected = playbackSideOrder == PlaybackSideOrder.LEFT_FIRST,
+                    onClick = { onPlaybackSideOrderSelected(PlaybackSideOrder.LEFT_FIRST) },
+                    label = { Text("L first", style = MaterialTheme.typography.labelSmall) },
+                    enabled = !isPlayingAll
+                )
+                FilterChip(
+                    selected = playbackSideOrder == PlaybackSideOrder.RIGHT_FIRST,
+                    onClick = { onPlaybackSideOrderSelected(PlaybackSideOrder.RIGHT_FIRST) },
+                    label = { Text("R first", style = MaterialTheme.typography.labelSmall) },
+                    enabled = !isPlayingAll
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1055,6 +1088,9 @@ private fun signed(value: Double): String {
     return if (value >= 0.0) "+${"%.2f".format(value)}" else "%.2f".format(value)
 }
 
+private enum class PlaybackDirection { HIGH_TO_LOW, LOW_TO_HIGH }
+private enum class PlaybackSideOrder { LEFT_FIRST, RIGHT_FIRST }
+
 private fun tuningStateColor(state: TuningFeedbackState): Color {
     return when (state) {
         TuningFeedbackState.IN_TUNE -> KoraInTuneColor
@@ -1072,13 +1108,6 @@ private fun tuningStateLabel(state: TuningFeedbackState): String {
     }
 }
 
-@Composable
-private fun liveTunerPerformanceModeLabel(mode: LiveTunerPerformanceMode): String {
-    return when (mode) {
-        LiveTunerPerformanceMode.REALTIME -> stringResource(R.string.live_tuner_mode_realtime_label)
-        LiveTunerPerformanceMode.PRECISION -> stringResource(R.string.live_tuner_mode_precision_label)
-    }
-}
 
 private const val PEG_TUNING_IN_TUNE_THRESHOLD_CENTS = 200.0
 
@@ -1158,7 +1187,6 @@ private fun InstrumentConfigurationScreenPreview() {
             onSetCurrentAsHome = {},
             onRestoreToHome = {},
             onAudioPermissionChanged = {},
-            onPerformanceModeSelected = {},
             onStartListening = {},
             onStopListening = {},
             onRootNoteSelected = {}

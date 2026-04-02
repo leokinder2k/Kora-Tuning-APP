@@ -30,20 +30,24 @@ kotlin {
             implementation(libs.jetbrains.lifecycle.viewmodel.compose)
             implementation(libs.jetbrains.lifecycle.runtime.compose)
             implementation(libs.androidx.datastore.preferences.core)
-            implementation(libs.okio)
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.core.ktx)
             implementation("androidx.appcompat:appcompat:1.7.0")
+            implementation(libs.okio)
         }
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
+                implementation(libs.okio)
             }
         }
         val iosMain by creating {
             dependsOn(commonMain.get())
+            dependencies {
+                implementation(libs.okio)
+            }
         }
         val iosX64Main by getting { dependsOn(iosMain) }
         val iosArm64Main by getting { dependsOn(iosMain) }

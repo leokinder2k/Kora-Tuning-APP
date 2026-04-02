@@ -61,7 +61,7 @@
     <string name="instrument_config_quick_start_step_3">3. Save profile, then use Scale/Overview and the merged Tuner workflow.</string>
     <string name="instrument_config_auto_save_note">String notes and cents are auto-saved when entries are valid.</string>
     <string name="instrument_config_action_load_starter_profile">Load Starter Profile</string>
-    <string name="instrument_config_action_play_all_strings">Play All Strings</string>
+    <string name="instrument_config_action_play_all_strings">Play Reference Note</string>
     <string name="instrument_config_action_save_profile">Save Instrument Profile</string>
     <string name="instrument_preset_manual">Manual</string>
 
@@ -244,7 +244,8 @@
     <string name="scale_engine_orchestrator_line_peg">%1$s (S%2$d): tune peg %3$s st -&gt; %4$s</string>
     <string name="scale_engine_orchestrator_line_lever">%1$s (S%2$d): %3$s lever -&gt; %4$s</string>
     <string name="scale_engine_orchestrator_line_both">%1$s (S%2$d): tune peg %3$s st and %4$s lever -&gt; %5$s</string>
-    <string name="versatility_title">Chromatic Lever Analysis for Natural %1$s</string>
+    <string name="versatility_title">Chromatic Lever Analysis — Natural %1$s</string>
+    <string name="versatility_export_pdf">Export PDF</string>
     <string name="versatility_reference_note">Natural %1$s means all levers open. This analysis only counts roots and scales reachable without peg retuning or detuning the whole instrument.</string>
     <string name="versatility_scope">Checked %1$d roots, %2$d scales, and %3$d root positions for each tuning.</string>
     <string name="versatility_best_example">Most versatile tuning in natural %2$s: %1$s.</string>

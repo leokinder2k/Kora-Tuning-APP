@@ -101,6 +101,7 @@ import com.leokinder2k.koratuningcompanion.scaleengine.chords.ChordPlanner
 import com.leokinder2k.koratuningcompanion.scaleengine.chords.ChordQuality
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverState
 import com.leokinder2k.koratuningcompanion.scaleengine.model.PegCorrectStringResult
+import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleRootReference
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
 import com.leokinder2k.koratuningcompanion.scaleengine.model.StringSide
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraClosedLeverColor
@@ -141,6 +142,7 @@ private data class DiagramStringSegment(
 fun InstantOverviewScreen(
     uiState: ScaleCalculationUiState,
     onScaleTypeSelected: (ScaleType) -> Unit,
+    onScaleRootReferenceSelected: (ScaleRootReference) -> Unit = {},
     isMuted: Boolean = false,
     onToggleMute: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -414,7 +416,10 @@ fun InstantOverviewScreen(
                 instrumentKey = uiState.instrumentKey,
                 rootNote = uiState.rootNote,
                 scaleType = uiState.scaleType,
-                onScaleTypeSelected = onScaleTypeSelected
+                onScaleTypeSelected = onScaleTypeSelected,
+                scaleRootReference = uiState.scaleRootReference,
+                allowRight1 = uiState.allowRight1,
+                onScaleRootReferenceSelected = onScaleRootReferenceSelected
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -558,7 +563,10 @@ private fun OverviewSelectionControls(
     instrumentKey: NoteName,
     rootNote: NoteName,
     scaleType: ScaleType,
-    onScaleTypeSelected: (ScaleType) -> Unit
+    onScaleTypeSelected: (ScaleType) -> Unit,
+    scaleRootReference: ScaleRootReference,
+    allowRight1: Boolean,
+    onScaleRootReferenceSelected: (ScaleRootReference) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -566,6 +574,49 @@ private fun OverviewSelectionControls(
             style = MaterialTheme.typography.titleMedium
         )
         Text(text = stringResource(Res.string.scale_root_note_label) + ": ${rootNote.symbol}", style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = stringResource(Res.string.scale_root_reference_label),
+            style = MaterialTheme.typography.titleMedium
+        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item {
+                FilterChip(
+                    selected = scaleRootReference == ScaleRootReference.LEFT_1,
+                    onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_1) },
+                    label = { Text(stringResource(Res.string.scale_root_reference_left_1)) }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = scaleRootReference == ScaleRootReference.LEFT_2,
+                    onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_2) },
+                    label = { Text(stringResource(Res.string.scale_root_reference_left_2)) }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = scaleRootReference == ScaleRootReference.LEFT_3,
+                    onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_3) },
+                    label = { Text(stringResource(Res.string.scale_root_reference_left_3)) }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = scaleRootReference == ScaleRootReference.LEFT_4,
+                    onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_4) },
+                    label = { Text(stringResource(Res.string.scale_root_reference_left_4)) }
+                )
+            }
+            if (allowRight1) {
+                item {
+                    FilterChip(
+                        selected = scaleRootReference == ScaleRootReference.RIGHT_1,
+                        onClick = { onScaleRootReferenceSelected(ScaleRootReference.RIGHT_1) },
+                        label = { Text(stringResource(Res.string.scale_root_reference_right_1)) }
+                    )
+                }
+            }
+        }
         Text(text = stringResource(Res.string.scale_type_label), style = MaterialTheme.typography.titleMedium)
         ScaleTypeDropdownMenus(selectedScaleType = scaleType, onScaleTypeSelected = onScaleTypeSelected)
     }
@@ -595,10 +646,19 @@ private fun DiagramOverview(
     val density = LocalDensity.current
     val maxTapDistancePx = with(density) { 20.dp.toPx() }
     var diagramSize by remember { mutableStateOf(IntSize.Zero) }
-    // rememberUpdatedState ensures the pointerInput coroutine always calls the latest
-    // onStringTouched lambda even when pointerInput keys haven't changed (e.g. after
-    // playingStringNumbers updates on the first tap).
     val currentOnStringTouched by rememberUpdatedState(onStringTouched)
+    var panOffsetX by remember { mutableStateOf(0f) }
+    var panOffsetY by remember { mutableStateOf(0f) }
+    LaunchedEffect(diagramZoom) {
+        if (diagramZoom <= 1f) {
+            panOffsetX = 0f
+            panOffsetY = 0f
+        }
+    }
+    val currentDiagramZoom by rememberUpdatedState(diagramZoom)
+    val currentOnDiagramZoomChanged by rememberUpdatedState(onDiagramZoomChanged)
+    val currentPanOffsetX by rememberUpdatedState(panOffsetX)
+    val currentPanOffsetY by rememberUpdatedState(panOffsetY)
     val textMeasurer = rememberTextMeasurer()
 
     val infiniteTransition = rememberInfiniteTransition(label = "string_vibration")
@@ -642,33 +702,101 @@ private fun DiagramOverview(
                         .height(StickyDiagramHeight)
                         .clipToBounds()
                         .onSizeChanged { size -> diagramSize = size }
-                        .pointerInput(left, right, diagramZoom, diagramSize) {
+                        .pointerInput(left, right, diagramSize) {
                             awaitEachGesture {
                                 val activeStringByPointer = mutableMapOf<Long, Int>()
+                                var previousPositions: Map<Long, Offset> = emptyMap()
                                 var event = awaitPointerEvent()
                                 while (true) {
-                                    event.changes.forEach { change ->
-                                        if (!change.pressed) { activeStringByPointer.remove(change.id.value); return@forEach }
-                                        val hit = resolveDiagramHit(
-                                            tapOffset = change.position, diagramSize = diagramSize,
-                                            zoom = diagramZoom, leftRows = left, rightRows = right, maxDistancePx = maxTapDistancePx
-                                        )
-                                        val newString = hit?.stringNumber
-                                        val prevString = activeStringByPointer[change.id.value]
-                                        if (newString != null && newString != prevString) {
-                                            activeStringByPointer[change.id.value] = newString
-                                            currentOnStringTouched(hit)
-                                        } else if (newString == null) {
-                                            activeStringByPointer.remove(change.id.value)
+                                    val pressedChanges = event.changes.filter { it.pressed }
+                                    if (pressedChanges.isEmpty()) {
+                                        break
+                                    }
+                                    val currentPositions = pressedChanges.associate { it.id.value to it.position }
+                                    when {
+                                        pressedChanges.size >= 2 -> {
+                                            activeStringByPointer.clear()
+                                            val keys = currentPositions.keys.toList()
+                                            if (keys.size >= 2) {
+                                                val previousA = previousPositions[keys[0]]
+                                                val previousB = previousPositions[keys[1]]
+                                                val currentA = currentPositions[keys[0]]
+                                                val currentB = currentPositions[keys[1]]
+                                                if (previousA != null && previousB != null && currentA != null && currentB != null) {
+                                                    val previousDelta = previousA - previousB
+                                                    val currentDelta = currentA - currentB
+                                                    val previousDistance = sqrt(
+                                                        previousDelta.x * previousDelta.x +
+                                                            previousDelta.y * previousDelta.y
+                                                    )
+                                                    val currentDistance = sqrt(
+                                                        currentDelta.x * currentDelta.x +
+                                                            currentDelta.y * currentDelta.y
+                                                    )
+                                                    if (previousDistance > 0f) {
+                                                        currentOnDiagramZoomChanged(
+                                                            (currentDiagramZoom * (currentDistance / previousDistance))
+                                                                .coerceIn(1f, 3f)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            event.changes.forEach { it.consume() }
+                                        }
+
+                                        pressedChanges.size == 1 && currentDiagramZoom > 1f -> {
+                                            activeStringByPointer.clear()
+                                            val change = pressedChanges.first()
+                                            val previousPosition = previousPositions[change.id.value]
+                                            if (previousPosition != null) {
+                                                val delta = change.position - previousPosition
+                                                val halfExtentX = diagramSize.width * (currentDiagramZoom - 1f) / 2f
+                                                val halfExtentY = diagramSize.height * (currentDiagramZoom - 1f) / 2f
+                                                panOffsetX = (currentPanOffsetX + delta.x)
+                                                    .coerceIn(-halfExtentX, halfExtentX)
+                                                panOffsetY = (currentPanOffsetY + delta.y)
+                                                    .coerceIn(-halfExtentY, halfExtentY)
+                                            }
+                                            change.consume()
+                                        }
+
+                                        else -> {
+                                            pressedChanges.forEach { change ->
+                                                val hit = resolveDiagramHit(
+                                                    tapOffset = change.position,
+                                                    diagramSize = diagramSize,
+                                                    zoom = currentDiagramZoom,
+                                                    leftRows = left,
+                                                    rightRows = right,
+                                                    maxDistancePx = maxTapDistancePx
+                                                )
+                                                val newString = hit?.stringNumber
+                                                val previousString = activeStringByPointer[change.id.value]
+                                                if (newString != null && newString != previousString) {
+                                                    activeStringByPointer[change.id.value] = newString
+                                                    currentOnStringTouched(hit)
+                                                } else if (newString == null) {
+                                                    activeStringByPointer.remove(change.id.value)
+                                                }
+                                            }
                                         }
                                     }
-                                    if (event.changes.none { it.pressed }) break
+                                    previousPositions = currentPositions
                                     event = awaitPointerEvent()
                                 }
                             }
                         }
                 ) {
-                    Box(modifier = Modifier.fillMaxSize().graphicsLayer(scaleX = diagramZoom, scaleY = diagramZoom)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer(
+                                scaleX = diagramZoom,
+                                scaleY = diagramZoom,
+                                translationX = panOffsetX,
+                                translationY = panOffsetY
+                            )
+                    ) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             drawKoraBody(colors)
                             drawKoraDiagram(

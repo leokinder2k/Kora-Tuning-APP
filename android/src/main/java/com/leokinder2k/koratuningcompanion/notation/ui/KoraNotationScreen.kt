@@ -224,6 +224,15 @@ private fun ResultSection(
     onRequestPdf: () -> Unit = {},
     onClearExport: () -> Unit = {},
 ) {
+    // Release the module-level MediaPlayer when this composable leaves composition.
+    DisposableEffect(Unit) {
+        onDispose {
+            activePlayer?.release()
+            activePlayer = null
+            activePlayerFile = null
+        }
+    }
+
     val darkCard = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1C))
     val onDark = Color.White
     val onDarkMuted = Color(0xFFAAAAAA)

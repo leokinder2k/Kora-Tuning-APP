@@ -7,6 +7,7 @@ import android.media.MediaRecorder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.channels.awaitClose
@@ -63,6 +64,7 @@ class AudioRecordFrameSource : AudioFrameSource {
 
         awaitClose {
             readerJob.cancel()
+            readerScope.cancel()
             runCatching {
                 if (audioRecord.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
                     audioRecord.stop()
