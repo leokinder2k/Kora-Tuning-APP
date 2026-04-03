@@ -36,6 +36,33 @@ enum class ScaleType(
     DIMINISHED_WHOLE_HALF(intArrayOf(0, 2, 3, 5, 6, 8, 9, 11)),
     DIMINISHED_HALF_WHOLE(intArrayOf(0, 1, 3, 4, 6, 7, 9, 10)),
 
+    HUNGARIAN_MINOR(intArrayOf(0, 2, 3, 6, 7, 8, 11)),
+    HUNGARIAN_MAJOR(intArrayOf(0, 3, 4, 6, 7, 9, 10)),
+
+    RAGA_BHAIRAV(intArrayOf(0, 1, 4, 5, 7, 8, 11)),
+    RAGA_YAMAN(intArrayOf(0, 2, 4, 6, 7, 9, 11)),
+    RAGA_KAFI(intArrayOf(0, 2, 3, 5, 7, 9, 10)),
+    RAGA_BHAIRAVI(intArrayOf(0, 1, 3, 5, 7, 8, 10)),
+
+    NEAPOLITAN_MAJOR(intArrayOf(0, 1, 3, 5, 7, 9, 11)),
+    NEAPOLITAN_MINOR(intArrayOf(0, 1, 3, 5, 7, 8, 11)),
+
+    PHRYGIAN_DOMINANT(intArrayOf(0, 1, 4, 5, 7, 8, 10)),
+    DOUBLE_HARMONIC(intArrayOf(0, 1, 4, 5, 7, 8, 11)),
+    PERSIAN(intArrayOf(0, 1, 4, 5, 6, 8, 11)),
+
+    HIRAJOSHI(intArrayOf(0, 2, 3, 7, 8)),
+    JAPANESE_IN(intArrayOf(0, 1, 5, 7, 8)),
+    IWATO(intArrayOf(0, 1, 5, 6, 10)),
+    INSEN(intArrayOf(0, 1, 5, 7, 10)),
+
+    PROMETHEUS(intArrayOf(0, 2, 4, 6, 9, 10)),
+    ENIGMATIC(intArrayOf(0, 1, 4, 6, 8, 10, 11)),
+    TRITONE(intArrayOf(0, 1, 4, 6, 7, 10)),
+
+    AUGMENTED(intArrayOf(0, 3, 4, 7, 8, 11)),
+    AUGMENTED_INVERSE(intArrayOf(0, 1, 4, 5, 8, 9)),
+
     CHROMATIC(intArrayOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)),
     ;
 

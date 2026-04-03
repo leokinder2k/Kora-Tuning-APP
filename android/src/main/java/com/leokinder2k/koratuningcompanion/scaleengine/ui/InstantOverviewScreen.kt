@@ -597,7 +597,7 @@ fun InstantOverviewScreen(
             return@LaunchedEffect
         }
 
-        val targetRoot = requireNotNull(timedExerciseTargetRoot)
+        val targetRoot = timedExerciseTargetRoot ?: return@LaunchedEffect
         selectedChordRoot = targetRoot
         val definition = ChordDefinition(
             root = targetRoot,
@@ -634,7 +634,7 @@ fun InstantOverviewScreen(
                     IconButton(onClick = onToggleMute) {
                         Icon(
                             imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
-                            contentDescription = null,
+                            contentDescription = stringResource(if (isMuted) R.string.action_unmute else R.string.action_mute),
                             tint = if (isMuted) MaterialTheme.colorScheme.error
                                    else androidx.compose.ui.graphics.Color.Unspecified
                         )
@@ -1003,13 +1003,15 @@ private fun DiagramZoomControls(
     ) {
         OutlinedButton(
             onClick = { onZoomChanged((zoom - 0.2f).coerceAtLeast(1f)) },
-            enabled = zoom > 1f
+            enabled = zoom > 1f,
+            modifier = Modifier.heightIn(min = 48.dp)
         ) {
             Text("-")
         }
         OutlinedButton(
             onClick = { onZoomChanged((zoom + 0.2f).coerceAtMost(3f)) },
-            enabled = zoom < 3f
+            enabled = zoom < 3f,
+            modifier = Modifier.heightIn(min = 48.dp)
         ) {
             Text("+")
         }
@@ -1029,7 +1031,7 @@ private fun DiagramZoomControls(
         ) {
             Icon(
                 imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
-                contentDescription = null
+                contentDescription = stringResource(if (isLocked) R.string.overview_diagram_locked else R.string.overview_diagram_free)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(

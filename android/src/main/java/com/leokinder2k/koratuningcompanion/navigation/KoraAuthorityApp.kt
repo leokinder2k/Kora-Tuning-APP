@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -143,7 +144,7 @@ fun KoraAuthorityApp(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.app_top_bar_title))
                             Spacer(Modifier.width(4.dp))
-                            IconButton(onClick = { isMuted = !isMuted }) {
+                            IconButton(onClick = { isMuted = !isMuted }, modifier = Modifier.size(48.dp)) {
                                 Icon(
                                     imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
                                     contentDescription = stringResource(if (isMuted) R.string.action_unmute else R.string.action_mute),
@@ -154,7 +155,7 @@ fun KoraAuthorityApp(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { showOverflowMenu = true }) {
+                        IconButton(onClick = { showOverflowMenu = true }, modifier = Modifier.size(48.dp)) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
                                 contentDescription = stringResource(R.string.menu_settings)
@@ -185,7 +186,7 @@ fun KoraAuthorityApp(
             ) {
             HorizontalPager(
                 state = pagerState,
-                beyondViewportPageCount = 0,
+                beyondViewportPageCount = 1,
                 key = { page -> destinations[page].name },
                 modifier = Modifier
                     .widthIn(max = 840.dp)

@@ -33,8 +33,8 @@ internal fun TuningOrchestrationCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = stringResource(R.string.scale_engine_orchestrator_title),
@@ -48,14 +48,14 @@ internal fun TuningOrchestrationCard(
                     scaleTypeLabel(plan.scaleType),
                     scaleRootReferenceLabel(plan.rootReference)
                 ),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodyMedium
             )
             Text(
                 text = stringResource(
                     R.string.scale_engine_orchestrator_root_shift,
                     signedSemitone(plan.rootDeltaFromInstrumentKeySemitones)
                 ),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodyMedium
             )
             Text(
                 text = stringResource(
@@ -64,7 +64,7 @@ internal fun TuningOrchestrationCard(
                     plan.pegLowerCount,
                     plan.pegKeepCount
                 ),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodyMedium
             )
             if (plan.tuningMode == com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode.LEVERED) {
                 Text(
@@ -74,7 +74,7 @@ internal fun TuningOrchestrationCard(
                         plan.leverCloseCount,
                         plan.leverKeepCount
                     ),
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
             Text(
@@ -82,23 +82,23 @@ internal fun TuningOrchestrationCard(
                     R.string.scale_engine_orchestrator_changed_strings,
                     plan.changedStringCount
                 ),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodyMedium
             )
             Text(
                 text = stringResource(R.string.scale_engine_orchestrator_note),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodyMedium
             )
 
             if (visiblePlans.isEmpty()) {
                 Text(
                     text = stringResource(R.string.scale_engine_orchestrator_no_changes),
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodyMedium
                 )
             } else {
                 visiblePlans.forEach { stringPlan ->
                     Text(
                         text = tuningInstructionLabel(stringPlan),
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
                 if (hiddenChangeCount > 0) {
@@ -107,7 +107,7 @@ internal fun TuningOrchestrationCard(
                             R.string.scale_engine_orchestrator_more_strings,
                             hiddenChangeCount
                         ),
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }

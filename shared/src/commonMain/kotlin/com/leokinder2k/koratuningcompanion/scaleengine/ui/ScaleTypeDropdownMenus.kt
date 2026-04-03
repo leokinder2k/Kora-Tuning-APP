@@ -50,7 +50,16 @@ private fun scaleTypeFamilies(): List<ScaleTypeFamily> = listOf(
     ScaleTypeFamily(stringResource(Res.string.scale_family_diminished), listOf(
         ScaleType.DIMINISHED_WHOLE_HALF, ScaleType.DIMINISHED_HALF_WHOLE
     )),
-    ScaleTypeFamily(stringResource(Res.string.scale_family_other), listOf(ScaleType.CHROMATIC))
+    ScaleTypeFamily(stringResource(Res.string.scale_family_other), listOf(ScaleType.CHROMATIC)),
+    ScaleTypeFamily(stringResource(Res.string.scale_family_world_scales), listOf(
+        ScaleType.HUNGARIAN_MINOR, ScaleType.HUNGARIAN_MAJOR,
+        ScaleType.RAGA_BHAIRAV, ScaleType.RAGA_YAMAN, ScaleType.RAGA_KAFI, ScaleType.RAGA_BHAIRAVI,
+        ScaleType.NEAPOLITAN_MAJOR, ScaleType.NEAPOLITAN_MINOR,
+        ScaleType.PHRYGIAN_DOMINANT, ScaleType.DOUBLE_HARMONIC, ScaleType.PERSIAN,
+        ScaleType.HIRAJOSHI, ScaleType.JAPANESE_IN, ScaleType.IWATO, ScaleType.INSEN,
+        ScaleType.PROMETHEUS, ScaleType.ENIGMATIC, ScaleType.TRITONE,
+        ScaleType.AUGMENTED, ScaleType.AUGMENTED_INVERSE
+    ))
 )
 
 @Composable
@@ -154,5 +163,25 @@ fun scaleTypeLabel(scaleType: ScaleType): String {
         ScaleType.DIMINISHED_WHOLE_HALF -> stringResource(Res.string.scale_type_diminished_whole_half)
         ScaleType.DIMINISHED_HALF_WHOLE -> stringResource(Res.string.scale_type_diminished_half_whole)
         ScaleType.CHROMATIC -> stringResource(Res.string.scale_type_chromatic)
+        ScaleType.HUNGARIAN_MINOR -> stringResource(Res.string.scale_type_hungarian_minor)
+        ScaleType.HUNGARIAN_MAJOR -> stringResource(Res.string.scale_type_hungarian_major)
+        ScaleType.RAGA_BHAIRAV -> stringResource(Res.string.scale_type_raga_bhairav)
+        ScaleType.RAGA_YAMAN -> stringResource(Res.string.scale_type_raga_yaman)
+        ScaleType.RAGA_KAFI -> stringResource(Res.string.scale_type_raga_kafi)
+        ScaleType.RAGA_BHAIRAVI -> stringResource(Res.string.scale_type_raga_bhairavi)
+        ScaleType.NEAPOLITAN_MAJOR -> stringResource(Res.string.scale_type_neapolitan_major)
+        ScaleType.NEAPOLITAN_MINOR -> stringResource(Res.string.scale_type_neapolitan_minor)
+        ScaleType.PHRYGIAN_DOMINANT -> stringResource(Res.string.scale_type_phrygian_dominant)
+        ScaleType.DOUBLE_HARMONIC -> stringResource(Res.string.scale_type_double_harmonic)
+        ScaleType.PERSIAN -> stringResource(Res.string.scale_type_persian)
+        ScaleType.HIRAJOSHI -> stringResource(Res.string.scale_type_hirajoshi)
+        ScaleType.JAPANESE_IN -> stringResource(Res.string.scale_type_japanese_in)
+        ScaleType.IWATO -> stringResource(Res.string.scale_type_iwato)
+        ScaleType.INSEN -> stringResource(Res.string.scale_type_insen)
+        ScaleType.PROMETHEUS -> stringResource(Res.string.scale_type_prometheus)
+        ScaleType.ENIGMATIC -> stringResource(Res.string.scale_type_enigmatic)
+        ScaleType.TRITONE -> stringResource(Res.string.scale_type_tritone)
+        ScaleType.AUGMENTED -> stringResource(Res.string.scale_type_augmented)
+        ScaleType.AUGMENTED_INVERSE -> stringResource(Res.string.scale_type_augmented_inverse)
     }
 }

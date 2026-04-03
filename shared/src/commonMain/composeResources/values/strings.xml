@@ -112,6 +112,7 @@
     <string name="scale_family_beebop">Beebop</string>
     <string name="scale_family_diminished">Diminished</string>
     <string name="scale_family_other">Other</string>
+    <string name="scale_family_world_scales">World Scales</string>
 
     <string name="scale_type_major">Major (Heptatonic)</string>
     <string name="scale_type_natural_minor">Natural Minor (Heptatonic)</string>
@@ -143,6 +144,33 @@
     <string name="scale_type_diminished_half_whole">Diminished Half-Whole (Octatonic)</string>
 
     <string name="scale_type_chromatic">Chromatic</string>
+
+    <string name="scale_type_hungarian_minor">Hungarian Minor</string>
+    <string name="scale_type_hungarian_major">Hungarian Major</string>
+
+    <string name="scale_type_raga_bhairav">Raga Bhairav (Double Harmonic)</string>
+    <string name="scale_type_raga_yaman">Raga Yaman (Kalyan)</string>
+    <string name="scale_type_raga_kafi">Raga Kafi</string>
+    <string name="scale_type_raga_bhairavi">Raga Bhairavi</string>
+
+    <string name="scale_type_neapolitan_major">Neapolitan Major</string>
+    <string name="scale_type_neapolitan_minor">Neapolitan Minor</string>
+
+    <string name="scale_type_phrygian_dominant">Phrygian Dominant (Hijaz / Flamenco)</string>
+    <string name="scale_type_double_harmonic">Double Harmonic (Byzantine)</string>
+    <string name="scale_type_persian">Persian</string>
+
+    <string name="scale_type_hirajoshi">Hirajoshi</string>
+    <string name="scale_type_japanese_in">In (Yo)</string>
+    <string name="scale_type_iwato">Iwato</string>
+    <string name="scale_type_insen">Insen</string>
+
+    <string name="scale_type_prometheus">Prometheus</string>
+    <string name="scale_type_enigmatic">Enigmatic</string>
+    <string name="scale_type_tritone">Tritone Scale</string>
+
+    <string name="scale_type_augmented">Augmented</string>
+    <string name="scale_type_augmented_inverse">Augmented Inverse</string>
 
     <!-- Live Tuner -->
     <string name="title_live_tuner">Live Tuner</string>

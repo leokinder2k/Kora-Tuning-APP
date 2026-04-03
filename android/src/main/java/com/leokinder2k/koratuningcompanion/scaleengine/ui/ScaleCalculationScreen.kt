@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -93,8 +94,8 @@ fun ScaleCalculationScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
                         text = stringResource(R.string.quick_start_title),
@@ -106,7 +107,7 @@ fun ScaleCalculationScreen(
                         } else {
                             stringResource(R.string.scale_engine_quick_start_peg_tuning)
                         },
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
@@ -120,7 +121,7 @@ fun ScaleCalculationScreen(
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(horizontal = 4.dp)) {
                 items(NoteName.entries) { note ->
                     FilterChip(
                         selected = uiState.rootNote == note,
@@ -250,7 +251,7 @@ private fun SummaryCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
@@ -259,25 +260,25 @@ private fun SummaryCard(
             )
             Text(
                 text = stringResource(R.string.scale_engine_summary_left_strings, leftStringNoteLabels),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodyMedium
             )
             Text(
                 text = stringResource(R.string.scale_engine_summary_right_strings, rightStringNoteLabels),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodyMedium
             )
             if (showLeverInfo) {
                 Text(
                     text = stringResource(R.string.scale_engine_summary_lever_only_retunes, leverRetuneCount),
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
                     text = stringResource(R.string.scale_engine_summary_peg_adjustment_retunes, pegRetuneCount),
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodyMedium
                 )
             } else {
                 Text(
                     text = stringResource(R.string.scale_engine_summary_peg_tuning_retunes, pegRetuneCount),
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
@@ -298,7 +299,7 @@ private fun LeverOnlyTableCard(rows: List<LeverOnlyStringResult>) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
@@ -307,7 +308,7 @@ private fun LeverOnlyTableCard(rows: List<LeverOnlyStringResult>) {
             )
             Text(
                 text = stringResource(R.string.scale_engine_two_column_note),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodyMedium
             )
             SideColumnHeader()
             repeat(rowCount) { index ->
@@ -356,7 +357,7 @@ private fun PegCorrectTableCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
@@ -369,7 +370,7 @@ private fun PegCorrectTableCard(
             )
             Text(
                 text = stringResource(R.string.scale_engine_two_column_note),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodyMedium
             )
             SideColumnHeader()
             repeat(rowCount) { index ->
@@ -429,7 +430,7 @@ private fun SideCell(
         Text(
             text = text,
             modifier = Modifier.padding(8.dp),
-            style = MaterialTheme.typography.bodySmall
+            style = MaterialTheme.typography.bodyMedium
         )
     }
 }
@@ -498,8 +499,8 @@ private fun ConflictCard(conflicts: List<VoicingConflict>) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = stringResource(R.string.scale_engine_conflicts_title),
@@ -508,7 +509,7 @@ private fun ConflictCard(conflicts: List<VoicingConflict>) {
             if (conflicts.isEmpty()) {
                 Text(
                     text = stringResource(R.string.scale_engine_conflicts_none),
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodyMedium
                 )
             } else {
                 conflicts.forEach { conflict ->
@@ -521,7 +522,7 @@ private fun ConflictCard(conflicts: List<VoicingConflict>) {
                             conflict.higherStringNumber,
                             conflict.detail
                         ),
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
@@ -535,8 +536,8 @@ private fun SuggestionCard(suggestions: List<VoicingSuggestion>) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = stringResource(R.string.scale_engine_suggestions_title),
@@ -545,7 +546,7 @@ private fun SuggestionCard(suggestions: List<VoicingSuggestion>) {
             if (suggestions.isEmpty()) {
                 Text(
                     text = stringResource(R.string.scale_engine_suggestions_none),
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodyMedium
                 )
             } else {
                 suggestions.forEach { suggestion ->
@@ -555,7 +556,7 @@ private fun SuggestionCard(suggestions: List<VoicingSuggestion>) {
                             suggestion.mode.name,
                             suggestion.suggestion
                         ),
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }

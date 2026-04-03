@@ -277,7 +277,7 @@ fun InstrumentConfigurationScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.title_instrument_configuration)) },
                 actions = {
-                    IconButton(onClick = onToggleMute) {
+                    IconButton(onClick = onToggleMute, modifier = Modifier.size(48.dp)) {
                         Icon(
                             imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
                             contentDescription = null,
@@ -383,8 +383,8 @@ fun InstrumentConfigurationScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
                             text = stringResource(R.string.quick_start_title),
@@ -392,15 +392,15 @@ fun InstrumentConfigurationScreen(
                         )
                         Text(
                             text = stringResource(R.string.instrument_config_quick_start_step_1),
-                            style = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
                             text = stringResource(R.string.instrument_config_quick_start_step_2),
-                            style = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
                             text = stringResource(R.string.instrument_config_quick_start_step_3),
-                            style = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
                 }
@@ -460,7 +460,7 @@ fun InstrumentConfigurationScreen(
             item {
                 Text(
                     text = stringResource(R.string.instrument_config_auto_save_note),
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
 
@@ -529,7 +529,7 @@ private fun HomeTuningCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
@@ -538,7 +538,7 @@ private fun HomeTuningCard(
             )
             Text(
                 text = stringResource(R.string.instrument_config_home_tuning_description),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodyMedium
             )
             if (allValid) {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -563,7 +563,7 @@ private fun HomeTuningCard(
             } else {
                 Text(
                     text = stringResource(R.string.instrument_config_home_not_set),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -643,7 +643,7 @@ private fun InstrumentTuningAssistantCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -652,7 +652,7 @@ private fun InstrumentTuningAssistantCard(
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
                         text = stringResource(R.string.instrument_tuning_assistant_title),
@@ -662,7 +662,7 @@ private fun InstrumentTuningAssistantCard(
                 Column(
                     modifier = Modifier.widthIn(max = 120.dp),
                     horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (!tunerUiState.hasAudioPermission) {
                         Button(
@@ -692,7 +692,7 @@ private fun InstrumentTuningAssistantCard(
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
                         text = stringResource(
@@ -700,26 +700,26 @@ private fun InstrumentTuningAssistantCard(
                             selectedPitchLabel ?: "--",
                             selectedOpenCents?.let(::signed) ?: "--"
                         ),
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
                         text = stringResource(
                             R.string.instrument_tuning_assistant_target_hz_line,
                             formatFrequency(selectedTargetFrequencyHz)
                         ),
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
                         text = stringResource(
                             R.string.instrument_tuning_assistant_detected_hz_line,
                             formatFrequency(detectedFrequencyHz)
                         ),
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodyMedium
                     )
                     if (selectedCentsDeviation != null) {
                         val color = tuningStateColor(requireNotNull(tuningState))
@@ -729,13 +729,13 @@ private fun InstrumentTuningAssistantCard(
                                 signed(selectedCentsDeviation),
                                 tuningStateLabel(tuningState)
                             ),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = color
                         )
                     } else {
                         Text(
                             text = stringResource(R.string.instrument_tuning_assistant_deviation_none),
-                            style = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
                 }
@@ -880,14 +880,14 @@ private fun CompactStringChip(
     Card(
         modifier = Modifier
             .clickable(onClick = onClick)
-            .heightIn(min = 28.dp),
+            .heightIn(min = 48.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
         border = BorderStroke(width = 1.dp, color = borderColor)
     ) {
         Text(
             text = "${row.stringNumber} ${row.openPitchInput.ifBlank { "--" }}",
             style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
         )
     }
 }
@@ -910,7 +910,7 @@ private fun TuningLightsRow(
         ).toFloat() * 0.5f
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1001,7 +1001,7 @@ private fun StringConfigurationCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
         Text(

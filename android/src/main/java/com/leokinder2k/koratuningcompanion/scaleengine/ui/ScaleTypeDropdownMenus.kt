@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -88,6 +89,18 @@ private val ScaleTypeFamilies = listOf(
     ScaleTypeFamily(
         labelRes = R.string.scale_family_other,
         types = listOf(ScaleType.CHROMATIC)
+    ),
+    ScaleTypeFamily(
+        labelRes = R.string.scale_family_world_scales,
+        types = listOf(
+            ScaleType.HUNGARIAN_MINOR, ScaleType.HUNGARIAN_MAJOR,
+            ScaleType.RAGA_BHAIRAV, ScaleType.RAGA_YAMAN, ScaleType.RAGA_KAFI, ScaleType.RAGA_BHAIRAVI,
+            ScaleType.NEAPOLITAN_MAJOR, ScaleType.NEAPOLITAN_MINOR,
+            ScaleType.PHRYGIAN_DOMINANT, ScaleType.DOUBLE_HARMONIC, ScaleType.PERSIAN,
+            ScaleType.HIRAJOSHI, ScaleType.JAPANESE_IN, ScaleType.IWATO, ScaleType.INSEN,
+            ScaleType.PROMETHEUS, ScaleType.ENIGMATIC, ScaleType.TRITONE,
+            ScaleType.AUGMENTED, ScaleType.AUGMENTED_INVERSE
+        )
     )
 )
 
@@ -119,7 +132,8 @@ fun ScaleTypeDropdownMenus(
             }
             DropdownMenu(
                 expanded = isFamilyMenuExpanded,
-                onDismissRequest = { isFamilyMenuExpanded = false }
+                onDismissRequest = { isFamilyMenuExpanded = false },
+                modifier = Modifier.widthIn(max = 280.dp)
             ) {
                 ScaleTypeFamilies.forEach { family ->
                     DropdownMenuItem(
@@ -148,7 +162,8 @@ fun ScaleTypeDropdownMenus(
             }
             DropdownMenu(
                 expanded = isScaleMenuExpanded,
-                onDismissRequest = { isScaleMenuExpanded = false }
+                onDismissRequest = { isScaleMenuExpanded = false },
+                modifier = Modifier.widthIn(max = 280.dp)
             ) {
                 selectedFamily.types.forEach { scaleType ->
                     DropdownMenuItem(
@@ -202,6 +217,26 @@ internal fun scaleTypeLabel(scaleType: ScaleType): String {
         ScaleType.DIMINISHED_HALF_WHOLE -> stringResource(R.string.scale_type_diminished_half_whole)
 
         ScaleType.CHROMATIC -> stringResource(R.string.scale_type_chromatic)
+        ScaleType.HUNGARIAN_MINOR -> stringResource(R.string.scale_type_hungarian_minor)
+        ScaleType.HUNGARIAN_MAJOR -> stringResource(R.string.scale_type_hungarian_major)
+        ScaleType.RAGA_BHAIRAV -> stringResource(R.string.scale_type_raga_bhairav)
+        ScaleType.RAGA_YAMAN -> stringResource(R.string.scale_type_raga_yaman)
+        ScaleType.RAGA_KAFI -> stringResource(R.string.scale_type_raga_kafi)
+        ScaleType.RAGA_BHAIRAVI -> stringResource(R.string.scale_type_raga_bhairavi)
+        ScaleType.NEAPOLITAN_MAJOR -> stringResource(R.string.scale_type_neapolitan_major)
+        ScaleType.NEAPOLITAN_MINOR -> stringResource(R.string.scale_type_neapolitan_minor)
+        ScaleType.PHRYGIAN_DOMINANT -> stringResource(R.string.scale_type_phrygian_dominant)
+        ScaleType.DOUBLE_HARMONIC -> stringResource(R.string.scale_type_double_harmonic)
+        ScaleType.PERSIAN -> stringResource(R.string.scale_type_persian)
+        ScaleType.HIRAJOSHI -> stringResource(R.string.scale_type_hirajoshi)
+        ScaleType.JAPANESE_IN -> stringResource(R.string.scale_type_japanese_in)
+        ScaleType.IWATO -> stringResource(R.string.scale_type_iwato)
+        ScaleType.INSEN -> stringResource(R.string.scale_type_insen)
+        ScaleType.PROMETHEUS -> stringResource(R.string.scale_type_prometheus)
+        ScaleType.ENIGMATIC -> stringResource(R.string.scale_type_enigmatic)
+        ScaleType.TRITONE -> stringResource(R.string.scale_type_tritone)
+        ScaleType.AUGMENTED -> stringResource(R.string.scale_type_augmented)
+        ScaleType.AUGMENTED_INVERSE -> stringResource(R.string.scale_type_augmented_inverse)
     }
 }
 

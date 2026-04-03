@@ -48,8 +48,8 @@ internal fun VersatilityRecommendationsCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = stringResource(R.string.versatility_title, analysis.instrumentKey.symbol),
@@ -62,7 +62,7 @@ internal fun VersatilityRecommendationsCard(
                     analysis.evaluatedScaleTypes,
                     analysis.evaluatedReferences
                 ),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodyMedium
             )
             OutlinedButton(
                 onClick = {
@@ -307,5 +307,25 @@ private fun scaleTypeLabelText(context: Context, scaleType: ScaleType): String =
         ScaleType.BEEBOP_DORIAN       -> context.getString(R.string.scale_type_beebop_dorian)
         ScaleType.DIMINISHED_WHOLE_HALF -> context.getString(R.string.scale_type_diminished_whole_half)
         ScaleType.DIMINISHED_HALF_WHOLE -> context.getString(R.string.scale_type_diminished_half_whole)
-        ScaleType.CHROMATIC           -> context.getString(R.string.scale_type_chromatic)
+        ScaleType.CHROMATIC             -> context.getString(R.string.scale_type_chromatic)
+        ScaleType.HUNGARIAN_MINOR       -> context.getString(R.string.scale_type_hungarian_minor)
+        ScaleType.HUNGARIAN_MAJOR       -> context.getString(R.string.scale_type_hungarian_major)
+        ScaleType.RAGA_BHAIRAV          -> context.getString(R.string.scale_type_raga_bhairav)
+        ScaleType.RAGA_YAMAN            -> context.getString(R.string.scale_type_raga_yaman)
+        ScaleType.RAGA_KAFI             -> context.getString(R.string.scale_type_raga_kafi)
+        ScaleType.RAGA_BHAIRAVI         -> context.getString(R.string.scale_type_raga_bhairavi)
+        ScaleType.NEAPOLITAN_MAJOR      -> context.getString(R.string.scale_type_neapolitan_major)
+        ScaleType.NEAPOLITAN_MINOR      -> context.getString(R.string.scale_type_neapolitan_minor)
+        ScaleType.PHRYGIAN_DOMINANT     -> context.getString(R.string.scale_type_phrygian_dominant)
+        ScaleType.DOUBLE_HARMONIC       -> context.getString(R.string.scale_type_double_harmonic)
+        ScaleType.PERSIAN               -> context.getString(R.string.scale_type_persian)
+        ScaleType.HIRAJOSHI             -> context.getString(R.string.scale_type_hirajoshi)
+        ScaleType.JAPANESE_IN           -> context.getString(R.string.scale_type_japanese_in)
+        ScaleType.IWATO                 -> context.getString(R.string.scale_type_iwato)
+        ScaleType.INSEN                 -> context.getString(R.string.scale_type_insen)
+        ScaleType.PROMETHEUS            -> context.getString(R.string.scale_type_prometheus)
+        ScaleType.ENIGMATIC             -> context.getString(R.string.scale_type_enigmatic)
+        ScaleType.TRITONE               -> context.getString(R.string.scale_type_tritone)
+        ScaleType.AUGMENTED             -> context.getString(R.string.scale_type_augmented)
+        ScaleType.AUGMENTED_INVERSE     -> context.getString(R.string.scale_type_augmented_inverse)
     }
