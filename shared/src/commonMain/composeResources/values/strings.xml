@@ -26,9 +26,11 @@
     <string name="action_grant_microphone_permission">Grant Microphone Permission</string>
     <string name="action_mute">Mute audio</string>
     <string name="action_unmute">Unmute audio</string>
+    <string name="enharmonic_preference_sharps">A#</string>
+    <string name="enharmonic_preference_flats">Bb</string>
 
     <!-- Instrument Configuration -->
-    <string name="title_instrument_configuration">Instrument Configuration</string>
+    <string name="title_instrument_configuration">Setup</string>
     <string name="instrument_config_section_strings">Strings</string>
     <string name="instrument_config_description_levered">Set open tuning for each string. Closed pitch is calculated automatically (+1 semitone). You can also enter open/closed intonation offsets in cents.</string>
     <string name="instrument_config_description_peg_tuning">Peg tuning mode (non-chromatic): your kora has no levers. Set open tuning for each string and (optionally) open cents offsets.</string>
@@ -99,6 +101,8 @@
     <string name="scale_root_reference_left_2">2nd left</string>
     <string name="scale_root_reference_left_3">3rd left</string>
     <string name="scale_root_reference_left_4">4th left</string>
+    <string name="scale_root_reference_left_5">5th left</string>
+    <string name="scale_root_reference_left_6">6th left</string>
     <string name="scale_root_reference_right_1">1st right</string>
     <string name="scale_type_label">Scale type</string>
     <string name="scale_family_label">Scale family</string>
@@ -173,7 +177,7 @@
     <string name="scale_type_augmented_inverse">Augmented Inverse</string>
 
     <!-- Live Tuner -->
-    <string name="title_live_tuner">Live Tuner</string>
+    <string name="title_live_tuner">Tuner</string>
     <string name="live_tuner_quick_start_step_1">1. Select mode: Realtime for response, Precision for cent accuracy.</string>
     <string name="live_tuner_quick_start_step_2">2. Grant microphone access and start tuner.</string>
     <string name="live_tuner_quick_start_step_3">3. Pluck one string cleanly and match cent deviation to 0.</string>
@@ -456,3 +460,5 @@
         <item quantity="other">%d beats</item>
     </plurals>
 </resources>
+
+

@@ -88,9 +88,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leokinder2k.koratuningcompanion.generated.resources.Res
 import com.leokinder2k.koratuningcompanion.generated.resources.*
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.displaySymbol
 import com.leokinder2k.koratuningcompanion.livetuner.audio.MetronomeClickPlayer
 import com.leokinder2k.koratuningcompanion.livetuner.audio.MetronomeSoundOption
 import com.leokinder2k.koratuningcompanion.livetuner.audio.PluckedStringPlayer
@@ -141,6 +143,7 @@ private data class DiagramStringSegment(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 fun InstantOverviewScreen(
     uiState: ScaleCalculationUiState,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     onScaleTypeSelected: (ScaleType) -> Unit,
     onScaleRootReferenceSelected: (ScaleRootReference) -> Unit = {},
     isMuted: Boolean = false,
@@ -570,10 +573,10 @@ private fun OverviewSelectionControls(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "${stringResource(Res.string.instrument_config_section_root_note)}: ${instrumentKey.symbol}",
+            text = "${stringResource(Res.string.instrument_config_section_root_note)}: ${instrumentKey.displaySymbol(enharmonicPreference)}",
             style = MaterialTheme.typography.titleMedium
         )
-        Text(text = stringResource(Res.string.scale_root_note_label) + ": ${rootNote.symbol}", style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(Res.string.scale_root_note_label) + ": ${rootNote.displaySymbol(enharmonicPreference)}", style = MaterialTheme.typography.titleMedium)
         Text(
             text = stringResource(Res.string.scale_root_reference_label),
             style = MaterialTheme.typography.titleMedium
@@ -605,6 +608,20 @@ private fun OverviewSelectionControls(
                     selected = scaleRootReference == ScaleRootReference.LEFT_4,
                     onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_4) },
                     label = { Text(stringResource(Res.string.scale_root_reference_left_4)) }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = scaleRootReference == ScaleRootReference.LEFT_5,
+                    onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_5) },
+                    label = { Text(stringResource(Res.string.scale_root_reference_left_5)) }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = scaleRootReference == ScaleRootReference.LEFT_6,
+                    onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_6) },
+                    label = { Text(stringResource(Res.string.scale_root_reference_left_6)) }
                 )
             }
             if (allowRight1) {
@@ -973,7 +990,7 @@ private fun DrawScope.drawStringSet(
         if (noteLabelsVisible && textMeasurer != null) {
             val semitoneShift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
             val labelX = if (isLeft) pegX + (width * 0.032f) else pegX - (width * 0.032f)
-            val labelText = displayPitchLabel(effectivePitch = row.selectedPitch, semitoneShift = semitoneShift, includeOctave = false)
+            val labelText = displayPitchLabel(effectivePitch = row.selectedPitch, semitoneShift = semitoneShift, includeOctave = false, enharmonicPreference = enharmonicPreference)
             val textSizeSp = (width * 0.022f / density).sp
             val textResult = textMeasurer.measure(labelText, TextStyle(color = colors.onBackground, fontSize = textSizeSp))
             val textX = if (isLeft) labelX else labelX - textResult.size.width
@@ -1070,7 +1087,7 @@ private fun TouchStringRows(
             val shift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
             PitchActionChip(
                 isActive = row.stringNumber in playingStringNumbers,
-                text = "${row.role.asLabel()} ${displayPitchLabel(row.selectedPitch, shift, false)}",
+                text = "${row.role.asLabel()} ${displayPitchLabel(row.selectedPitch, shift, false, enharmonicPreference)}",
                 onClick = { onStringTouched(row) }, onDoubleClick = { onStringSharpened(row) }, onLongPress = { onStringFlattened(row) }
             )
         }
@@ -1081,7 +1098,7 @@ private fun TouchStringRows(
             val shift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
             PitchActionChip(
                 isActive = row.stringNumber in playingStringNumbers,
-                text = "${row.role.asLabel()} ${displayPitchLabel(row.selectedPitch, shift, false)}",
+                text = "${row.role.asLabel()} ${displayPitchLabel(row.selectedPitch, shift, false, enharmonicPreference)}",
                 onClick = { onStringTouched(row) }, onDoubleClick = { onStringSharpened(row) }, onLongPress = { onStringFlattened(row) }
             )
         }
@@ -1162,7 +1179,7 @@ private fun ChordOverview(
             Text(text = stringResource(Res.string.overview_chords_subtitle), style = MaterialTheme.typography.bodySmall)
             Text(text = stringResource(Res.string.overview_chords_root_label), style = MaterialTheme.typography.labelMedium)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(NoteName.entries) { note -> FilterChip(selected = note == selectedRoot, onClick = { onRootSelected(note) }, label = { Text(note.symbol) }) }
+                items(NoteName.entries) { note -> FilterChip(selected = note == selectedRoot, onClick = { onRootSelected(note) }, label = { Text(note.displaySymbol(enharmonicPreference)) }) }
             }
             Text(text = stringResource(Res.string.overview_chords_quality_label), style = MaterialTheme.typography.labelMedium)
             Box(modifier = Modifier.fillMaxWidth()) {
@@ -1173,7 +1190,7 @@ private fun ChordOverview(
                     }
                 }
             }
-            Text(text = stringResource(Res.string.overview_chords_notes_line, selectedMatch.definition.chordNotes.joinToString(" ") { it.symbol }), style = MaterialTheme.typography.bodySmall)
+            Text(text = stringResource(Res.string.overview_chords_notes_line, selectedMatch.definition.chordNotes.joinToString(" ") { it.displaySymbol(enharmonicPreference) }), style = MaterialTheme.typography.bodySmall)
             Text(text = stringResource(Res.string.overview_chords_positions_label), style = MaterialTheme.typography.labelMedium)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(items = selectedQuality.tones, key = { it.semitoneOffset }) { tone ->
@@ -1182,7 +1199,7 @@ private fun ChordOverview(
             }
             Text(
                 text = if (selectedMatch.missingNotes.isEmpty()) stringResource(Res.string.overview_chords_coverage_complete)
-                       else stringResource(Res.string.overview_chords_coverage_missing, selectedMatch.missingNotes.joinToString(" ") { it.symbol }),
+                       else stringResource(Res.string.overview_chords_coverage_missing, selectedMatch.missingNotes.joinToString(" ") { it.displaySymbol(enharmonicPreference) }),
                 style = MaterialTheme.typography.bodySmall
             )
             Text(text = stringResource(Res.string.overview_chords_strings_to_play_line, selectedChordStrings.size, 4), style = MaterialTheme.typography.bodySmall)
@@ -1232,7 +1249,7 @@ private fun ChordOverview(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(text = chordDefinitionLabel(match.definition), style = MaterialTheme.typography.bodyMedium)
-                        Text(text = stringResource(Res.string.overview_chords_match_notes_play_line, match.definition.chordNotes.joinToString(" ") { it.symbol }, match.playedStringNumbers.size), style = MaterialTheme.typography.bodySmall)
+                        Text(text = stringResource(Res.string.overview_chords_match_notes_play_line, match.definition.chordNotes.joinToString(" ") { it.displaySymbol(enharmonicPreference) }, match.playedStringNumbers.size), style = MaterialTheme.typography.bodySmall)
                         Text(
                             text = if (match.usesDetunedStrings) stringResource(Res.string.overview_chords_match_includes_detuned) else stringResource(Res.string.overview_chords_match_no_detuned),
                             style = MaterialTheme.typography.bodySmall,
@@ -1287,7 +1304,7 @@ private fun ChordExerciseOverview(
             Text(text = stringResource(Res.string.overview_exercise_start_key_label), style = MaterialTheme.typography.labelMedium)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(CIRCLE_OF_FIFTHS_ORDER) { note ->
-                    FilterChip(selected = note == circleExerciseStartRoot, onClick = { onCircleExerciseStartRootChanged(note) }, label = { Text(circleOfFifthsLabel(note)) })
+                    FilterChip(selected = note == circleExerciseStartRoot, onClick = { onCircleExerciseStartRootChanged(note) }, label = { Text(circleOfFifthsLabel(note, enharmonicPreference)) })
                 }
             }
             Text(text = stringResource(Res.string.overview_exercise_choice_mode_label), style = MaterialTheme.typography.labelMedium)
@@ -1299,19 +1316,19 @@ private fun ChordExerciseOverview(
             CircleOfFifthsExerciseDiagram(startRoot = circleExerciseStartRoot, nextRoot = timedExerciseTargetRoot ?: nextCircleExerciseRoot, choiceRoots = timedExerciseChoiceRoots)
             if (timedExerciseTargetRoot != null) {
                 Text(
-                    text = pluralStringResource(Res.plurals.overview_exercise_suggested_next, timedExerciseBeatsUntilDue, circleOfFifthsLabel(timedExerciseTargetRoot), chordQualityLabel(selectedQuality), timedExerciseBeatsUntilDue, timedExerciseDueBeat),
+                    text = pluralStringResource(Res.plurals.overview_exercise_suggested_next, timedExerciseBeatsUntilDue, circleOfFifthsLabel(timedExerciseTargetRoot, enharmonicPreference), chordQualityLabel(selectedQuality), timedExerciseBeatsUntilDue, timedExerciseDueBeat),
                     style = MaterialTheme.typography.bodySmall
                 )
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(timedExerciseChoiceRoots) { choiceRoot ->
                         FilterChip(
                             selected = choiceRoot == timedExerciseTargetRoot, onClick = { onRootSelected(choiceRoot) },
-                            label = { Text(stringResource(Res.string.overview_exercise_choice_item, circleOfFifthsLabel(choiceRoot), chordQualityLabel(selectedQuality))) }
+                            label = { Text(stringResource(Res.string.overview_exercise_choice_item, circleOfFifthsLabel(choiceRoot, enharmonicPreference), chordQualityLabel(selectedQuality))) }
                         )
                     }
                 }
             }
-            Text(text = stringResource(Res.string.overview_exercise_next_step, circleOfFifthsLabel(nextCircleExerciseRoot), chordQualityLabel(selectedQuality)), style = MaterialTheme.typography.bodySmall)
+            Text(text = stringResource(Res.string.overview_exercise_next_step, circleOfFifthsLabel(nextCircleExerciseRoot, enharmonicPreference), chordQualityLabel(selectedQuality)), style = MaterialTheme.typography.bodySmall)
             OutlinedButton(onClick = onRunCircleExerciseStep, modifier = Modifier.fillMaxWidth()) { Text(stringResource(Res.string.overview_exercise_action_next_fifth)) }
             Text(text = stringResource(Res.string.overview_exercise_timed_interval_label), style = MaterialTheme.typography.labelMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1392,7 +1409,7 @@ private fun CircleOfFifthsExerciseDiagram(startRoot: NoteName, nextRoot: NoteNam
                         drawCircle(color = Color.White.copy(alpha = 0.9f), radius = markerRadius + size.minDimension * 0.006f, center = markerCenter, style = Stroke(width = size.minDimension * 0.006f))
                     }
                     val textColor = if (isNext || isStart) Color.White else colorScheme.onSurface
-                    val textResult = textMeasurer.measure(circleOfFifthsLabel(note), TextStyle(color = textColor, fontSize = 11.sp, textAlign = TextAlign.Center))
+                    val textResult = textMeasurer.measure(circleOfFifthsLabel(note, enharmonicPreference), TextStyle(color = textColor, fontSize = 11.sp, textAlign = TextAlign.Center))
                     drawText(textResult, topLeft = Offset(markerCenter.x - textResult.size.width / 2f, markerCenter.y - textResult.size.height / 2f))
                 }
             }
@@ -1469,7 +1486,7 @@ private fun ChordSideCell(row: PegCorrectStringResult, pitchShiftByString: Map<I
                 val shift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
                 append(if (shouldPlay) "X " else "- ")
                 append("${row.role.asLabel()} (S${row.stringNumber})\n")
-                append(displayPitchLabel(row.selectedPitch, shift, true))
+                append(displayPitchLabel(row.selectedPitch, shift, true, enharmonicPreference))
                 if (showLeverInfo) append("  ${row.selectedLeverState.name}")
                 if (row.pegRetuneRequired) append("  ${stringResource(Res.string.value_detuned)}")
             },
@@ -1500,10 +1517,10 @@ private fun TableOverview(rows: List<PegCorrectStringResult>, pitchShiftByString
             repeat(rowCount) { index ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val lr = leftRows.getOrNull(index)
-                    if (lr != null) SideCell(formatOverviewRow(lr, showLeverInfo, pitchShiftByString), lr.stringNumber in playingStringNumbers, { onStringTouched(lr) }, Modifier.weight(1f))
+                    if (lr != null) SideCell(formatOverviewRow(lr, showLeverInfo, pitchShiftByString, enharmonicPreference), lr.stringNumber in playingStringNumbers, { onStringTouched(lr) }, Modifier.weight(1f))
                     else Spacer(Modifier.weight(1f))
                     val rr = rightRows.getOrNull(index)
-                    if (rr != null) SideCell(formatOverviewRow(rr, showLeverInfo, pitchShiftByString), rr.stringNumber in playingStringNumbers, { onStringTouched(rr) }, Modifier.weight(1f))
+                    if (rr != null) SideCell(formatOverviewRow(rr, showLeverInfo, pitchShiftByString, enharmonicPreference), rr.stringNumber in playingStringNumbers, { onStringTouched(rr) }, Modifier.weight(1f))
                     else Spacer(Modifier.weight(1f))
                 }
             }
@@ -1522,10 +1539,10 @@ private fun SideCell(text: String, isActive: Boolean, onClick: () -> Unit, modif
 }
 
 @Composable
-private fun formatOverviewRow(row: PegCorrectStringResult, showLeverInfo: Boolean, pitchShiftByString: Map<Int, Int>): String {
+private fun formatOverviewRow(row: PegCorrectStringResult, showLeverInfo: Boolean, pitchShiftByString: Map<Int, Int>, enharmonicPreference: EnharmonicPreference): String {
     val pegIndicator = if (row.pegRetuneRequired) signed(row.pegRetuneSemitones) else "0"
     val shift = (pitchShiftByString[row.stringNumber] ?: 0).coerceIn(-1, 1)
-    val pitchLabel = displayPitchLabel(row.selectedPitch, shift, true)
+    val pitchLabel = displayPitchLabel(row.selectedPitch, shift, true, enharmonicPreference)
     val leverChangeLabel = stringResource(Res.string.scale_engine_lever_change_indicator)
     return buildString {
         append("${row.role.asLabel()} (S${row.stringNumber})")
@@ -1540,7 +1557,12 @@ private fun formatOverviewRow(row: PegCorrectStringResult, showLeverInfo: Boolea
 
 private fun signed(value: Int): String = if (value >= 0) "+$value" else value.toString()
 
-private fun displayPitchLabel(effectivePitch: Pitch, semitoneShift: Int, includeOctave: Boolean): String {
+private fun displayPitchLabel(
+    effectivePitch: Pitch,
+    semitoneShift: Int,
+    includeOctave: Boolean,
+    enharmonicPreference: EnharmonicPreference
+): String {
     val shift = semitoneShift.coerceIn(-1, 1)
     val basePitch = effectivePitch.plusSemitones(-shift)
     val baseSymbol = basePitch.note.symbol
@@ -1576,9 +1598,9 @@ private fun spreadOrder(rows: List<PegCorrectStringResult>): List<PegCorrectStri
 
 private fun circleOfFifthsIndexFor(note: NoteName): Int { val i = CIRCLE_OF_FIFTHS_ORDER.indexOf(note); return if (i >= 0) i else 0 }
 
-private fun circleOfFifthsLabel(note: NoteName): String = when (note) {
+private fun circleOfFifthsLabel(note: NoteName, enharmonicPreference: EnharmonicPreference): String = when (note) {
     NoteName.A_SHARP -> "Bb"; NoteName.D_SHARP -> "Eb"; NoteName.G_SHARP -> "Ab"
-    NoteName.C_SHARP -> "Db"; NoteName.F_SHARP -> "F# / Gb"; else -> note.symbol
+    NoteName.C_SHARP -> note.displaySymbol(enharmonicPreference); NoteName.F_SHARP -> note.displaySymbol(enharmonicPreference); else -> note.displaySymbol(enharmonicPreference)
 }
 
 private fun buildExerciseChoices(targetRoot: NoteName, size: Int): List<NoteName> {
@@ -1601,7 +1623,7 @@ private fun chordQualityLabel(quality: ChordQuality): String = when (quality) {
 }
 
 @Composable
-private fun chordDefinitionLabel(definition: ChordDefinition): String = "${definition.root.symbol} ${chordQualityLabel(definition.quality)}"
+private fun chordDefinitionLabel(definition: ChordDefinition): String = "${definition.root.displaySymbol(EnharmonicPreference.SHARPS)} ${chordQualityLabel(definition.quality)}"
 
 @Composable
 private fun metronomeSoundOptionLabel(sound: MetronomeSoundOption): String = when (sound) {
@@ -1622,3 +1644,4 @@ private fun exerciseChoiceModeLabel(mode: ExerciseChoiceMode): String = when (mo
     ExerciseChoiceMode.PRESET -> stringResource(Res.string.overview_exercise_choice_preset)
     ExerciseChoiceMode.RANDOM -> stringResource(Res.string.overview_exercise_choice_random)
 }
+

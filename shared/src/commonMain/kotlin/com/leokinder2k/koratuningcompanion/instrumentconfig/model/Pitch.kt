@@ -23,6 +23,28 @@ enum class NoteName(val semitone: Int, val symbol: String) {
     }
 }
 
+enum class EnharmonicPreference {
+    SHARPS,
+    FLATS,
+}
+
+fun NoteName.displaySymbol(preference: EnharmonicPreference = EnharmonicPreference.SHARPS): String {
+    return when (this) {
+        NoteName.C -> "C"
+        NoteName.C_SHARP -> if (preference == EnharmonicPreference.FLATS) "Db" else "C#"
+        NoteName.D -> "D"
+        NoteName.D_SHARP -> if (preference == EnharmonicPreference.FLATS) "Eb" else "D#"
+        NoteName.E -> "E"
+        NoteName.F -> "F"
+        NoteName.F_SHARP -> if (preference == EnharmonicPreference.FLATS) "Gb" else "F#"
+        NoteName.G -> "G"
+        NoteName.G_SHARP -> if (preference == EnharmonicPreference.FLATS) "Ab" else "G#"
+        NoteName.A -> "A"
+        NoteName.A_SHARP -> if (preference == EnharmonicPreference.FLATS) "Bb" else "A#"
+        NoteName.B -> "B"
+    }
+}
+
 data class Pitch(
     val note: NoteName,
     val octave: Int
@@ -34,7 +56,8 @@ data class Pitch(
         return Pitch(note = normalizedNote, octave = normalizedOctave)
     }
 
-    fun asText(): String = "${note.symbol}$octave"
+    fun asText(preference: EnharmonicPreference = EnharmonicPreference.SHARPS): String =
+        "${note.displaySymbol(preference)}$octave"
 
     companion object {
         private val PITCH_PATTERN = Regex("^([A-Ga-g])([#bB]?)(-?\\d+)$")
@@ -85,4 +108,5 @@ data class Pitch(
 }
 
 private const val SEMITONES_PER_OCTAVE = 12
+
 

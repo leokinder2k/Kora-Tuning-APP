@@ -7,6 +7,7 @@ import com.leokinder2k.koratuningcompanion.instrumentconfig.model.TraditionalPre
 import com.leokinder2k.koratuningcompanion.scaleengine.model.EngineMode
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverState
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleCalculationRequest
+import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleRootReference
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
 import com.leokinder2k.koratuningcompanion.scaleengine.model.StringSide
 import org.junit.Assert.assertEquals
@@ -267,6 +268,76 @@ class ScaleCalculationEngineTest {
                 row.selectedLeverState == LeverState.CLOSED &&
                 row.pegRetuneSemitones == 0
         })
+    }
+
+    @Test
+    fun scaleRootReference_left5AnchorsToFifthLeftString() {
+        val profile = profileWithPitches(
+            overrides = mapOf(6 to "E4"),
+            fill = "C4"
+        )
+
+        val left5Result = engine.calculate(
+            ScaleCalculationRequest(
+                instrumentProfile = profile,
+                scaleType = ScaleType.MAJOR,
+                rootNote = NoteName.E,
+                scaleRootReference = ScaleRootReference.LEFT_5
+            )
+        )
+        val left4Result = engine.calculate(
+            ScaleCalculationRequest(
+                instrumentProfile = profile,
+                scaleType = ScaleType.MAJOR,
+                rootNote = NoteName.E,
+                scaleRootReference = ScaleRootReference.LEFT_4
+            )
+        )
+
+        assertEquals(
+            LeverState.CLOSED,
+            left5Result.leverOnlyTable.first { row -> row.stringNumber == 1 }.selectedLeverState
+        )
+        assertNull(left4Result.leverOnlyTable.first { row -> row.stringNumber == 1 }.selectedLeverState)
+        assertEquals(
+            LeverState.OPEN,
+            left5Result.leverOnlyTable.first { row -> row.stringNumber == 6 }.selectedLeverState
+        )
+    }
+
+    @Test
+    fun scaleRootReference_left6AnchorsToSixthLeftString() {
+        val profile = profileWithPitches(
+            overrides = mapOf(8 to "E4"),
+            fill = "C4"
+        )
+
+        val left6Result = engine.calculate(
+            ScaleCalculationRequest(
+                instrumentProfile = profile,
+                scaleType = ScaleType.MAJOR,
+                rootNote = NoteName.E,
+                scaleRootReference = ScaleRootReference.LEFT_6
+            )
+        )
+        val left5Result = engine.calculate(
+            ScaleCalculationRequest(
+                instrumentProfile = profile,
+                scaleType = ScaleType.MAJOR,
+                rootNote = NoteName.E,
+                scaleRootReference = ScaleRootReference.LEFT_5
+            )
+        )
+
+        assertEquals(
+            LeverState.CLOSED,
+            left6Result.leverOnlyTable.first { row -> row.stringNumber == 1 }.selectedLeverState
+        )
+        assertNull(left5Result.leverOnlyTable.first { row -> row.stringNumber == 1 }.selectedLeverState)
+        assertEquals(
+            LeverState.OPEN,
+            left6Result.leverOnlyTable.first { row -> row.stringNumber == 8 }.selectedLeverState
+        )
     }
 
     @Test

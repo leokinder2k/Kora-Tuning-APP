@@ -28,8 +28,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.generated.resources.Res
 import com.leokinder2k.koratuningcompanion.generated.resources.*
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.displaySymbol
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverOnlyStringResult
 import com.leokinder2k.koratuningcompanion.scaleengine.model.PegCorrectStringResult
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleRootReference
@@ -113,7 +115,7 @@ fun ScaleCalculationScreen(
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "${stringResource(Res.string.instrument_config_section_root_note)}: ${uiState.instrumentKey.symbol}",
+                text = "${stringResource(Res.string.instrument_config_section_root_note)}: ${uiState.instrumentKey.displaySymbol(enharmonicPreference)}",
                 style = MaterialTheme.typography.bodyMedium
             )
 
@@ -122,7 +124,7 @@ fun ScaleCalculationScreen(
                     FilterChip(
                         selected = uiState.rootNote == note,
                         onClick = { onRootNoteSelected(note) },
-                        label = { Text(note.symbol) }
+                        label = { Text(note.displaySymbol(enharmonicPreference)) }
                     )
                 }
             }
@@ -139,24 +141,24 @@ fun ScaleCalculationScreen(
             )
 
             SummaryCard(
-                scaleNoteLabels = uiState.result.scaleNotes.joinToString(" ") { note -> note.symbol },
+                scaleNoteLabels = uiState.result.scaleNotes.joinToString(" ") { note -> note.displaySymbol(enharmonicPreference) },
                 leftStringNoteLabels = uiState.result.pegCorrectTable
                     .filter { row -> row.role.side == StringSide.LEFT }
                     .sortedBy { row -> row.role.positionFromLow }
-                    .joinToString(" ") { row -> row.selectedPitch.asText() },
+                    .joinToString(" ") { row -> row.selectedPitch.asText(enharmonicPreference) },
                 rightStringNoteLabels = uiState.result.pegCorrectTable
                     .filter { row -> row.role.side == StringSide.RIGHT }
                     .sortedBy { row -> row.role.positionFromLow }
-                    .joinToString(" ") { row -> row.selectedPitch.asText() },
+                    .joinToString(" ") { row -> row.selectedPitch.asText(enharmonicPreference) },
                 showLeverInfo = showLeverInfo,
                 leverRetuneCount = uiState.result.leverOnlyTable.count { row -> row.pegRetuneRequired },
                 pegRetuneCount = uiState.result.pegCorrectTable.count { row -> row.pegRetuneRequired }
             )
 
             if (showLeverInfo) {
-                LeverOnlyTableCard(rows = uiState.result.leverOnlyTable)
+                LeverOnlyTableCard(rows = uiState.result.leverOnlyTable, enharmonicPreference = enharmonicPreference)
             }
-            PegCorrectTableCard(rows = uiState.result.pegCorrectTable, showLeverInfo = showLeverInfo)
+            PegCorrectTableCard(rows = uiState.result.pegCorrectTable, showLeverInfo = showLeverInfo, enharmonicPreference = enharmonicPreference)
             ConflictCard(conflicts = uiState.result.conflicts)
             SuggestionCard(suggestions = uiState.result.suggestions)
         }
@@ -195,6 +197,16 @@ private fun ScaleRootReferenceSection(
                 selected = selected == ScaleRootReference.LEFT_4,
                 onClick = { onSelected(ScaleRootReference.LEFT_4) },
                 label = { Text(stringResource(Res.string.scale_root_reference_left_4)) }
+            )
+            FilterChip(
+                selected = selected == ScaleRootReference.LEFT_5,
+                onClick = { onSelected(ScaleRootReference.LEFT_5) },
+                label = { Text(stringResource(Res.string.scale_root_reference_left_5)) }
+            )
+            FilterChip(
+                selected = selected == ScaleRootReference.LEFT_6,
+                onClick = { onSelected(ScaleRootReference.LEFT_6) },
+                label = { Text(stringResource(Res.string.scale_root_reference_left_6)) }
             )
             if (allowRight1) {
                 FilterChip(
@@ -275,7 +287,7 @@ private fun SummaryCard(
 }
 
 @Composable
-private fun LeverOnlyTableCard(rows: List<LeverOnlyStringResult>) {
+private fun LeverOnlyTableCard(rows: List<LeverOnlyStringResult>, enharmonicPreference: EnharmonicPreference) {
     val leftRows = rows.filter { it.role.side == StringSide.LEFT }.sortedBy { it.role.positionFromLow }
     val rightRows = rows.filter { it.role.side == StringSide.RIGHT }.sortedBy { it.role.positionFromLow }
     val rowCount = maxOf(leftRows.size, rightRows.size)
@@ -300,10 +312,10 @@ private fun LeverOnlyTableCard(rows: List<LeverOnlyStringResult>) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val leftRow = leftRows.getOrNull(index)
-                    if (leftRow != null) SideCell(formatLeverOnlyRow(leftRow), Modifier.weight(1f))
+                    if (leftRow != null) SideCell(formatLeverOnlyRow(leftRow, enharmonicPreference), Modifier.weight(1f))
                     else Spacer(Modifier.weight(1f))
                     val rightRow = rightRows.getOrNull(index)
-                    if (rightRow != null) SideCell(formatLeverOnlyRow(rightRow), Modifier.weight(1f))
+                    if (rightRow != null) SideCell(formatLeverOnlyRow(rightRow, enharmonicPreference), Modifier.weight(1f))
                     else Spacer(Modifier.weight(1f))
                 }
             }
@@ -312,7 +324,7 @@ private fun LeverOnlyTableCard(rows: List<LeverOnlyStringResult>) {
 }
 
 @Composable
-private fun PegCorrectTableCard(rows: List<PegCorrectStringResult>, showLeverInfo: Boolean) {
+private fun PegCorrectTableCard(rows: List<PegCorrectStringResult>, showLeverInfo: Boolean, enharmonicPreference: EnharmonicPreference) {
     val leftRows = rows.filter { it.role.side == StringSide.LEFT }.sortedBy { it.role.positionFromLow }
     val rightRows = rows.filter { it.role.side == StringSide.RIGHT }.sortedBy { it.role.positionFromLow }
     val rowCount = maxOf(leftRows.size, rightRows.size)
@@ -338,10 +350,10 @@ private fun PegCorrectTableCard(rows: List<PegCorrectStringResult>, showLeverInf
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val leftRow = leftRows.getOrNull(index)
-                    if (leftRow != null) SideCell(formatPegCorrectRow(leftRow, showLeverInfo), Modifier.weight(1f))
+                    if (leftRow != null) SideCell(formatPegCorrectRow(leftRow, showLeverInfo, enharmonicPreference), Modifier.weight(1f))
                     else Spacer(Modifier.weight(1f))
                     val rightRow = rightRows.getOrNull(index)
-                    if (rightRow != null) SideCell(formatPegCorrectRow(rightRow, showLeverInfo), Modifier.weight(1f))
+                    if (rightRow != null) SideCell(formatPegCorrectRow(rightRow, showLeverInfo, enharmonicPreference), Modifier.weight(1f))
                     else Spacer(Modifier.weight(1f))
                 }
             }
@@ -380,16 +392,16 @@ internal fun SideCell(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun formatLeverOnlyRow(row: LeverOnlyStringResult): String {
+private fun formatLeverOnlyRow(row: LeverOnlyStringResult, enharmonicPreference: EnharmonicPreference): String {
     val leverLabel = row.selectedLeverState?.name ?: stringResource(Res.string.value_na)
-    val selectedPitchLabel = row.selectedPitch?.asText() ?: "-"
+    val selectedPitchLabel = row.selectedPitch?.asText(enharmonicPreference) ?: "-"
     val pegLabel = if (row.pegRetuneRequired) stringResource(Res.string.value_yes) else stringResource(Res.string.value_no)
     val leverChangeLabel = stringResource(Res.string.scale_engine_lever_change_indicator)
     return buildString {
         append("${row.role.asLabel()} (S${row.stringNumber})")
         if (row.leverChangeFromHome) { append("  $leverChangeLabel") }
         append("\n")
-        append(stringResource(Res.string.scale_engine_lever_only_row_open_closed, row.openPitch.asText(), row.closedPitch.asText()))
+        append(stringResource(Res.string.scale_engine_lever_only_row_open_closed, row.openPitch.asText(enharmonicPreference), row.closedPitch.asText(enharmonicPreference)))
         append("\n")
         append(stringResource(Res.string.scale_engine_lever_only_row_lever_target, leverLabel, selectedPitchLabel))
         append("\n")
@@ -398,7 +410,7 @@ private fun formatLeverOnlyRow(row: LeverOnlyStringResult): String {
 }
 
 @Composable
-private fun formatPegCorrectRow(row: PegCorrectStringResult, showLeverInfo: Boolean): String {
+private fun formatPegCorrectRow(row: PegCorrectStringResult, showLeverInfo: Boolean, enharmonicPreference: EnharmonicPreference): String {
     val retuneLabel = if (row.pegRetuneSemitones >= 0) "+${row.pegRetuneSemitones}" else row.pegRetuneSemitones.toString()
     val fromHomeLabel = if (row.fromBaseSemitones >= 0) "+${row.fromBaseSemitones}" else row.fromBaseSemitones.toString()
     val leverChangeLabel = stringResource(Res.string.scale_engine_lever_change_indicator)
@@ -407,14 +419,14 @@ private fun formatPegCorrectRow(row: PegCorrectStringResult, showLeverInfo: Bool
         if (showLeverInfo && row.leverChangeFromHome) { append("  $leverChangeLabel") }
         append("\n")
         if (showLeverInfo) {
-            append(stringResource(Res.string.scale_engine_peg_row_target_lever, row.selectedPitch.asText(), row.selectedLeverState.name))
+            append(stringResource(Res.string.scale_engine_peg_row_target_lever, row.selectedPitch.asText(enharmonicPreference), row.selectedLeverState.name))
             append("\n")
-            append(stringResource(Res.string.scale_engine_lever_only_row_open_closed, row.retunedOpenPitch.asText(), row.retunedClosedPitch.asText()))
+            append(stringResource(Res.string.scale_engine_lever_only_row_open_closed, row.retunedOpenPitch.asText(enharmonicPreference), row.retunedClosedPitch.asText(enharmonicPreference)))
             append("\n")
         } else {
-            append(stringResource(Res.string.scale_engine_peg_tuning_row_target, row.selectedPitch.asText()))
+            append(stringResource(Res.string.scale_engine_peg_tuning_row_target, row.selectedPitch.asText(enharmonicPreference)))
             append("\n")
-            append(stringResource(Res.string.scale_engine_peg_tuning_row_tune_open, row.retunedOpenPitch.asText()))
+            append(stringResource(Res.string.scale_engine_peg_tuning_row_tune_open, row.retunedOpenPitch.asText(enharmonicPreference)))
             append("\n")
         }
         append(stringResource(Res.string.scale_engine_row_int_peg, signed(row.selectedIntonationCents), retuneLabel))
@@ -498,3 +510,5 @@ private fun SuggestionCard(suggestions: List<VoicingSuggestion>) {
         }
     }
 }
+
+

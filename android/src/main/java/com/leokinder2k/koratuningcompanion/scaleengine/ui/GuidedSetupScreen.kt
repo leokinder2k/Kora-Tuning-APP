@@ -3,6 +3,7 @@ package com.leokinder2k.koratuningcompanion.scaleengine.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -21,11 +23,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.leokinder2k.koratuningcompanion.R
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.scaleengine.model.PegCorrectStringResult
@@ -35,6 +39,7 @@ import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
 @OptIn(ExperimentalMaterial3Api::class)
 fun GuidedSetupScreen(
     uiState: ScaleCalculationUiState,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     onScaleTypeSelected: (ScaleType) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -54,13 +59,10 @@ fun GuidedSetupScreen(
         currentStepIndex = 0
     }
 
+    key(enharmonicPreference) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.title_guided_setup)) }
-            )
-        }
+        contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -70,12 +72,8 @@ fun GuidedSetupScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = uiState.profileStatus,
-                style = MaterialTheme.typography.bodyMedium
-            )
-
             SelectionControls(
+                profileStatus = uiState.profileStatus,
                 instrumentKey = uiState.instrumentKey,
                 rootNote = uiState.rootNote,
                 scaleType = uiState.scaleType,
@@ -124,6 +122,7 @@ fun GuidedSetupScreen(
                 }
             }
         }
+    }
     }
 }
 
@@ -198,29 +197,42 @@ private fun GuidedStepCard(
 
 @Composable
 private fun SelectionControls(
+    profileStatus: String,
     instrumentKey: NoteName,
     rootNote: NoteName,
     scaleType: ScaleType,
     onScaleTypeSelected: (ScaleType) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = stringResource(R.string.instrument_config_section_root_note) + ": ${instrumentKey.symbol}",
-            style = MaterialTheme.typography.titleMedium
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         )
-        Text(
-            text = stringResource(R.string.scale_root_note_label) + ": ${rootNote.symbol}",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Text(
-            text = stringResource(R.string.scale_type_label),
-            style = MaterialTheme.typography.titleMedium
-        )
-        ScaleTypeDropdownMenus(
-            selectedScaleType = scaleType,
-            onScaleTypeSelected = onScaleTypeSelected
-        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = profileStatus,
+                style = MaterialTheme.typography.labelLarge
+            )
+            Text(
+                text = "${stringResource(R.string.instrument_config_section_root_note)} ${instrumentKey.symbol} • ${stringResource(R.string.scale_root_note_label)} ${rootNote.symbol}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = stringResource(R.string.scale_type_label),
+                style = MaterialTheme.typography.labelLarge
+            )
+            ScaleTypeDropdownMenus(
+                selectedScaleType = scaleType,
+                onScaleTypeSelected = onScaleTypeSelected
+            )
+        }
     }
 }
 

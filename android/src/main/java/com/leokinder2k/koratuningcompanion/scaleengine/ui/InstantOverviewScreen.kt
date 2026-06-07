@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -81,6 +82,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.key
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -113,6 +115,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leokinder2k.koratuningcompanion.R
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
@@ -191,6 +194,7 @@ private data class DiagramStringSegment(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 fun InstantOverviewScreen(
     uiState: ScaleCalculationUiState,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     onScaleTypeSelected: (ScaleType) -> Unit,
     onScaleRootReferenceSelected: (ScaleRootReference) -> Unit = {},
     isMuted: Boolean = false,
@@ -281,6 +285,14 @@ fun InstantOverviewScreen(
     }
     LaunchedEffect(isAppPaused) {
         if (isAppPaused) {
+            tonePlayer.stopAll()
+            metronomePlayer.stopAll()
+            isMetronomeRunning = false
+            playingStringNumbers = emptySet()
+        }
+    }
+    LaunchedEffect(isMuted) {
+        if (isMuted) {
             tonePlayer.stopAll()
             metronomePlayer.stopAll()
             isMetronomeRunning = false
@@ -625,23 +637,10 @@ fun InstantOverviewScreen(
     val onStringTouched: (PegCorrectStringResult) -> Unit = toggleRow
     val isScreenScrollEnabled = !(viewMode == OverviewViewMode.DIAGRAM && (diagramZoom > 1f || isDiagramLocked))
 
+    key(enharmonicPreference) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.title_instant_overview)) },
-                actions = {
-                    IconButton(onClick = onToggleMute) {
-                        Icon(
-                            imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
-                            contentDescription = stringResource(if (isMuted) R.string.action_unmute else R.string.action_mute),
-                            tint = if (isMuted) MaterialTheme.colorScheme.error
-                                   else androidx.compose.ui.graphics.Color.Unspecified
-                        )
-                    }
-                }
-            )
-        }
+        contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
         BoxWithConstraints(
             modifier = Modifier
@@ -669,20 +668,21 @@ fun InstantOverviewScreen(
                     ),
                 verticalArrangement = Arrangement.spacedBy(sectionSpacing)
             ) {
-            Text(
-                text = uiState.profileStatus,
-                style = MaterialTheme.typography.bodyMedium
-            )
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    Text(
+                        text = uiState.profileStatus,
+                        style = MaterialTheme.typography.labelLarge
+                    )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -899,6 +899,7 @@ fun InstantOverviewScreen(
             }
         }
     }
+    }
 }
 
 @Composable
@@ -912,21 +913,28 @@ private fun OverviewSelectionControls(
     allowRight1: Boolean,
     onScaleRootReferenceSelected: (ScaleRootReference) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "${stringResource(R.string.instrument_config_section_root_note)}: ${instrumentKey.symbol}",
-            style = MaterialTheme.typography.titleMedium
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         )
-        Text(
-            text = stringResource(R.string.scale_root_note_label) + ": ${rootNote.symbol}",
-            style = MaterialTheme.typography.titleMedium
-        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "${stringResource(R.string.instrument_config_section_root_note)} ${instrumentKey.symbol} • ${stringResource(R.string.scale_root_note_label)} ${rootNote.symbol}",
+                style = MaterialTheme.typography.labelLarge
+            )
 
-        Text(
-            text = stringResource(R.string.scale_root_reference_label),
-            style = MaterialTheme.typography.titleMedium
-        )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = stringResource(R.string.scale_root_reference_label),
+                style = MaterialTheme.typography.labelLarge
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = scaleRootReference == ScaleRootReference.LEFT_1,
                 onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_1) },
@@ -947,6 +955,16 @@ private fun OverviewSelectionControls(
                 onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_4) },
                 label = { Text(stringResource(R.string.scale_root_reference_left_4)) }
             )
+            FilterChip(
+                selected = scaleRootReference == ScaleRootReference.LEFT_5,
+                onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_5) },
+                label = { Text(stringResource(R.string.scale_root_reference_left_5)) }
+            )
+            FilterChip(
+                selected = scaleRootReference == ScaleRootReference.LEFT_6,
+                onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_6) },
+                label = { Text(stringResource(R.string.scale_root_reference_left_6)) }
+            )
             if (allowRight1) {
                 FilterChip(
                     selected = scaleRootReference == ScaleRootReference.RIGHT_1,
@@ -956,14 +974,15 @@ private fun OverviewSelectionControls(
             }
         }
 
-        Text(
-            text = stringResource(R.string.scale_type_label),
-            style = MaterialTheme.typography.titleMedium
-        )
-        ScaleTypeDropdownMenus(
-            selectedScaleType = scaleType,
-            onScaleTypeSelected = onScaleTypeSelected
-        )
+            Text(
+                text = stringResource(R.string.scale_type_label),
+                style = MaterialTheme.typography.labelLarge
+            )
+            ScaleTypeDropdownMenus(
+                selectedScaleType = scaleType,
+                onScaleTypeSelected = onScaleTypeSelected
+            )
+        }
     }
 }
 
@@ -3162,15 +3181,11 @@ private fun displayPitchLabel(
     semitoneShift: Int,
     includeOctave: Boolean
 ): String {
-    val shift = semitoneShift.coerceIn(-1, 1)
-    val basePitch = effectivePitch.plusSemitones(-shift)
-    val baseSymbol = basePitch.note.symbol
-    val shiftedSymbol = when (shift) {
-        1 -> "${baseSymbol}#"
-        -1 -> if (baseSymbol.endsWith("#")) baseSymbol.dropLast(1) else "${baseSymbol}b"
-        else -> baseSymbol
+    val resolvedPitch = when (semitoneShift.coerceIn(-1, 1)) {
+        -1, 0, 1 -> effectivePitch
+        else -> effectivePitch
     }
-    return if (includeOctave) "${shiftedSymbol}${basePitch.octave}" else shiftedSymbol
+    return if (includeOctave) resolvedPitch.asText() else resolvedPitch.note.symbol
 }
 
 private const val DOUBLE_TAP_STOP_WINDOW_MS = 280L
@@ -3225,14 +3240,7 @@ private fun circleOfFifthsIndexFor(note: NoteName): Int {
 }
 
 private fun circleOfFifthsLabel(note: NoteName): String {
-    return when (note) {
-        NoteName.A_SHARP -> "Bb"
-        NoteName.D_SHARP -> "Eb"
-        NoteName.G_SHARP -> "Ab"
-        NoteName.C_SHARP -> "Db"
-        NoteName.F_SHARP -> "F# / Gb"
-        else -> note.symbol
-    }
+    return note.symbol
 }
 
 private fun buildExerciseChoices(

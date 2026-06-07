@@ -61,11 +61,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.generated.resources.Res
 import com.leokinder2k.koratuningcompanion.generated.resources.*
 import com.leokinder2k.koratuningcompanion.instrumentconfig.data.DataStoreInstrumentConfigRepository
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.HomeLeverPosition
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringLayout
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.displaySymbol
 import com.leokinder2k.koratuningcompanion.livetuner.model.TunerTargetMatcher
 import com.leokinder2k.koratuningcompanion.livetuner.model.TuningFeedbackClassifier
 import com.leokinder2k.koratuningcompanion.livetuner.model.TuningFeedbackState
@@ -357,7 +359,7 @@ fun InstrumentConfigurationScreen(
                         FilterChip(
                             selected = uiState.rootNote == note,
                             onClick = { onRootNoteSelected(note) },
-                            label = { Text(note.symbol) }
+                            label = { Text(note.displaySymbol(enharmonicPreference)) }
                         )
                     }
                 }
@@ -417,7 +419,7 @@ fun InstrumentConfigurationScreen(
                                 else -> selectedTuningRowIndex = index
                             }
                         },
-                        selectedPitchLabel = selectedPitch?.asText(),
+                        selectedPitchLabel = selectedPitch?.asText(enharmonicPreference),
                         selectedOpenCents = selectedOpenCents,
                         selectedTargetFrequencyHz = selectedTargetFrequencyHz,
                         detectedFrequencyHz = tunerUiState.detectedFrequencyHz,
@@ -841,7 +843,7 @@ private fun CompactStringChip(
         border = BorderStroke(width = 1.dp, color = borderColor)
     ) {
         Text(
-            text = "${row.stringNumber} ${row.openPitchInput.ifBlank { "--" }}",
+            text = "${row.stringNumber} ${Pitch.parse(row.openPitchInput)?.asText(enharmonicPreference) ?: row.openPitchInput.ifBlank { "--" }}",
             style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
@@ -1071,3 +1073,5 @@ private fun liveTunerPerformanceModeLabel(mode: LiveTunerPerformanceMode): Strin
 }
 
 private const val PEG_TUNING_IN_TUNE_THRESHOLD_CENTS = 200.0
+
+

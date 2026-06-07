@@ -279,6 +279,8 @@ private fun rootReferenceLabel(context: Context, reference: ScaleRootReference):
         ScaleRootReference.LEFT_2  -> context.getString(R.string.scale_root_reference_left_2)
         ScaleRootReference.LEFT_3  -> context.getString(R.string.scale_root_reference_left_3)
         ScaleRootReference.LEFT_4  -> context.getString(R.string.scale_root_reference_left_4)
+        ScaleRootReference.LEFT_5  -> context.getString(R.string.scale_root_reference_left_5)
+        ScaleRootReference.LEFT_6  -> context.getString(R.string.scale_root_reference_left_6)
         ScaleRootReference.RIGHT_1 -> context.getString(R.string.scale_root_reference_right_1)
     }
 

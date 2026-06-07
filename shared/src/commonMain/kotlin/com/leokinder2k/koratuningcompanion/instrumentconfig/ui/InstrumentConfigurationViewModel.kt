@@ -533,7 +533,7 @@ class InstrumentConfigurationViewModel(
         private val SUPPORTED_STRING_COUNTS = setOf(19, 21, 22)
         const val MANUAL_PRESET_ID = "manual"
         private const val DEFAULT_PRESET_BASE_ID = "sauta"
-        private const val DEFAULT_LOWEST_LEFT_PITCH_TEXT = "F2"
+        private const val DEFAULT_LOWEST_LEFT_PITCH_TEXT = "E2"
         private const val DEFAULT_INTONATION_INPUT = "0.0"
 
         private fun resizePitchInputCount(inputs: List<String>, stringCount: Int): List<String> {
@@ -633,24 +633,20 @@ class InstrumentConfigurationViewModel(
 
     private fun buildDefaultUiState(): InstrumentConfigurationUiState {
         val stringCount = DEFAULT_STRING_COUNT
-        val presetId = defaultPresetIdFor(stringCount)
-        val calibrated = autoCalibrateFromPreset(
-            stringCount = stringCount,
-            presetId = presetId,
-            lowestLeftPitchInput = DEFAULT_LOWEST_LEFT_PITCH_TEXT
-        )
-        currentBasePitchInputs = calibrated.openPitchInputs
+        val pitchInputs = StarterInstrumentProfiles.openPitchTexts(stringCount)
+        currentBasePitchInputs = pitchInputs
         currentHomeLeverPosition = HomeLeverPosition.OPEN
         return buildUiState(
             stringCount = stringCount,
             tuningMode = KoraTuningMode.LEVERED,
-            rootNote = NoteName.F,
-            selectedPresetId = presetId,
-            lowestLeftPitchInput = calibrated.normalizedLowestLeftPitchInput,
-            autoCalibrateEnabled = true,
-            openPitchInputs = calibrated.openPitchInputs,
-            openIntonationInputs = calibrated.openIntonationInputs,
-            closedIntonationInputs = calibrated.closedIntonationInputs,
+            rootNote = NoteName.E,
+            selectedPresetId = MANUAL_PRESET_ID,
+            lowestLeftPitchInput = pitchInputs.getOrNull(lowestLeftStringIndex(stringCount))
+                ?: DEFAULT_LOWEST_LEFT_PITCH_TEXT,
+            autoCalibrateEnabled = false,
+            openPitchInputs = pitchInputs,
+            openIntonationInputs = defaultIntonationInputs(stringCount),
+            closedIntonationInputs = defaultIntonationInputs(stringCount),
             basePitchInputs = currentBasePitchInputs,
             statusMessage = null
         )

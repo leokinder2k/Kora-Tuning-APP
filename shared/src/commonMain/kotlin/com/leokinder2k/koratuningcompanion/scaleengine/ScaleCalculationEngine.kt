@@ -390,6 +390,8 @@ class ScaleCalculationEngine {
             ScaleRootReference.LEFT_2 -> leftOrder.getOrNull(1) ?: leftOrder.firstOrNull() ?: 1
             ScaleRootReference.LEFT_3 -> leftOrder.getOrNull(2) ?: leftOrder.firstOrNull() ?: 1
             ScaleRootReference.LEFT_4 -> leftOrder.getOrNull(3) ?: leftOrder.firstOrNull() ?: 1
+            ScaleRootReference.LEFT_5 -> leftOrder.getOrNull(4) ?: leftOrder.firstOrNull() ?: 1
+            ScaleRootReference.LEFT_6 -> leftOrder.getOrNull(5) ?: leftOrder.firstOrNull() ?: 1
             ScaleRootReference.RIGHT_1 -> KoraStringLayout.rightOrder(stringCount).getOrNull(0) ?: 1
         }
         // Use the current working open pitch of the reference string so that the root-anchor

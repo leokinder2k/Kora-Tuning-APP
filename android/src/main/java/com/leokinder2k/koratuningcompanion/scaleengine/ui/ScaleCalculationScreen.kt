@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -30,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.R
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverOnlyStringResult
@@ -61,6 +65,7 @@ fun ScaleCalculationRoute(modifier: Modifier = Modifier) {
 @OptIn(ExperimentalMaterial3Api::class)
 fun ScaleCalculationScreen(
     uiState: ScaleCalculationUiState,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     onRootNoteSelected: (NoteName) -> Unit,
     onScaleTypeSelected: (ScaleType) -> Unit,
     onScaleRootReferenceSelected: (ScaleRootReference) -> Unit,
@@ -69,13 +74,10 @@ fun ScaleCalculationScreen(
     val tuningMode = uiState.result.request.instrumentProfile.tuningMode
     val showLeverInfo = tuningMode == KoraTuningMode.LEVERED
 
+    key(enharmonicPreference) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.title_scale_calculation_engine)) }
-            )
-        }
+        contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -85,40 +87,33 @@ fun ScaleCalculationScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = uiState.profileStatus,
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                )
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = stringResource(R.string.quick_start_title),
-                        style = MaterialTheme.typography.titleSmall
+                        text = uiState.profileStatus,
+                        style = MaterialTheme.typography.labelLarge
                     )
                     Text(
-                        text = if (showLeverInfo) {
-                            stringResource(R.string.scale_engine_quick_start_levered)
-                        } else {
-                            stringResource(R.string.scale_engine_quick_start_peg_tuning)
-                        },
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "${stringResource(R.string.instrument_config_section_root_note)} ${uiState.instrumentKey.symbol} • ${stringResource(R.string.scale_root_note_label)} ${uiState.rootNote.symbol}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
             Text(
                 text = stringResource(R.string.scale_root_note_label),
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = "${stringResource(R.string.instrument_config_section_root_note)}: ${uiState.instrumentKey.symbol}",
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.labelLarge
             )
 
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(horizontal = 4.dp)) {
@@ -167,6 +162,7 @@ fun ScaleCalculationScreen(
             SuggestionCard(suggestions = uiState.result.suggestions)
         }
     }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -179,7 +175,7 @@ private fun ScaleRootReferenceSection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = stringResource(R.string.scale_root_reference_label),
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.labelLarge
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
@@ -201,6 +197,16 @@ private fun ScaleRootReferenceSection(
                 selected = selected == ScaleRootReference.LEFT_4,
                 onClick = { onSelected(ScaleRootReference.LEFT_4) },
                 label = { Text(stringResource(R.string.scale_root_reference_left_4)) }
+            )
+            FilterChip(
+                selected = selected == ScaleRootReference.LEFT_5,
+                onClick = { onSelected(ScaleRootReference.LEFT_5) },
+                label = { Text(stringResource(R.string.scale_root_reference_left_5)) }
+            )
+            FilterChip(
+                selected = selected == ScaleRootReference.LEFT_6,
+                onClick = { onSelected(ScaleRootReference.LEFT_6) },
+                label = { Text(stringResource(R.string.scale_root_reference_left_6)) }
             )
             if (allowRight1) {
                 FilterChip(

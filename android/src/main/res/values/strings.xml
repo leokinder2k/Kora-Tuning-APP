@@ -2,7 +2,7 @@
     <string name="app_name">Kora Tuning Companion</string>
 
     <!-- Navigation -->
-    <string name="nav_instrument_label">Instrument</string>
+    <string name="nav_instrument_label">Setup</string>
     <string name="nav_instrument_short">I</string>
     <string name="nav_scale_label">Scale</string>
     <string name="nav_scale_short">S</string>
@@ -34,6 +34,8 @@
     <!-- Common -->
     <string name="strings_count">%1$d strings</string>
     <string name="quick_start_title">Quick Start</string>
+    <string name="enharmonic_preference_sharps">A#</string>
+    <string name="enharmonic_preference_flats">Bb</string>
     <string name="action_start">Start</string>
     <string name="action_stop">Stop</string>
     <string name="action_previous">Previous</string>
@@ -44,7 +46,7 @@
     <string name="action_unmute">Unmute audio</string>
 
     <!-- Instrument Configuration -->
-    <string name="title_instrument_configuration">Instrument Configuration</string>
+    <string name="title_instrument_configuration">Setup</string>
     <string name="instrument_config_section_strings">Strings</string>
     <string name="instrument_config_description_levered">Set open tuning for each string. Closed pitch is calculated automatically (+1 semitone). You can also enter open/closed intonation offsets in cents.</string>
     <string name="instrument_config_description_peg_tuning">Peg tuning mode (non-chromatic): your kora has no levers. Set open tuning for each string and (optionally) open cents offsets.</string>
@@ -117,6 +119,8 @@
     <string name="scale_root_reference_left_2">2nd left</string>
     <string name="scale_root_reference_left_3">3rd left</string>
     <string name="scale_root_reference_left_4">4th left</string>
+    <string name="scale_root_reference_left_5">5th left</string>
+    <string name="scale_root_reference_left_6">6th left</string>
     <string name="scale_root_reference_right_1">1st right</string>
     <string name="scale_type_label">Scale type</string>
     <string name="scale_family_label">Scale family</string>
@@ -191,7 +195,7 @@
     <string name="scale_type_augmented_inverse">Augmented Inverse</string>
 
     <!-- Live Tuner -->
-    <string name="title_live_tuner">Live Tuner</string>
+    <string name="title_live_tuner">Tuner</string>
     <string name="live_tuner_quick_start_step_1">1. Select mode: Realtime for response, Precision for cent accuracy.</string>
     <string name="live_tuner_quick_start_step_2">2. Grant microphone access and start tuner.</string>
     <string name="live_tuner_quick_start_step_3">3. Pluck one string cleanly and match cent deviation to 0.</string>
@@ -225,7 +229,7 @@
     <string name="live_tuner_save_preset_prompt_body">Save it as a custom preset in the Presets tab so you can return to it any time.</string>
 
     <!-- Scale Calculation Engine -->
-    <string name="title_scale_calculation_engine">Scale Calculation Engine</string>
+    <string name="title_scale_calculation_engine">Scale</string>
     <string name="scale_engine_quick_start_levered">Pick root + scale, review lever-only table, then apply peg-correct plan if required.</string>
     <string name="scale_engine_quick_start_peg_tuning">Pick root + scale, then retune open strings using the peg tuning table (no levers).</string>
 
@@ -367,7 +371,7 @@
     <string name="metronome_sound_bright_click">Bright Click</string>
 
     <!-- Instant Overview -->
-    <string name="title_instant_overview">Instant Overview</string>
+    <string name="title_instant_overview">Overview</string>
     <string name="overview_view_diagram">Diagram</string>
     <string name="overview_view_table">Table</string>
     <string name="overview_view_chords">Chords</string>

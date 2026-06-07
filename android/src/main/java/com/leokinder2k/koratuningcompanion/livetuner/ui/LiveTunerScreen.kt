@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -49,6 +51,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -68,9 +71,11 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.R
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.displaySymbol
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverState
 import com.leokinder2k.koratuningcompanion.livetuner.audio.ReferenceTonePlayer
 import com.leokinder2k.koratuningcompanion.livetuner.model.TunerTarget
@@ -91,6 +96,7 @@ import kotlin.math.sin
 
 @Composable
 fun LiveTunerRoute(
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     scaleUiState: ScaleCalculationUiState,
     onScaleTypeSelected: (ScaleType) -> Unit,
     isMuted: Boolean = false,
@@ -110,6 +116,7 @@ fun LiveTunerRoute(
         onAudioPermissionChanged = viewModel::onAudioPermissionChanged,
         onStartListening = viewModel::startListening,
         onStopListening = viewModel::stopListening,
+        enharmonicPreference = enharmonicPreference,
         isMuted = isMuted,
         onToggleMute = onToggleMute,
         modifier = modifier
@@ -125,6 +132,7 @@ fun LiveTunerScreen(
     onAudioPermissionChanged: (Boolean) -> Unit,
     onStartListening: () -> Unit,
     onStopListening: () -> Unit,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     isMuted: Boolean = false,
     onToggleMute: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -188,6 +196,13 @@ fun LiveTunerScreen(
 
     val referenceTonePlayer = remember { ReferenceTonePlayer() }
     var isReferenceTonePlaying by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(isMuted) {
+        if (isMuted) {
+            isReferenceTonePlaying = false
+            referenceTonePlayer.stop()
+            onStopListening()
+        }
+    }
     LaunchedEffect(isReferenceTonePlaying, selectedTarget?.stringNumber) {
         if (isReferenceTonePlaying && selectedTarget != null) {
             referenceTonePlayer.play(
@@ -226,23 +241,10 @@ fun LiveTunerScreen(
         }
     }
 
+    key(enharmonicPreference) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.title_live_tuner)) },
-                actions = {
-                    IconButton(onClick = onToggleMute) {
-                        Icon(
-                            imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
-                            contentDescription = null,
-                            tint = if (isMuted) MaterialTheme.colorScheme.error
-                                   else Color.Unspecified
-                        )
-                    }
-                }
-            )
-        }
+        contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -278,38 +280,6 @@ fun LiveTunerScreen(
                 },
                 tuningMode = tuningMode
             )
-
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.quick_start_title),
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Text(
-                        text = stringResource(R.string.live_tuner_quick_start_step_1),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        text = stringResource(R.string.live_tuner_quick_start_step_2),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        text = stringResource(R.string.live_tuner_quick_start_step_3),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    if (tuningMode == KoraTuningMode.PEG_TUNING) {
-                        Text(
-                            text = stringResource(R.string.live_tuner_peg_tuning_note),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            }
 
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
@@ -353,37 +323,30 @@ fun LiveTunerScreen(
                 }
             }
 
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                )
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
                         text = stringResource(R.string.live_tuner_section_detection),
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.labelLarge
                     )
                     Text(
-                        text = stringResource(
-                            R.string.live_tuner_detected_pitch_line,
-                            formatFrequency(tunerUiState.detectedFrequencyHz)
-                        ),
-                        style = MaterialTheme.typography.bodyMedium
+                        text = formatFrequency(tunerUiState.detectedFrequencyHz),
+                        style = MaterialTheme.typography.headlineSmall
                     )
                     Text(
-                        text = stringResource(
-                            R.string.live_tuner_confidence_line,
-                            formatPercent(tunerUiState.confidence)
-                        ),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        text = stringResource(
-                            R.string.live_tuner_signal_rms_line,
-                            "%.4f".format(tunerUiState.rms)
-                        ),
-                        style = MaterialTheme.typography.bodySmall
+                        text = "${formatPercent(tunerUiState.confidence)} • RMS ${"%.4f".format(tunerUiState.rms)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -504,28 +467,8 @@ fun LiveTunerScreen(
                 onStop = { isReferenceTonePlaying = false }
             )
 
-            Text(
-                text = stringResource(R.string.live_tuner_tip),
-                style = MaterialTheme.typography.bodySmall
-            )
-
-            // Gentle save-preset prompt
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.live_tuner_save_preset_prompt_title),
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Text(
-                        text = stringResource(R.string.live_tuner_save_preset_prompt_body),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
         }
+    }
     }
 }
 
@@ -569,7 +512,7 @@ private fun ChromaticTunerCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Chromatic Tuner", style = MaterialTheme.typography.titleMedium)
+            Text("Chromatic", style = MaterialTheme.typography.titleMedium)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 item {
                     FilterChip(
@@ -582,14 +525,14 @@ private fun ChromaticTunerCard(
                     FilterChip(
                         selected = lockedNote == note,
                         onClick = { lockedNote = if (lockedNote == note) null else note },
-                        label = { Text(note.chromaticChipName()) }
+                        label = { Text(note.chromaticUiLabel()) }
                     )
                 }
             }
             ChromaticTunerDial(
                 centsDeviation = match?.centsDeviation,
                 noteDisplayName = (lockedNote ?: match?.target?.targetPitch?.note)
-                    ?.chromaticDisplayName() ?: "–",
+                    ?.chromaticUiLabel() ?: "–",
                 subtitleText = match?.let {
                     "Octave ${it.target.targetPitch.octave}  •  ${formatFrequency(it.target.targetFrequencyHz)}"
                 } ?: if (isListening) "Listening…" else "Start tuner to detect pitch",
@@ -718,34 +661,10 @@ private fun ChromaticTunerDial(
     }
 }
 
-private fun NoteName.chromaticDisplayName(): String = when (this) {
-    NoteName.C       -> "C"
-    NoteName.C_SHARP -> "C♯ / D♭"
-    NoteName.D       -> "D"
-    NoteName.D_SHARP -> "D♯ / E♭"
-    NoteName.E       -> "E"
-    NoteName.F       -> "F"
-    NoteName.F_SHARP -> "F♯ / G♭"
-    NoteName.G       -> "G"
-    NoteName.G_SHARP -> "G♯ / A♭"
-    NoteName.A       -> "A"
-    NoteName.A_SHARP -> "A♯ / B♭"
-    NoteName.B       -> "B"
-}
-
-private fun NoteName.chromaticChipName(): String = when (this) {
-    NoteName.C       -> "C"
-    NoteName.C_SHARP -> "C♯"
-    NoteName.D       -> "D"
-    NoteName.D_SHARP -> "D♯"
-    NoteName.E       -> "E"
-    NoteName.F       -> "F"
-    NoteName.F_SHARP -> "F♯"
-    NoteName.G       -> "G"
-    NoteName.G_SHARP -> "G♯"
-    NoteName.A       -> "A"
-    NoteName.A_SHARP -> "A♯"
-    NoteName.B       -> "B"
+private fun NoteName.chromaticUiLabel(): String {
+    return displaySymbol()
+        .replace("#", "♯")
+        .replace("b", "♭")
 }
 
 @Composable

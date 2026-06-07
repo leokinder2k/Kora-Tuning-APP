@@ -54,7 +54,7 @@ class DataStoreInstrumentConfigRepository private constructor(
 
         val rootNote = preferences[ROOT_NOTE_KEY]
             ?.let { raw -> runCatching { NoteName.valueOf(raw) }.getOrNull() }
-            ?: NoteName.F
+            ?: NoteName.E
 
         val basePitches = preferences[BASE_TUNING_KEY]
             ?.split(PITCH_DELIMITER)

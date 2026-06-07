@@ -78,6 +78,8 @@ enum class ScaleRootReference {
     LEFT_2,
     LEFT_3,
     LEFT_4,
+    LEFT_5,
+    LEFT_6,
     RIGHT_1
 }
 

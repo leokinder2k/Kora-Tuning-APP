@@ -29,7 +29,7 @@ data class InstrumentProfile(
     val openPitches: List<Pitch>,
     val openIntonationCents: List<Double> = List(stringCount) { 0.0 },
     val closedIntonationCents: List<Double> = List(stringCount) { 0.0 },
-    val rootNote: NoteName = NoteName.F,
+    val rootNote: NoteName = NoteName.E,
     /**
      * Physical home tuning — the pitch of each string when all levers are at rest (down).
      * Retune plans show peg adjustments relative to these pitches.

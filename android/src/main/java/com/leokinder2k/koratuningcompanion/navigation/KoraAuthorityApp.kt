@@ -45,6 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -64,11 +65,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.BuildConfig
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicDisplayState
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
 import com.leokinder2k.koratuningcompanion.R
 import com.leokinder2k.koratuningcompanion.instrumentconfig.ui.InstrumentConfigurationRoute
 import com.leokinder2k.koratuningcompanion.instrumentconfig.ui.TraditionalPresetsRoute
 import com.leokinder2k.koratuningcompanion.livetuner.ui.LiveTunerRoute
 import com.leokinder2k.koratuningcompanion.notation.ui.KoraNotationRoute
+import com.leokinder2k.koratuningcompanion.scaleengine.ui.GuidedSetupScreen
 import com.leokinder2k.koratuningcompanion.scaleengine.ui.InstantOverviewScreen
 import com.leokinder2k.koratuningcompanion.scaleengine.ui.ScaleCalculationScreen
 import com.leokinder2k.koratuningcompanion.scaleengine.ui.ScaleCalculationViewModel
@@ -99,9 +103,15 @@ fun KoraAuthorityApp(
     }
 
     var isMuted by rememberSaveable { mutableStateOf(false) }
+    var enharmonicPreferenceName by rememberSaveable { mutableStateOf(EnharmonicPreference.SHARPS.name) }
     var showOverflowMenu by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
+    val enharmonicPreference = EnharmonicPreference.valueOf(enharmonicPreferenceName)
+
+    SideEffect {
+        EnharmonicDisplayState.preference = enharmonicPreference
+    }
 
     NavigationSuiteScaffold(
         modifier = modifier.fillMaxSize(),
@@ -140,21 +150,33 @@ fun KoraAuthorityApp(
             contentWindowInsets = WindowInsets(0),
             topBar = {
                 TopAppBar(
-                    title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(stringResource(R.string.app_top_bar_title))
-                            Spacer(Modifier.width(4.dp))
-                            IconButton(onClick = { isMuted = !isMuted }, modifier = Modifier.size(48.dp)) {
-                                Icon(
-                                    imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
-                                    contentDescription = stringResource(if (isMuted) R.string.action_unmute else R.string.action_mute),
-                                    tint = if (isMuted) MaterialTheme.colorScheme.error
-                                           else MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    },
+                    title = { Text(stringResource(R.string.app_top_bar_title)) },
                     actions = {
+                        TextButton(onClick = {
+                            enharmonicPreferenceName = if (enharmonicPreference == EnharmonicPreference.SHARPS) {
+                                EnharmonicPreference.FLATS.name
+                            } else {
+                                EnharmonicPreference.SHARPS.name
+                            }
+                        }) {
+                            Text(
+                                text = stringResource(
+                                    if (enharmonicPreference == EnharmonicPreference.SHARPS) {
+                                        R.string.enharmonic_preference_sharps
+                                    } else {
+                                        R.string.enharmonic_preference_flats
+                                    }
+                                )
+                            )
+                        }
+                        IconButton(onClick = { isMuted = !isMuted }, modifier = Modifier.size(48.dp)) {
+                            Icon(
+                                imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                                contentDescription = stringResource(if (isMuted) R.string.action_unmute else R.string.action_mute),
+                                tint = if (isMuted) MaterialTheme.colorScheme.error
+                                       else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                         IconButton(onClick = { showOverflowMenu = true }, modifier = Modifier.size(48.dp)) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
@@ -194,6 +216,7 @@ fun KoraAuthorityApp(
             ) { page ->
                 when (destinations[page]) {
                     AppDestination.INSTRUMENT_CONFIG -> InstrumentConfigurationRoute(
+                        enharmonicPreference = enharmonicPreference,
                         isMuted = isMuted,
                         onToggleMute = { isMuted = !isMuted },
                         isActive = page == selectedPage
@@ -204,10 +227,22 @@ fun KoraAuthorityApp(
                         )
                         val scaleUiState by scaleViewModel.uiState.collectAsStateWithLifecycle()
                         ScaleCalculationScreen(
+                            enharmonicPreference = enharmonicPreference,
                             uiState = scaleUiState,
                             onRootNoteSelected = scaleViewModel::onScaleRootNoteSelected,
                             onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
                             onScaleRootReferenceSelected = scaleViewModel::onScaleRootReferenceSelected
+                        )
+                    }
+                    AppDestination.GUIDED_SETUP -> {
+                        val scaleViewModel: ScaleCalculationViewModel = viewModel(
+                            factory = scaleViewModelFactory
+                        )
+                        val scaleUiState by scaleViewModel.uiState.collectAsStateWithLifecycle()
+                        GuidedSetupScreen(
+                            enharmonicPreference = enharmonicPreference,
+                            uiState = scaleUiState,
+                            onScaleTypeSelected = scaleViewModel::onScaleTypeSelected
                         )
                     }
                     AppDestination.INSTANT_OVERVIEW -> {
@@ -216,6 +251,7 @@ fun KoraAuthorityApp(
                         )
                         val scaleUiState by scaleViewModel.uiState.collectAsStateWithLifecycle()
                         InstantOverviewScreen(
+                            enharmonicPreference = enharmonicPreference,
                             uiState = scaleUiState,
                             onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
                             onScaleRootReferenceSelected = scaleViewModel::onScaleRootReferenceSelected,
@@ -229,6 +265,7 @@ fun KoraAuthorityApp(
                         )
                         val scaleUiState by scaleViewModel.uiState.collectAsStateWithLifecycle()
                         LiveTunerRoute(
+                            enharmonicPreference = enharmonicPreference,
                             scaleUiState = scaleUiState,
                             onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
                             isMuted = isMuted,
@@ -425,6 +462,7 @@ private enum class AppDestination(
 ) {
     INSTRUMENT_CONFIG(R.string.nav_instrument_label, Icons.Default.Tune),
     SCALE_ENGINE(R.string.nav_scale_label, Icons.Default.MusicNote),
+    GUIDED_SETUP(R.string.nav_guided_label, Icons.Default.Tune),
     INSTANT_OVERVIEW(R.string.nav_overview_label, Icons.Default.GridView),
     LIVE_TUNER(R.string.nav_tuner_label, Icons.Default.GraphicEq),
     PRESETS(R.string.nav_presets_label, Icons.Default.LibraryMusic),

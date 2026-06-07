@@ -29,7 +29,7 @@ data class InstrumentProfile(
     val openPitches: List<Pitch>,
     val openIntonationCents: List<Double> = List(stringCount) { 0.0 },
     val closedIntonationCents: List<Double> = List(stringCount) { 0.0 },
-    val rootNote: NoteName = NoteName.F,
+    val rootNote: NoteName = NoteName.E,
     /**
      * Physical home tuning of the instrument — the pitch of each string when all levers are
      * in the rest/down position and the kora has not been retuned for a particular piece.

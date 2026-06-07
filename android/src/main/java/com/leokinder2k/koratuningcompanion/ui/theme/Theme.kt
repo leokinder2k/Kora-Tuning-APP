@@ -1,6 +1,5 @@
 package com.leokinder2k.koratuningcompanion.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -9,35 +8,57 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = KoraGoldLight,
+    onPrimary = KoraNight,
+    primaryContainer = KoraGoldDark,
+    onPrimaryContainer = KoraSand,
+    secondary = KoraStone,
+    onSecondary = KoraNight,
+    secondaryContainer = KoraNightSurfaceHigh,
+    onSecondaryContainer = KoraMist,
+    tertiary = KoraGold,
+    onTertiary = KoraNight,
+    background = KoraNight,
+    onBackground = KoraMist,
+    surface = KoraNightSurface,
+    onSurface = KoraMist,
+    surfaceVariant = KoraNightSurfaceHigh,
+    onSurfaceVariant = KoraStone,
+    outline = KoraClay,
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = KoraGoldDark,
     onPrimary = Color.White,
+    primaryContainer = KoraGoldLight,
+    onPrimaryContainer = KoraNight,
+    secondary = KoraClay,
     onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    secondaryContainer = KoraStone,
+    onSecondaryContainer = KoraNight,
+    tertiary = KoraGold,
+    onTertiary = KoraNight,
+    background = KoraSand,
+    onBackground = KoraNight,
+    surface = Color.White,
+    onSurface = KoraNight,
+    surfaceVariant = Color(0xFFF0E6D4),
+    onSurfaceVariant = KoraClay,
+    outline = Color(0xFF8D7B63),
+    error = Color(0xFFB3261E),
+    onError = Color.White
 )
 
 @Composable
 fun KoraTuningSystemTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -45,7 +66,6 @@ fun KoraTuningSystemTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
@@ -53,6 +73,7 @@ fun KoraTuningSystemTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = KoraShapes,
         content = content
     )
 }

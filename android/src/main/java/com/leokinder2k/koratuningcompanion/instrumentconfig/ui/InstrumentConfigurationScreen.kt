@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -53,6 +54,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
 import com.leokinder2k.koratuningcompanion.livetuner.audio.ReferenceTonePlayer
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
@@ -72,6 +74,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.R
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.HomeLeverPosition
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringLayout
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
@@ -92,6 +95,7 @@ import kotlin.math.ln
 
 @Composable
 fun InstrumentConfigurationRoute(
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     isMuted: Boolean = false,
     onToggleMute: () -> Unit = {},
     isActive: Boolean = true,
@@ -124,6 +128,7 @@ fun InstrumentConfigurationRoute(
         onAudioPermissionChanged = tunerViewModel::onAudioPermissionChanged,
         onStartListening = tunerViewModel::startListening,
         onStopListening = tunerViewModel::stopListening,
+        enharmonicPreference = enharmonicPreference,
         isMuted = isMuted,
         onToggleMute = onToggleMute,
         isActive = isActive,
@@ -150,6 +155,7 @@ fun InstrumentConfigurationScreen(
     onAudioPermissionChanged: (Boolean) -> Unit,
     onStartListening: () -> Unit,
     onStopListening: () -> Unit,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     isMuted: Boolean = false,
     onToggleMute: () -> Unit = {},
     isActive: Boolean = true,
@@ -271,23 +277,10 @@ fun InstrumentConfigurationScreen(
         )
     }
 
+    key(enharmonicPreference) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.title_instrument_configuration)) },
-                actions = {
-                    IconButton(onClick = onToggleMute, modifier = Modifier.size(48.dp)) {
-                        Icon(
-                            imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
-                            contentDescription = null,
-                            tint = if (isMuted) MaterialTheme.colorScheme.error
-                                   else androidx.compose.ui.graphics.Color.Unspecified
-                        )
-                    }
-                }
-            )
-        }
+        contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -321,16 +314,6 @@ fun InstrumentConfigurationScreen(
             }
 
             item {
-                ExpandableText(
-                    text = when (uiState.tuningMode) {
-                        KoraTuningMode.LEVERED -> stringResource(R.string.instrument_config_description_levered)
-                        KoraTuningMode.PEG_TUNING -> stringResource(R.string.instrument_config_description_peg_tuning)
-                    },
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            item {
                 Text(
                     text = stringResource(R.string.instrument_config_section_instrument_type),
                     style = MaterialTheme.typography.titleMedium
@@ -360,47 +343,12 @@ fun InstrumentConfigurationScreen(
             }
 
             item {
-                ExpandableText(
-                    text = stringResource(R.string.instrument_config_description_instrument_key),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            item {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(NoteName.entries) { note ->
                         FilterChip(
                             selected = uiState.rootNote == note,
                             onClick = { onRootNoteSelected(note) },
                             label = { Text(note.symbol) }
-                        )
-                    }
-                }
-            }
-
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.quick_start_title),
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        Text(
-                            text = stringResource(R.string.instrument_config_quick_start_step_1),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = stringResource(R.string.instrument_config_quick_start_step_2),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = stringResource(R.string.instrument_config_quick_start_step_3),
-                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
                 }
@@ -515,6 +463,7 @@ fun InstrumentConfigurationScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
+    }
     }
 }
 
@@ -1162,7 +1111,7 @@ private fun InstrumentConfigurationScreenPreview() {
                 ),
                 canSave = false,
                 statusMessage = null,
-                rootNote = NoteName.F,
+                rootNote = NoteName.E,
                 basePitchInputs = listOf("E3", "F#3", "Q9"),
                 basePitchErrors = listOf(null, null, "Use format like E3 or F#4."),
                 homeLeverPosition = HomeLeverPosition.OPEN

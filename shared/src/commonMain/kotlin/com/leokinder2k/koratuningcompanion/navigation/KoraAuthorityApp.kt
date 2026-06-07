@@ -57,6 +57,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.generated.resources.Res
 import com.leokinder2k.koratuningcompanion.generated.resources.*
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
 import com.leokinder2k.koratuningcompanion.instrumentconfig.ui.InstrumentConfigurationRoute
 import com.leokinder2k.koratuningcompanion.instrumentconfig.ui.TraditionalPresetsRoute
 import com.leokinder2k.koratuningcompanion.livetuner.ui.LiveTunerRoute
@@ -89,9 +90,11 @@ fun KoraAuthorityApp(
     val coroutineScope = rememberCoroutineScope()
 
     var isMuted by rememberSaveable { mutableStateOf(false) }
+    var enharmonicPreferenceName by rememberSaveable { mutableStateOf(EnharmonicPreference.SHARPS.name) }
     var showOverflowMenu by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
+    val enharmonicPreference = EnharmonicPreference.valueOf(enharmonicPreferenceName)
 
     Column(modifier = modifier.fillMaxSize()) {
         Box(modifier = Modifier.weight(1f)) {
@@ -101,6 +104,25 @@ fun KoraAuthorityApp(
                 TopAppBar(
                     title = { Text(stringResource(Res.string.app_top_bar_title)) },
                     actions = {
+                        TextButton(
+                            onClick = {
+                                enharmonicPreferenceName = if (enharmonicPreference == EnharmonicPreference.SHARPS) {
+                                    EnharmonicPreference.FLATS.name
+                                } else {
+                                    EnharmonicPreference.SHARPS.name
+                                }
+                            }
+                        ) {
+                            Text(
+                                text = stringResource(
+                                    if (enharmonicPreference == EnharmonicPreference.SHARPS) {
+                                        Res.string.enharmonic_preference_sharps
+                                    } else {
+                                        Res.string.enharmonic_preference_flats
+                                    }
+                                )
+                            )
+                        }
                         IconButton(onClick = { isMuted = !isMuted }) {
                             Icon(
                                 imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
@@ -141,17 +163,20 @@ fun KoraAuthorityApp(
             ) { page ->
                 when (destinations[page]) {
                     AppDestination.INSTRUMENT_CONFIG -> InstrumentConfigurationRoute(
+                        enharmonicPreference = enharmonicPreference,
                         isMuted = isMuted,
                         onToggleMute = { isMuted = !isMuted },
                         isActive = page == pagerState.currentPage
                     )
                     AppDestination.SCALE_ENGINE -> ScaleCalculationScreen(
+                        enharmonicPreference = enharmonicPreference,
                         uiState = scaleUiState,
                         onRootNoteSelected = scaleViewModel::onScaleRootNoteSelected,
                         onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
                         onScaleRootReferenceSelected = scaleViewModel::onScaleRootReferenceSelected
                     )
                     AppDestination.INSTANT_OVERVIEW -> InstantOverviewScreen(
+                        enharmonicPreference = enharmonicPreference,
                         uiState = scaleUiState,
                         onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
                         onScaleRootReferenceSelected = scaleViewModel::onScaleRootReferenceSelected,
@@ -159,6 +184,7 @@ fun KoraAuthorityApp(
                         onToggleMute = { isMuted = !isMuted }
                     )
                     AppDestination.LIVE_TUNER -> LiveTunerRoute(
+                        enharmonicPreference = enharmonicPreference,
                         scaleUiState = scaleUiState,
                         onScaleTypeSelected = scaleViewModel::onScaleTypeSelected,
                         isMuted = isMuted,
@@ -366,3 +392,5 @@ private enum class AppDestination(
     PRESETS(Res.string.nav_presets_label, Icons.Default.LibraryMusic),
     NOTATION(Res.string.nav_notation_label, Icons.Default.Piano),
 }
+
+

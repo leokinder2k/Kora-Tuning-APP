@@ -58,9 +58,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.generated.resources.Res
 import com.leokinder2k.koratuningcompanion.generated.resources.*
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.displaySymbol
 import com.leokinder2k.koratuningcompanion.scaleengine.model.LeverState
 import com.leokinder2k.koratuningcompanion.livetuner.audio.ReferenceTonePlayer
 import com.leokinder2k.koratuningcompanion.livetuner.model.TunerTarget
@@ -352,7 +354,7 @@ fun LiveTunerScreen(
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
-                            text = stringResource(Res.string.live_tuner_nearest_target_pitch_line, match.target.targetPitch.asText(), formatFrequency(match.target.targetFrequencyHz)),
+                            text = stringResource(Res.string.live_tuner_nearest_target_pitch_line, match.target.targetPitch.asText(enharmonicPreference), formatFrequency(match.target.targetFrequencyHz)),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
@@ -465,14 +467,14 @@ private fun ChromaticTunerCard(
                     FilterChip(
                         selected = lockedNote == note,
                         onClick = { lockedNote = if (lockedNote == note) null else note },
-                        label = { Text(note.chromaticChipName()) }
+                        label = { Text(note.chromaticChipName(enharmonicPreference)) }
                     )
                 }
             }
             ChromaticTunerDial(
                 centsDeviation = match?.centsDeviation,
                 noteDisplayName = (lockedNote ?: match?.target?.targetPitch?.note)
-                    ?.chromaticDisplayName() ?: "–",
+                    ?.chromaticDisplayName(enharmonicPreference) ?: "–",
                 subtitleText = match?.let {
                     "Octave ${it.target.targetPitch.octave}  •  ${formatFrequency(it.target.targetFrequencyHz)}"
                 } ?: if (isListening) "Listening…" else "Start tuner to detect pitch",
@@ -663,7 +665,7 @@ private fun GuidedTuningCard(
                 style = MaterialTheme.typography.bodySmall
             )
             Text(
-                text = stringResource(Res.string.guided_setup_target_pitch_line, step.selectedPitch.asText()),
+                text = stringResource(Res.string.guided_setup_target_pitch_line, step.selectedPitch.asText(enharmonicPreference)),
                 style = MaterialTheme.typography.bodySmall
             )
             Text(
@@ -700,15 +702,16 @@ private fun GuidedTuningCard(
 private fun SelectionControls(
     instrumentKey: NoteName,
     rootNote: NoteName,
+    enharmonicPreference: EnharmonicPreference,
     scaleType: ScaleType,
     onScaleTypeSelected: (ScaleType) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "${stringResource(Res.string.instrument_config_section_root_note)}: ${instrumentKey.symbol}",
+            text = "${stringResource(Res.string.instrument_config_section_root_note)}: ${instrumentKey.displaySymbol(enharmonicPreference)}",
             style = MaterialTheme.typography.titleMedium
         )
-        Text(text = stringResource(Res.string.scale_root_note_label) + ": ${rootNote.symbol}", style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(Res.string.scale_root_note_label) + ": ${rootNote.displaySymbol(enharmonicPreference)}", style = MaterialTheme.typography.titleMedium)
         Text(text = stringResource(Res.string.scale_type_label), style = MaterialTheme.typography.titleMedium)
         ScaleTypeDropdownMenus(selectedScaleType = scaleType, onScaleTypeSelected = onScaleTypeSelected)
     }
@@ -746,7 +749,7 @@ private fun ReferenceToneCard(
                                 onTargetSelected(target.stringNumber)
                             }
                         },
-                        label = { Text("${target.roleLabel} ${target.targetPitch.asText()}") }
+                        label = { Text("${target.roleLabel} ${target.targetPitch.asText(enharmonicPreference)}") }
                     )
                 }
             }
@@ -762,14 +765,14 @@ private fun ReferenceToneCard(
                                 onTargetSelected(target.stringNumber)
                             }
                         },
-                        label = { Text("${target.roleLabel} ${target.targetPitch.asText()}") }
+                        label = { Text("${target.roleLabel} ${target.targetPitch.asText(enharmonicPreference)}") }
                     )
                 }
             }
             if (selectedTarget != null) {
                 val shiftedFrequencyHz = selectedTarget.targetFrequencyHz * REFERENCE_TONE_OCTAVE_MULTIPLIER
                 Text(
-                    text = stringResource(Res.string.live_tuner_reference_tone_selected_line, selectedTarget.roleLabel, selectedTarget.stringNumber, selectedTarget.targetPitch.asText()),
+                    text = stringResource(Res.string.live_tuner_reference_tone_selected_line, selectedTarget.roleLabel, selectedTarget.stringNumber, selectedTarget.targetPitch.asText(enharmonicPreference)),
                     style = MaterialTheme.typography.bodySmall
                 )
                 Text(
@@ -915,3 +918,5 @@ private fun liveTunerPerformanceModeSummary(mode: LiveTunerPerformanceMode): Str
     LiveTunerPerformanceMode.REALTIME -> stringResource(Res.string.live_tuner_mode_realtime_summary)
     LiveTunerPerformanceMode.PRECISION -> stringResource(Res.string.live_tuner_mode_precision_summary)
 }
+
+

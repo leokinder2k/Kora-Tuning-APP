@@ -54,7 +54,7 @@ class DataStoreInstrumentConfigRepository(
 
         val rootNote = preferences[ROOT_NOTE_KEY]
             ?.let { raw -> runCatching { NoteName.valueOf(raw) }.getOrNull() }
-            ?: NoteName.F
+            ?: NoteName.E
 
         // Base tuning — physical home pitches when all levers are down.
         // Falls back to openPitches when not yet stored (first launch / migrated devices).
