@@ -86,6 +86,7 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun LiveTunerRoute(
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     scaleUiState: ScaleCalculationUiState,
     onScaleTypeSelected: (ScaleType) -> Unit,
     isMuted: Boolean = false,
@@ -103,6 +104,7 @@ fun LiveTunerRoute(
         onPerformanceModeSelected = viewModel::onPerformanceModeSelected,
         onStartListening = viewModel::startListening,
         onStopListening = viewModel::stopListening,
+        enharmonicPreference = enharmonicPreference,
         isMuted = isMuted,
         onToggleMute = onToggleMute,
         modifier = modifier
@@ -119,6 +121,7 @@ fun LiveTunerScreen(
     onPerformanceModeSelected: (LiveTunerPerformanceMode) -> Unit,
     onStartListening: () -> Unit,
     onStopListening: () -> Unit,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     isMuted: Boolean = false,
     onToggleMute: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -233,6 +236,7 @@ fun LiveTunerScreen(
             SelectionControls(
                 instrumentKey = scaleUiState.instrumentKey,
                 rootNote = scaleUiState.rootNote,
+                enharmonicPreference = enharmonicPreference,
                 scaleType = scaleUiState.scaleType,
                 onScaleTypeSelected = onScaleTypeSelected
             )
@@ -246,7 +250,8 @@ fun LiveTunerScreen(
                         currentGuidedStepIndex = (currentGuidedStepIndex + 1).coerceAtMost(guidedSteps.lastIndex)
                     }
                 },
-                tuningMode = tuningMode
+                tuningMode = tuningMode,
+                enharmonicPreference = enharmonicPreference
             )
 
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -286,7 +291,10 @@ fun LiveTunerScreen(
                             Text(stringResource(Res.string.action_grant_microphone_permission))
                         }
                     } else if (!tunerUiState.isListening) {
-                        Button(onClick = onStartListening) {
+                        Button(
+                            onClick = onStartListening,
+                            enabled = !isMuted
+                        ) {
                             Text(stringResource(Res.string.live_tuner_action_start))
                         }
                     } else {
@@ -323,7 +331,8 @@ fun LiveTunerScreen(
 
             ChromaticTunerCard(
                 detectedFrequencyHz = tunerUiState.detectedFrequencyHz,
-                isListening = tunerUiState.isListening
+                isListening = tunerUiState.isListening,
+                enharmonicPreference = enharmonicPreference
             )
 
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -397,11 +406,13 @@ fun LiveTunerScreen(
                 selectedTargetStringNumber = selectedTargetStringNumber,
                 onTargetSelected = { selected ->
                     selectedTargetStringNumber = selected
-                    isReferenceTonePlaying = true
+                    if (!isMuted) isReferenceTonePlaying = true
                 },
                 isReferenceTonePlaying = isReferenceTonePlaying,
-                onPlay = { isReferenceTonePlaying = true },
-                onStop = { isReferenceTonePlaying = false }
+                onPlay = { if (!isMuted) isReferenceTonePlaying = true },
+                onStop = { isReferenceTonePlaying = false },
+                enharmonicPreference = enharmonicPreference,
+                isMuted = isMuted
             )
 
             Text(text = stringResource(Res.string.live_tuner_tip), style = MaterialTheme.typography.bodySmall)
@@ -419,7 +430,8 @@ fun LiveTunerScreen(
 @Composable
 private fun ChromaticTunerCard(
     detectedFrequencyHz: Double?,
-    isListening: Boolean
+    isListening: Boolean,
+    enharmonicPreference: EnharmonicPreference
 ) {
     val allTargets = remember {
         NoteName.entries.flatMap { note ->
@@ -608,35 +620,23 @@ private fun ChromaticTunerDial(
     }
 }
 
-private fun NoteName.chromaticDisplayName(): String = when (this) {
+private fun NoteName.chromaticDisplayName(preference: EnharmonicPreference): String = when (this) {
     NoteName.C       -> "C"
-    NoteName.C_SHARP -> "C♯ / D♭"
+    NoteName.C_SHARP -> if (preference == EnharmonicPreference.FLATS) "D♭ / C♯" else "C♯ / D♭"
     NoteName.D       -> "D"
-    NoteName.D_SHARP -> "D♯ / E♭"
+    NoteName.D_SHARP -> if (preference == EnharmonicPreference.FLATS) "E♭ / D♯" else "D♯ / E♭"
     NoteName.E       -> "E"
     NoteName.F       -> "F"
-    NoteName.F_SHARP -> "F♯ / G♭"
+    NoteName.F_SHARP -> if (preference == EnharmonicPreference.FLATS) "G♭ / F♯" else "F♯ / G♭"
     NoteName.G       -> "G"
-    NoteName.G_SHARP -> "G♯ / A♭"
+    NoteName.G_SHARP -> if (preference == EnharmonicPreference.FLATS) "A♭ / G♯" else "G♯ / A♭"
     NoteName.A       -> "A"
-    NoteName.A_SHARP -> "A♯ / B♭"
+    NoteName.A_SHARP -> if (preference == EnharmonicPreference.FLATS) "B♭ / A♯" else "A♯ / B♭"
     NoteName.B       -> "B"
 }
 
-private fun NoteName.chromaticChipName(): String = when (this) {
-    NoteName.C       -> "C"
-    NoteName.C_SHARP -> "C♯"
-    NoteName.D       -> "D"
-    NoteName.D_SHARP -> "D♯"
-    NoteName.E       -> "E"
-    NoteName.F       -> "F"
-    NoteName.F_SHARP -> "F♯"
-    NoteName.G       -> "G"
-    NoteName.G_SHARP -> "G♯"
-    NoteName.A       -> "A"
-    NoteName.A_SHARP -> "A♯"
-    NoteName.B       -> "B"
-}
+private fun NoteName.chromaticChipName(preference: EnharmonicPreference): String =
+    displaySymbol(preference).replace("#", "♯").replace("b", "♭")
 
 @Composable
 private fun GuidedTuningCard(
@@ -644,7 +644,8 @@ private fun GuidedTuningCard(
     currentStepIndex: Int,
     onPreviousStep: () -> Unit,
     onNextStep: () -> Unit,
-    tuningMode: KoraTuningMode
+    tuningMode: KoraTuningMode,
+    enharmonicPreference: EnharmonicPreference
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -724,7 +725,9 @@ private fun ReferenceToneCard(
     onTargetSelected: (Int) -> Unit,
     isReferenceTonePlaying: Boolean,
     onPlay: () -> Unit,
-    onStop: () -> Unit
+    onStop: () -> Unit,
+    enharmonicPreference: EnharmonicPreference,
+    isMuted: Boolean
 ) {
     val leftTargets = targets.filter { it.roleLabel.startsWith("L") }.sortedBy { targetRolePosition(it) }
     val rightTargets = targets.filter { it.roleLabel.startsWith("R") }.sortedBy { targetRolePosition(it) }
@@ -780,7 +783,10 @@ private fun ReferenceToneCard(
                     style = MaterialTheme.typography.bodySmall
                 )
                 if (!isReferenceTonePlaying) {
-                    Button(onClick = onPlay) { Text(stringResource(Res.string.live_tuner_reference_tone_action_play)) }
+                    Button(
+                        onClick = onPlay,
+                        enabled = !isMuted
+                    ) { Text(stringResource(Res.string.live_tuner_reference_tone_action_play)) }
                 } else {
                     OutlinedButton(onClick = onStop) { Text(stringResource(Res.string.live_tuner_reference_tone_action_stop)) }
                 }

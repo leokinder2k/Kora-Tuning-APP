@@ -18,6 +18,8 @@ import java.io.FileOutputStream
 private const val KORA_DIAGRAM_PDF_ASSET_NAME = "Kora_x22.pdf"
 private const val KORA_DIAGRAM_PDF_PAGE_INDEX = 0
 private const val KORA_DIAGRAM_PDF_SCALE = 2
+private val KORA_DIAGRAM_BITMAP_LOCK = Any()
+private var cachedKoraDiagramBitmap: Bitmap? = null
 
 @Composable
 actual fun KoraDiagramBackground(contentDescription: String, modifier: Modifier) {
@@ -37,27 +39,34 @@ actual fun KoraDiagramBackground(contentDescription: String, modifier: Modifier)
 }
 
 private fun renderKoraDiagramPdfBitmap(context: android.content.Context): Bitmap {
-    val cachedPdfFile = File(context.cacheDir, KORA_DIAGRAM_PDF_ASSET_NAME)
-    if (!cachedPdfFile.exists() || cachedPdfFile.length() <= 0L) {
-        context.assets.open(KORA_DIAGRAM_PDF_ASSET_NAME).use { input ->
-            FileOutputStream(cachedPdfFile, false).use { output ->
-                input.copyTo(output)
+    cachedKoraDiagramBitmap?.takeIf { bitmap -> !bitmap.isRecycled }?.let { return it }
+    return synchronized(KORA_DIAGRAM_BITMAP_LOCK) {
+        cachedKoraDiagramBitmap?.takeIf { bitmap -> !bitmap.isRecycled } ?: run {
+            val cachedPdfFile = File(context.cacheDir, KORA_DIAGRAM_PDF_ASSET_NAME)
+            if (!cachedPdfFile.exists() || cachedPdfFile.length() <= 0L) {
+                context.assets.open(KORA_DIAGRAM_PDF_ASSET_NAME).use { input ->
+                    FileOutputStream(cachedPdfFile, false).use { output ->
+                        input.copyTo(output)
+                    }
+                }
             }
-        }
-    }
-    return ParcelFileDescriptor.open(cachedPdfFile, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
-        PdfRenderer(descriptor).use { renderer ->
-            require(renderer.pageCount > KORA_DIAGRAM_PDF_PAGE_INDEX) {
-                "Kora diagram PDF has no page index $KORA_DIAGRAM_PDF_PAGE_INDEX"
-            }
-            renderer.openPage(KORA_DIAGRAM_PDF_PAGE_INDEX).use { page ->
-                val bitmap = Bitmap.createBitmap(
-                    (page.width * KORA_DIAGRAM_PDF_SCALE).coerceAtLeast(1),
-                    (page.height * KORA_DIAGRAM_PDF_SCALE).coerceAtLeast(1),
-                    Bitmap.Config.ARGB_8888
-                )
-                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                bitmap
+
+            ParcelFileDescriptor.open(cachedPdfFile, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
+                PdfRenderer(descriptor).use { renderer ->
+                    require(renderer.pageCount > KORA_DIAGRAM_PDF_PAGE_INDEX) {
+                        "Kora diagram PDF has no page index $KORA_DIAGRAM_PDF_PAGE_INDEX"
+                    }
+                    renderer.openPage(KORA_DIAGRAM_PDF_PAGE_INDEX).use { page ->
+                        Bitmap.createBitmap(
+                            (page.width * KORA_DIAGRAM_PDF_SCALE).coerceAtLeast(1),
+                            (page.height * KORA_DIAGRAM_PDF_SCALE).coerceAtLeast(1),
+                            Bitmap.Config.ARGB_8888
+                        ).also { bitmap ->
+                            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            cachedKoraDiagramBitmap = bitmap
+                        }
+                    }
+                }
             }
         }
     }

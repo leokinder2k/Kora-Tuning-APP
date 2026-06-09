@@ -85,6 +85,7 @@ import kotlin.math.ln
 
 @Composable
 fun InstrumentConfigurationRoute(
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     isMuted: Boolean = false,
     onToggleMute: () -> Unit = {},
     isActive: Boolean = true,
@@ -113,6 +114,7 @@ fun InstrumentConfigurationRoute(
         onPerformanceModeSelected = tunerViewModel::onPerformanceModeSelected,
         onStartListening = tunerViewModel::startListening,
         onStopListening = tunerViewModel::stopListening,
+        enharmonicPreference = enharmonicPreference,
         isMuted = isMuted,
         onToggleMute = onToggleMute,
         isActive = isActive,
@@ -140,6 +142,7 @@ fun InstrumentConfigurationScreen(
     onPerformanceModeSelected: (LiveTunerPerformanceMode) -> Unit,
     onStartListening: () -> Unit,
     onStopListening: () -> Unit,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     isMuted: Boolean = false,
     onToggleMute: () -> Unit = {},
     isActive: Boolean = true,
@@ -174,7 +177,7 @@ fun InstrumentConfigurationScreen(
     selectedTuningRowIndex = selectedTuningRowIndex.coerceIn(0, (uiState.rows.size - 1).coerceAtLeast(0))
     val selectedRow = uiState.rows.getOrNull(selectedTuningRowIndex)
     val selectedPitch = selectedRow?.openPitchInput?.let(Pitch::parse)
-    val selectedOpenCents = selectedRow?.openIntonationInput?.toDoubleOrNull()
+    val selectedOpenCents = selectedRow?.openIntonationInput?.parseFiniteCents()
     val selectedTargetFrequencyHz = if (selectedPitch != null && selectedOpenCents != null) {
         TunerTargetMatcher.pitchToFrequencyHz(
             pitch = selectedPitch,
@@ -213,7 +216,7 @@ fun InstrumentConfigurationScreen(
         for (row in allRows) {
             if (!isPlayingAll || isMuted || !isActive) break
             val pitch = Pitch.parse(row.openPitchInput)
-            val cents = row.openIntonationInput.toDoubleOrNull()
+            val cents = row.openIntonationInput.parseFiniteCents()
             if (pitch != null && cents != null) {
                 val freq = TunerTargetMatcher.pitchToFrequencyHz(pitch = pitch, centsOffset = cents)
                 selectedTuningRowIndex = uiState.rows.indexOf(row).coerceAtLeast(0)
@@ -426,9 +429,10 @@ fun InstrumentConfigurationScreen(
                         selectedCentsDeviation = selectedCentsDeviation,
                         tuningState = tuningState,
                         tunerUiState = tunerUiState,
+                        enharmonicPreference = enharmonicPreference,
                         isReferenceTonePlaying = isReferenceTonePlaying || isPlayingAll,
                         isPlayingAll = isPlayingAll,
-                        onPlayAll = { isPlayingAll = true },
+                        onPlayAll = { if (!isMuted) isPlayingAll = true },
                         onStopReferenceTone = {
                             isPlayingAll = false
                             isReferenceTonePlaying = false
@@ -436,7 +440,8 @@ fun InstrumentConfigurationScreen(
                         onRequestPermission = permissionLauncher,
                         onPerformanceModeSelected = onPerformanceModeSelected,
                         onStartListening = onStartListening,
-                        onStopListening = onStopListening
+                        onStopListening = onStopListening,
+                        isMuted = isMuted
                     )
                 }
             }
@@ -591,6 +596,7 @@ private fun InstrumentTuningAssistantCard(
     selectedCentsDeviation: Double?,
     tuningState: TuningFeedbackState?,
     tunerUiState: LiveTunerUiState,
+    enharmonicPreference: EnharmonicPreference,
     isReferenceTonePlaying: Boolean,
     isPlayingAll: Boolean,
     onPlayAll: () -> Unit,
@@ -598,7 +604,8 @@ private fun InstrumentTuningAssistantCard(
     onRequestPermission: () -> Unit,
     onPerformanceModeSelected: (LiveTunerPerformanceMode) -> Unit,
     onStartListening: () -> Unit,
-    onStopListening: () -> Unit
+    onStopListening: () -> Unit,
+    isMuted: Boolean
 ) {
     val rowsByNumber = rows.associateBy { row -> row.stringNumber }
     val leftRows = KoraStringLayout.leftOrder(rows.size)
@@ -650,7 +657,10 @@ private fun InstrumentTuningAssistantCard(
                             Text(stringResource(Res.string.action_grant_mic_short))
                         }
                     } else if (!tunerUiState.isListening) {
-                        Button(onClick = onStartListening) {
+                        Button(
+                            onClick = onStartListening,
+                            enabled = !isMuted
+                        ) {
                             Text(stringResource(Res.string.action_start))
                         }
                     } else {
@@ -752,8 +762,8 @@ private fun InstrumentTuningAssistantCard(
                         onClick = onPlayAll,
                         enabled = rows.any { row ->
                             Pitch.parse(row.openPitchInput) != null &&
-                                row.openIntonationInput.toDoubleOrNull() != null
-                        },
+                                row.openIntonationInput.parseFiniteCents() != null
+                        } && !isMuted,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(stringResource(Res.string.instrument_config_action_play_all_strings))
@@ -765,12 +775,14 @@ private fun InstrumentTuningAssistantCard(
                 sideLabel = "L",
                 rows = leftRows,
                 selectedRowIndex = selectedRowIndex,
+                enharmonicPreference = enharmonicPreference,
                 onSelectedRowIndexChanged = onSelectedRowIndexChanged
             )
             CompactStringSelectorRow(
                 sideLabel = "R",
                 rows = rightRows,
                 selectedRowIndex = selectedRowIndex,
+                enharmonicPreference = enharmonicPreference,
                 onSelectedRowIndexChanged = onSelectedRowIndexChanged
             )
 
@@ -790,6 +802,7 @@ private fun CompactStringSelectorRow(
     sideLabel: String,
     rows: List<InstrumentStringRowUiState>,
     selectedRowIndex: Int,
+    enharmonicPreference: EnharmonicPreference,
     onSelectedRowIndexChanged: (Int) -> Unit
 ) {
     Row(
@@ -811,6 +824,7 @@ private fun CompactStringSelectorRow(
                 CompactStringChip(
                     row = row,
                     selected = row.stringNumber - 1 == selectedRowIndex,
+                    enharmonicPreference = enharmonicPreference,
                     onClick = { onSelectedRowIndexChanged(row.stringNumber - 1) }
                 )
             }
@@ -822,6 +836,7 @@ private fun CompactStringSelectorRow(
 private fun CompactStringChip(
     row: InstrumentStringRowUiState,
     selected: Boolean,
+    enharmonicPreference: EnharmonicPreference,
     onClick: () -> Unit
 ) {
     val borderColor = if (selected) {
@@ -1022,6 +1037,11 @@ private fun StringConfigurationCard(
     }
 }
 
+private fun String.parseFiniteCents(): Double? {
+    return trim().toDoubleOrNull()
+        ?.takeIf { cents -> cents.isFinite() && cents in MIN_INTONATION_CENTS..MAX_INTONATION_CENTS }
+}
+
 private fun centsDeviation(
     detectedFrequencyHz: Double,
     targetFrequencyHz: Double
@@ -1046,6 +1066,9 @@ private fun signed(value: Double): String {
     val formatted = formatDouble2(kotlin.math.abs(value))
     return if (value >= 0.0) "+$formatted" else "-$formatted"
 }
+
+private const val MIN_INTONATION_CENTS = -1200.0
+private const val MAX_INTONATION_CENTS = 1200.0
 
 private fun tuningStateColor(state: TuningFeedbackState): Color {
     return when (state) {

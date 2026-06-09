@@ -80,7 +80,9 @@ enum class ScaleRootReference {
     LEFT_4,
     LEFT_5,
     LEFT_6,
-    RIGHT_1
+    RIGHT_1,
+    RIGHT_2,
+    RIGHT_3
 }
 
 enum class StringSide(val shortLabel: String) {

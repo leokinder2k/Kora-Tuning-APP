@@ -33,17 +33,24 @@ import android.util.Base64
 import kotlin.math.min
 
 @Composable
-fun KoraNotationAndroidContent(modifier: Modifier = Modifier) {
+fun KoraNotationAndroidContent(
+    modifier: Modifier = Modifier,
+    isMuted: Boolean = false
+) {
     val context = LocalContext.current
     val vm: KoraNotationViewModel = viewModel(factory = KoraNotationViewModel.factory(context))
     // Keep the WebView alive in composition
     AndroidView(factory = { vm.bridge.webView }, modifier = Modifier.size(0.dp))
-    KoraNotationScreenContent(vm = vm, modifier = modifier)
+    KoraNotationScreenContent(vm = vm, modifier = modifier, isMuted = isMuted)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun KoraNotationScreenContent(vm: KoraNotationViewModel, modifier: Modifier = Modifier) {
+private fun KoraNotationScreenContent(
+    vm: KoraNotationViewModel,
+    modifier: Modifier = Modifier,
+    isMuted: Boolean = false
+) {
     val uiState by vm.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var selectedInstrument by remember { mutableStateOf("KORA_21") }
@@ -53,9 +60,13 @@ private fun KoraNotationScreenContent(vm: KoraNotationViewModel, modifier: Modif
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
-            selectedFileName = uri.lastPathSegment ?: "file"
+            selectedFileName = safeDisplayName(context, uri)
             vm.processFile(context, uri, selectedInstrument)
         }
+    }
+
+    LaunchedEffect(isMuted) {
+        if (isMuted) stopActivePlayback()
     }
 
     Column(
@@ -139,6 +150,7 @@ private fun KoraNotationScreenContent(vm: KoraNotationViewModel, modifier: Modif
                     onRequestAudio = vm::requestAudioExport,
                     onRequestPdf = vm::requestPdfExport,
                     onClearExport = vm::clearExportState,
+                    isMuted = isMuted,
                 )
             }
             else -> {}
@@ -156,7 +168,14 @@ private fun ResultSection(
     onRequestAudio: () -> Unit,
     onRequestPdf: () -> Unit,
     onClearExport: () -> Unit,
+    isMuted: Boolean = false,
 ) {
+    DisposableEffect(Unit) {
+        onDispose {
+            stopActivePlayback()
+        }
+    }
+
     // React to completed exports
     LaunchedEffect(exportState) {
         when (exportState) {
@@ -262,10 +281,10 @@ private fun ResultSection(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = {
-                        if (audioReady != null) playBase64Wav(context, audioReady.koraBase64)
+                        if (audioReady != null) playBase64Wav(context, audioReady.koraBase64, isMuted)
                         else onRequestAudio()
                     },
-                    enabled = !exportBusy,
+                    enabled = !exportBusy && !isMuted,
                 ) {
                     if (exportState is ExportState.LoadingAudio) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
@@ -277,10 +296,10 @@ private fun ResultSection(
                 }
                 OutlinedButton(
                     onClick = {
-                        if (audioReady != null) playBase64Wav(context, audioReady.simplifiedBase64)
+                        if (audioReady != null) playBase64Wav(context, audioReady.simplifiedBase64, isMuted)
                         else onRequestAudio()
                     },
-                    enabled = !exportBusy,
+                    enabled = !exportBusy && !isMuted,
                 ) {
                     if (exportState is ExportState.LoadingAudio) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
@@ -348,7 +367,7 @@ private fun KoraDiagramCard(instrumentType: String) {
 
 private fun shareBase64(context: Context, base64: String, fileName: String, mimeType: String) {
     val bytes = Base64.decode(base64, Base64.DEFAULT)
-    val file = java.io.File(context.cacheDir, fileName)
+    val file = safeCacheFile(context, fileName, "kora_exports")
     file.writeBytes(bytes)
     val uri = androidx.core.content.FileProvider.getUriForFile(
         context,
@@ -363,11 +382,54 @@ private fun shareBase64(context: Context, base64: String, fileName: String, mime
     context.startActivity(Intent.createChooser(intent, fileName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }
 
+private fun safeCacheFile(context: Context, requestedName: String, directoryName: String): java.io.File {
+    val dir = java.io.File(context.cacheDir, directoryName).apply { mkdirs() }
+    val safeName = requestedName
+        .substringAfterLast('/')
+        .substringAfterLast('\\')
+        .replace(Regex("[^A-Za-z0-9._ -]"), "_")
+        .trim()
+        .take(96)
+        .ifBlank { "export" }
+    return java.io.File(dir, safeName)
+}
+
+private fun safeDisplayName(context: Context, uri: Uri): String {
+    var displayName: String? = null
+    context.contentResolver.query(
+        uri,
+        arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),
+        null,
+        null,
+        null
+    )?.use { cursor ->
+        if (cursor.moveToFirst()) {
+            displayName = cursor.getString(0)
+        }
+    }
+    return (displayName ?: uri.lastPathSegment ?: "file")
+        .substringAfterLast('/')
+        .substringAfterLast('\\')
+        .replace(Regex("\\p{Cntrl}+"), " ")
+        .replace(Regex("\\s+"), " ")
+        .trim()
+        .take(96)
+        .ifBlank { "file" }
+}
+
 private var activePlayer: MediaPlayer? = null
 
-private fun playBase64Wav(context: Context, base64: String) {
+private fun stopActivePlayback() {
     activePlayer?.release()
     activePlayer = null
+}
+
+private fun playBase64Wav(context: Context, base64: String, isMuted: Boolean = false) {
+    if (isMuted) {
+        stopActivePlayback()
+        return
+    }
+    stopActivePlayback()
     val bytes = Base64.decode(base64, Base64.DEFAULT)
     val file = java.io.File(context.cacheDir, "_kora_preview.wav")
     file.writeBytes(bytes)

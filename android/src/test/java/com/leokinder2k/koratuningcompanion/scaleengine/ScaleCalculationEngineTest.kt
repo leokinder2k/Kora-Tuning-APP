@@ -341,6 +341,72 @@ class ScaleCalculationEngineTest {
     }
 
     @Test
+    fun scaleRootReference_right2AndRight3AnchorToRightStrings() {
+        val right2Profile = profileWithPitches(
+            overrides = mapOf(7 to "E4"),
+            fill = "C4"
+        )
+
+        val right2Result = engine.calculate(
+            ScaleCalculationRequest(
+                instrumentProfile = right2Profile,
+                scaleType = ScaleType.MAJOR,
+                rootNote = NoteName.E,
+                scaleRootReference = ScaleRootReference.RIGHT_2
+            )
+        )
+        val right1Result = engine.calculate(
+            ScaleCalculationRequest(
+                instrumentProfile = right2Profile,
+                scaleType = ScaleType.MAJOR,
+                rootNote = NoteName.E,
+                scaleRootReference = ScaleRootReference.RIGHT_1
+            )
+        )
+
+        assertEquals(
+            LeverState.CLOSED,
+            right2Result.leverOnlyTable.first { row -> row.stringNumber == 1 }.selectedLeverState
+        )
+        assertEquals(
+            LeverState.OPEN,
+            right2Result.leverOnlyTable.first { row -> row.stringNumber == 7 }.selectedLeverState
+        )
+        assertNull(right1Result.leverOnlyTable.first { row -> row.stringNumber == 1 }.selectedLeverState)
+
+        val right3Profile = profileWithPitches(
+            overrides = mapOf(9 to "E4"),
+            fill = "C4"
+        )
+        val right3Result = engine.calculate(
+            ScaleCalculationRequest(
+                instrumentProfile = right3Profile,
+                scaleType = ScaleType.MAJOR,
+                rootNote = NoteName.E,
+                scaleRootReference = ScaleRootReference.RIGHT_3
+            )
+        )
+        val right2FallbackResult = engine.calculate(
+            ScaleCalculationRequest(
+                instrumentProfile = right3Profile,
+                scaleType = ScaleType.MAJOR,
+                rootNote = NoteName.E,
+                scaleRootReference = ScaleRootReference.RIGHT_2
+            )
+        )
+
+        assertEquals(
+            LeverState.CLOSED,
+            right3Result.leverOnlyTable.first { row -> row.stringNumber == 1 }.selectedLeverState
+        )
+        assertEquals(
+            LeverState.OPEN,
+            right3Result.leverOnlyTable.first { row -> row.stringNumber == 9 }.selectedLeverState
+        )
+        assertNull(right2FallbackResult.leverOnlyTable.first { row -> row.stringNumber == 1 }.selectedLeverState)
+    }
+
+    @Test
     fun instrumentInC_rootD_requiresPegPlusOneAndClosedLeverAcrossPlan() {
         val silabaProfile = TraditionalPresets.presetsForStringCount(21)
             .first { preset -> preset.id == "silaba_21" }

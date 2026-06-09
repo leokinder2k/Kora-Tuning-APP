@@ -54,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -62,6 +63,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.BuildConfig
@@ -273,7 +277,7 @@ fun KoraAuthorityApp(
                         )
                     }
                     AppDestination.PRESETS -> TraditionalPresetsRoute()
-                    AppDestination.NOTATION -> KoraNotationRoute()
+                    AppDestination.NOTATION -> KoraNotationRoute(isMuted = isMuted)
                 }
             }
             } // Box
@@ -362,12 +366,16 @@ private fun SettingsDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onThemeModeChange(mode) }
+                            .selectable(
+                                selected = themeMode == mode,
+                                onClick = { onThemeModeChange(mode) },
+                                role = Role.RadioButton
+                            )
                             .padding(vertical = 4.dp)
                     ) {
                         RadioButton(
                             selected = themeMode == mode,
-                            onClick = { onThemeModeChange(mode) }
+                            onClick = null
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(labelRes))
@@ -387,12 +395,16 @@ private fun SettingsDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onLocaleChange(tag) }
+                            .selectable(
+                                selected = currentLocaleTag == tag,
+                                onClick = { onLocaleChange(tag) },
+                                role = Role.RadioButton
+                            )
                             .padding(vertical = 4.dp)
                     ) {
                         RadioButton(
                             selected = currentLocaleTag == tag,
-                            onClick = { onLocaleChange(tag) }
+                            onClick = null
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(label)
@@ -444,7 +456,9 @@ private fun AboutDialog(
                     text = stringResource(R.string.about_privacy_policy),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { onPrivacyPolicy() }
+                    modifier = Modifier
+                        .semantics { role = Role.Button }
+                        .clickable { onPrivacyPolicy() }
                 )
             }
         },

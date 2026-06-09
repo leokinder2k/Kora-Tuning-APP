@@ -205,7 +205,7 @@ fun InstrumentConfigurationScreen(
     selectedTuningRowIndex = selectedTuningRowIndex.coerceIn(0, (uiState.rows.size - 1).coerceAtLeast(0))
     val selectedRow = uiState.rows.getOrNull(selectedTuningRowIndex)
     val selectedPitch = selectedRow?.openPitchInput?.let(Pitch::parse)
-    val selectedOpenCents = selectedRow?.openIntonationInput?.toDoubleOrNull()
+    val selectedOpenCents = selectedRow?.openIntonationInput?.parseFiniteCents()
     val selectedTargetFrequencyHz = if (selectedPitch != null && selectedOpenCents != null) {
         TunerTargetMatcher.pitchToFrequencyHz(
             pitch = selectedPitch,
@@ -253,7 +253,7 @@ fun InstrumentConfigurationScreen(
         for (row in allRows) {
             if (!isPlayingAll || isMuted || !isActive) break
             val pitch = Pitch.parse(row.openPitchInput)
-            val cents = row.openIntonationInput.toDoubleOrNull()
+            val cents = row.openIntonationInput.parseFiniteCents()
             if (pitch != null && cents != null) {
                 val freq = TunerTargetMatcher.pitchToFrequencyHz(pitch = pitch, centsOffset = cents)
                 selectedTuningRowIndex = uiState.rows.indexOf(row).coerceAtLeast(0)
@@ -391,7 +391,7 @@ fun InstrumentConfigurationScreen(
                         playbackSideOrder = playbackSideOrder,
                         onPlaybackDirectionSelected = { playbackDirection = it },
                         onPlaybackSideOrderSelected = { playbackSideOrder = it },
-                        onPlayAll = { isPlayingAll = true },
+                        onPlayAll = { if (!isMuted) isPlayingAll = true },
                         onStopReferenceTone = {
                             isPlayingAll = false
                             isReferenceTonePlaying = false
@@ -400,7 +400,8 @@ fun InstrumentConfigurationScreen(
                             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         },
                         onStartListening = onStartListening,
-                        onStopListening = onStopListening
+                        onStopListening = onStopListening,
+                        isMuted = isMuted
                     )
                 }
             }
@@ -566,7 +567,8 @@ private fun InstrumentTuningAssistantCard(
     onStopReferenceTone: () -> Unit,
     onRequestPermission: () -> Unit,
     onStartListening: () -> Unit,
-    onStopListening: () -> Unit
+    onStopListening: () -> Unit,
+    isMuted: Boolean
 ) {
     val rowsByNumber = rows.associateBy { row -> row.stringNumber }
     val leftRows = KoraStringLayout.leftOrder(rows.size)
@@ -621,7 +623,8 @@ private fun InstrumentTuningAssistantCard(
                         }
                     } else if (!tunerUiState.isListening) {
                         Button(
-                            onClick = onStartListening
+                            onClick = onStartListening,
+                            enabled = !isMuted
                         ) {
                             Text(stringResource(R.string.action_start))
                         }
@@ -743,8 +746,8 @@ private fun InstrumentTuningAssistantCard(
                         onClick = onPlayAll,
                         enabled = rows.any { row ->
                             Pitch.parse(row.openPitchInput) != null &&
-                                row.openIntonationInput.toDoubleOrNull() != null
-                        },
+                            row.openIntonationInput.parseFiniteCents() != null
+                        } && !isMuted,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(stringResource(R.string.instrument_config_action_play_all_strings))
@@ -1018,6 +1021,11 @@ private fun StringConfigurationCard(
     }
 }
 
+private fun String.parseFiniteCents(): Double? {
+    return trim().toDoubleOrNull()
+        ?.takeIf { cents -> cents.isFinite() && cents in MIN_INTONATION_CENTS..MAX_INTONATION_CENTS }
+}
+
 private fun centsDeviation(
     detectedFrequencyHz: Double,
     targetFrequencyHz: Double
@@ -1039,6 +1047,9 @@ private fun signed(value: Double): String {
 
 private enum class PlaybackDirection { HIGH_TO_LOW, LOW_TO_HIGH }
 private enum class PlaybackSideOrder { LEFT_FIRST, RIGHT_FIRST }
+
+private const val MIN_INTONATION_CENTS = -1200.0
+private const val MAX_INTONATION_CENTS = 1200.0
 
 private fun tuningStateColor(state: TuningFeedbackState): Color {
     return when (state) {

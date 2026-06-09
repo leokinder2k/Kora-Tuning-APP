@@ -10,6 +10,7 @@ import android.webkit.WebViewClient
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayInputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
@@ -23,10 +24,21 @@ class KoraEngineBridge(context: Context) {
     val webView: WebView = WebView(context.applicationContext).apply {
         settings.javaScriptEnabled = true
         settings.allowFileAccess = true
-        settings.allowContentAccess = true
+        settings.allowContentAccess = false
+        settings.allowFileAccessFromFileURLs = false
+        settings.allowUniversalAccessFromFileURLs = false
+        settings.domStorageEnabled = false
+        settings.databaseEnabled = false
         addJavascriptInterface(JsBridge(), "AndroidBridge")
         webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
+                !request.url.toString().startsWith(ENGINE_ASSET_URL)
+
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+                val url = request.url.toString()
+                if (!url.startsWith(ENGINE_ASSET_URL)) {
+                    return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0)))
+                }
                 val path = request.url.path ?: return null
                 val file = path.substringAfterLast("/")
                 if (file.endsWith(".js")) {
@@ -38,7 +50,7 @@ class KoraEngineBridge(context: Context) {
                 return null
             }
         }
-        loadUrl("file:///android_asset/kora_engine/bridge.html")
+        loadUrl(ENGINE_ASSET_URL + "bridge.html")
     }
 
     inner class JsBridge {
@@ -78,4 +90,8 @@ class KoraEngineBridge(context: Context) {
     suspend fun edit(paramsJson: String): String = callJs("edit", paramsJson)
     suspend fun exportAudio(paramsJson: String): String = callJs("exportAudio", paramsJson)
     suspend fun exportPdf(paramsJson: String): String = callJs("exportPdf", paramsJson)
+
+    private companion object {
+        const val ENGINE_ASSET_URL = "file:///android_asset/kora_engine/"
+    }
 }

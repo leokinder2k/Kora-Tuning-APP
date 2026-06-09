@@ -2,6 +2,7 @@ package com.leokinder2k.koratuningcompanion.notation.ui
 
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -15,6 +16,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.util.zip.ZipInputStream
 import android.util.Base64
 
@@ -70,33 +73,62 @@ class KoraNotationViewModel(
         viewModelScope.launch {
             _uiState.value = NotationUiState.Loading
             try {
-                val fileName = uri.lastPathSegment ?: "file"
-                val ext = fileName.substringAfterLast('.', "").lowercase()
+                val (fileName, mimeType) = withContext(Dispatchers.IO) {
+                    var name = "file"
+                    val mime = context.contentResolver.getType(uri) ?: ""
+                    context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            name = cursor.getString(0) ?: "file"
+                        }
+                    }
+                    name to mime
+                }
+                val ext = when {
+                    mimeType.contains("midi") || mimeType.contains("mid") -> "mid"
+                    mimeType.contains("zip") || mimeType.contains("mxl") -> "mxl"
+                    mimeType.contains("pdf") -> "pdf"
+                    else -> fileName.substringAfterLast('.', "").lowercase()
+                }
                 val paramsJson = withContext(Dispatchers.IO) {
-                    val bytes = context.contentResolver.openInputStream(uri)!!.use { it.readBytes() }
+                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytesLimited(MAX_IMPORT_BYTES) }
+                        ?: throw IllegalStateException("Cannot open selected file")
+                    val title = fileName.substringBeforeLast('.')
                     when (ext) {
                         "mid", "midi" -> {
                             val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                            val title = fileName.substringBeforeLast('.')
-                            """{"kind":"midi","dataBase64":"$b64","instrumentType":"$instrumentType","title":"${title.replace("\"","'")}"}"""
+                            JSONObject().apply {
+                                put("kind", "midi")
+                                put("dataBase64", b64)
+                                put("instrumentType", instrumentType)
+                                put("title", title)
+                            }.toString()
                         }
                         "mxl" -> {
                             val xmlText = extractXmlFromMxl(bytes)
-                            val title = fileName.substringBeforeLast('.')
-                            val escaped = xmlText.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
-                            """{"kind":"xml","xmlText":"$escaped","instrumentType":"$instrumentType","title":"${title.replace("\"","'")}"}"""
+                            JSONObject().apply {
+                                put("kind", "xml")
+                                put("xmlText", xmlText)
+                                put("instrumentType", instrumentType)
+                                put("title", title)
+                            }.toString()
                         }
                         "pdf" -> {
                             val xmlText = extractXmlFromPdf(bytes)
-                            val title = fileName.substringBeforeLast('.')
-                            val escaped = xmlText.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
-                            """{"kind":"xml","xmlText":"$escaped","instrumentType":"$instrumentType","title":"${title.replace("\"","'")}"}"""
+                            JSONObject().apply {
+                                put("kind", "xml")
+                                put("xmlText", xmlText)
+                                put("instrumentType", instrumentType)
+                                put("title", title)
+                            }.toString()
                         }
                         else -> {
                             val xmlText = bytes.decodeToString()
-                            val title = fileName.substringBeforeLast('.')
-                            val escaped = xmlText.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
-                            """{"kind":"xml","xmlText":"$escaped","instrumentType":"$instrumentType","title":"${title.replace("\"","'")}"}"""
+                            JSONObject().apply {
+                                put("kind", "xml")
+                                put("xmlText", xmlText)
+                                put("instrumentType", instrumentType)
+                                put("title", title)
+                            }.toString()
                         }
                     }
                 }
@@ -110,7 +142,7 @@ class KoraNotationViewModel(
                 _exportState.value = ExportState.Idle
                 _uiState.value = NotationUiState.Success(result)
             } catch (e: Exception) {
-                _uiState.value = NotationUiState.Error(e.message ?: "Unknown error")
+                _uiState.value = NotationUiState.Error(importErrorMessage(e))
             }
         }
     }
@@ -128,7 +160,13 @@ class KoraNotationViewModel(
         viewModelScope.launch {
             _uiState.value = NotationUiState.Loading
             try {
-                val paramsJson = """{"score":$score,"edit":$editJson,"instrumentType":"$currentInstrumentType","title":"${currentTitle.replace("\"","'")}","sourceKind":"$currentSourceKind"}"""
+                val paramsJson = JSONObject().apply {
+                    put("score", JSONObject(score))
+                    put("edit", JSONObject(editJson))
+                    put("instrumentType", currentInstrumentType)
+                    put("title", currentTitle)
+                    put("sourceKind", currentSourceKind)
+                }.toString()
                 val resultJson = bridge.edit(paramsJson)
                 val result = parseResult(resultJson)
                 currentScore = result.scoreJson
@@ -139,7 +177,7 @@ class KoraNotationViewModel(
                 _exportState.value = ExportState.Idle
                 _uiState.value = NotationUiState.Success(result)
             } catch (e: Exception) {
-                _uiState.value = NotationUiState.Error(e.message ?: "Edit failed")
+                _uiState.value = NotationUiState.Error("Could not apply that edit to this score.")
             }
         }
     }
@@ -149,7 +187,10 @@ class KoraNotationViewModel(
         viewModelScope.launch {
             _exportState.value = ExportState.LoadingAudio
             try {
-                val paramsJson = """{"score":$score,"instrumentType":"$currentInstrumentType"}"""
+                val paramsJson = JSONObject().apply {
+                    put("score", JSONObject(score))
+                    put("instrumentType", currentInstrumentType)
+                }.toString()
                 val resultJson = bridge.exportAudio(paramsJson)
                 val obj = JSONObject(resultJson)
                 _exportState.value = ExportState.AudioReady(
@@ -157,7 +198,7 @@ class KoraNotationViewModel(
                     simplifiedBase64 = obj.optString("simplifiedAudioBase64"),
                 )
             } catch (e: Exception) {
-                _exportState.value = ExportState.Error(e.message ?: "Audio export failed")
+                _exportState.value = ExportState.Error("Audio export failed for this score.")
             }
         }
     }
@@ -167,14 +208,19 @@ class KoraNotationViewModel(
         viewModelScope.launch {
             _exportState.value = ExportState.LoadingPdf
             try {
-                val paramsJson = """{"score":$score,"instrumentType":"$currentInstrumentType","title":"${currentTitle.replace("\"","'")}","difficulty":$currentDifficulty}"""
+                val paramsJson = JSONObject().apply {
+                    put("score", JSONObject(score))
+                    put("instrumentType", currentInstrumentType)
+                    put("title", currentTitle)
+                    put("difficulty", currentDifficulty)
+                }.toString()
                 val resultJson = bridge.exportPdf(paramsJson)
                 val obj = JSONObject(resultJson)
                 _exportState.value = ExportState.PdfReady(
                     pdfBase64 = obj.optString("pdfBase64"),
                 )
             } catch (e: Exception) {
-                _exportState.value = ExportState.Error(e.message ?: "PDF export failed")
+                _exportState.value = ExportState.Error("PDF export failed for this score.")
             }
         }
     }
@@ -222,7 +268,7 @@ class KoraNotationViewModel(
                 return candidate
             }
         }
-        throw Exception(
+        throw UserVisibleImportException(
             "No embedded MusicXML found in this PDF.\n" +
             "Export your score as .musicxml, .mxl, or .mid and import that file instead."
         )
@@ -232,8 +278,21 @@ class KoraNotationViewModel(
         ZipInputStream(bytes.inputStream()).use { zip ->
             var entry = zip.nextEntry
             val entries = mutableMapOf<String, ByteArray>()
+            var entryCount = 0
+            var totalUncompressedBytes = 0
             while (entry != null) {
-                if (!entry.isDirectory) entries[entry.name] = zip.readBytes()
+                if (!entry.isDirectory) {
+                    entryCount++
+                    if (entryCount > MAX_MXL_ENTRIES) {
+                        throw UserVisibleImportException("MXL file has too many entries.")
+                    }
+                    val entryBytes = zip.readBytesLimited(MAX_MXL_ENTRY_BYTES)
+                    totalUncompressedBytes += entryBytes.size
+                    if (totalUncompressedBytes > MAX_MXL_TOTAL_BYTES) {
+                        throw UserVisibleImportException("MXL file is too large after extraction.")
+                    }
+                    entries[entry.name] = entryBytes
+                }
                 entry = zip.nextEntry
             }
             val containerBytes = entries["META-INF/container.xml"]
@@ -248,11 +307,16 @@ class KoraNotationViewModel(
             return entries.entries
                 .firstOrNull { it.key.endsWith(".xml") && it.key != "META-INF/container.xml" }
                 ?.value?.decodeToString()
-                ?: throw Exception("No score XML found in MXL file")
+                ?: throw UserVisibleImportException("No score XML found in MXL file.")
         }
     }
 
     companion object {
+        private const val MAX_IMPORT_BYTES = 20 * 1024 * 1024
+        private const val MAX_MXL_ENTRY_BYTES = 5 * 1024 * 1024
+        private const val MAX_MXL_TOTAL_BYTES = 10 * 1024 * 1024
+        private const val MAX_MXL_ENTRIES = 128
+
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 KoraNotationViewModel(
@@ -261,5 +325,31 @@ class KoraNotationViewModel(
                 )
             }
         }
+    }
+}
+
+private class UserVisibleImportException(message: String) : Exception(message)
+
+private fun InputStream.readBytesLimited(maxBytes: Int): ByteArray {
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    val output = ByteArrayOutputStream()
+    var total = 0
+    while (true) {
+        val read = read(buffer)
+        if (read == -1) break
+        total += read
+        if (total > maxBytes) {
+            throw UserVisibleImportException("Selected file is too large.")
+        }
+        output.write(buffer, 0, read)
+    }
+    return output.toByteArray()
+}
+
+private fun importErrorMessage(error: Exception): String {
+    return if (error is UserVisibleImportException) {
+        error.message ?: "Could not process this file."
+    } else {
+        "Could not process this file. Use a valid MusicXML, MXL, MIDI, or supported PDF file."
     }
 }

@@ -158,7 +158,7 @@ class DataStoreInstrumentConfigRepository private constructor(
             val parsed = serialized.split(PITCH_DELIMITER)
                 .map { item -> item.trim() }
                 .filter { item -> item.isNotEmpty() }
-                .mapNotNull { value -> value.toDoubleOrNull() }
+                .mapNotNull { value -> value.toFiniteCentsOrNull() }
 
             return if (parsed.size == stringCount) {
                 parsed
@@ -208,7 +208,7 @@ class DataStoreInstrumentConfigRepository private constructor(
 
             val openIntonation = decodeField(fields[5])
                 ?.split(PITCH_DELIMITER)
-                ?.mapNotNull { value -> value.toDoubleOrNull() }
+                ?.mapNotNull { value -> value.toFiniteCentsOrNull() }
                 ?: return null
             if (openIntonation.size != stringCount) {
                 return null
@@ -216,7 +216,7 @@ class DataStoreInstrumentConfigRepository private constructor(
 
             val closedIntonation = decodeField(fields[6])
                 ?.split(PITCH_DELIMITER)
-                ?.mapNotNull { value -> value.toDoubleOrNull() }
+                ?.mapNotNull { value -> value.toFiniteCentsOrNull() }
                 ?: return null
             if (closedIntonation.size != stringCount) {
                 return null
@@ -273,12 +273,22 @@ class DataStoreInstrumentConfigRepository private constructor(
         }
 
         private fun sanitizePresetName(name: String): String {
-            val cleaned = name.trim().replace(Regex("\\s+"), " ")
+            val cleaned = name
+                .trim()
+                .replace(Regex("\\p{Cntrl}+"), " ")
+                .replace(Regex("\\s+"), " ")
+                .take(MAX_PRESET_NAME_LENGTH)
+                .trim()
             return if (cleaned.isBlank()) {
                 "Custom Preset"
             } else {
                 cleaned
             }
+        }
+
+        private fun String.toFiniteCentsOrNull(): Double? {
+            return trim().toDoubleOrNull()
+                ?.takeIf { cents -> cents.isFinite() && cents in MIN_INTONATION_CENTS..MAX_INTONATION_CENTS }
         }
 
         private fun buildPresetId(): String {
@@ -296,6 +306,10 @@ class DataStoreInstrumentConfigRepository private constructor(
                 String(Base64.decode(value, flags), Charsets.UTF_8)
             }.getOrNull()
         }
+
+        private const val MAX_PRESET_NAME_LENGTH = 64
+        private const val MIN_INTONATION_CENTS = -1200.0
+        private const val MAX_INTONATION_CENTS = 1200.0
     }
 }
 

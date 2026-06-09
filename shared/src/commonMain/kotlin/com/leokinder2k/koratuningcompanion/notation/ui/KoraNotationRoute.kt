@@ -4,4 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 @Composable
-expect fun KoraNotationRoute(modifier: Modifier = Modifier)
+expect fun KoraNotationRoute(
+    modifier: Modifier = Modifier,
+    isMuted: Boolean = false
+)

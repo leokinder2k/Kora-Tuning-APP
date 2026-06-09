@@ -2,6 +2,7 @@ package com.leokinder2k.koratuningcompanion.navigation
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,10 +55,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.generated.resources.Res
 import com.leokinder2k.koratuningcompanion.generated.resources.*
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicDisplayState
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
 import com.leokinder2k.koratuningcompanion.instrumentconfig.ui.InstrumentConfigurationRoute
 import com.leokinder2k.koratuningcompanion.instrumentconfig.ui.TraditionalPresetsRoute
@@ -95,6 +101,10 @@ fun KoraAuthorityApp(
     var showSettings by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     val enharmonicPreference = EnharmonicPreference.valueOf(enharmonicPreferenceName)
+
+    SideEffect {
+        EnharmonicDisplayState.preference = enharmonicPreference
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         Box(modifier = Modifier.weight(1f)) {
@@ -191,7 +201,10 @@ fun KoraAuthorityApp(
                         onToggleMute = { isMuted = !isMuted }
                     )
                     AppDestination.PRESETS -> TraditionalPresetsRoute()
-                    AppDestination.NOTATION -> KoraNotationRoute(modifier = Modifier.fillMaxSize())
+                    AppDestination.NOTATION -> KoraNotationRoute(
+                        modifier = Modifier.fillMaxSize(),
+                        isMuted = isMuted
+                    )
                 }
             }
         }
@@ -294,12 +307,16 @@ private fun SettingsDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onThemeModeChange(mode) }
+                            .selectable(
+                                selected = themeMode == mode,
+                                onClick = { onThemeModeChange(mode) },
+                                role = Role.RadioButton
+                            )
                             .padding(vertical = 4.dp)
                     ) {
                         RadioButton(
                             selected = themeMode == mode,
-                            onClick = { onThemeModeChange(mode) }
+                            onClick = null
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(labelRes))
@@ -318,12 +335,16 @@ private fun SettingsDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onLocaleChange(tag) }
+                            .selectable(
+                                selected = currentLocaleTag == tag,
+                                onClick = { onLocaleChange(tag) },
+                                role = Role.RadioButton
+                            )
                             .padding(vertical = 4.dp)
                     ) {
                         RadioButton(
                             selected = currentLocaleTag == tag,
-                            onClick = { onLocaleChange(tag) }
+                            onClick = null
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(label)
@@ -369,7 +390,9 @@ private fun AboutDialog(
                     text = stringResource(Res.string.about_privacy_policy),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { onPrivacyPolicy() }
+                    modifier = Modifier
+                        .semantics { role = Role.Button }
+                        .clickable { onPrivacyPolicy() }
                 )
             }
         },

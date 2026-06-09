@@ -122,6 +122,8 @@
     <string name="scale_root_reference_left_5">5th left</string>
     <string name="scale_root_reference_left_6">6th left</string>
     <string name="scale_root_reference_right_1">1st right</string>
+    <string name="scale_root_reference_right_2">2nd right</string>
+    <string name="scale_root_reference_right_3">3rd right</string>
     <string name="scale_type_label">Scale type</string>
     <string name="scale_family_label">Scale family</string>
     <string name="scale_label">Scale</string>
@@ -305,7 +307,7 @@
     <string name="instrument_config_status_unable_save_verify_intonation">Unable to save. Please verify your intonation inputs.</string>
     <string name="instrument_config_status_profile_saved">Instrument profile saved.</string>
     <string name="instrument_config_error_pitch_format">Use format like E3 or F#4.</string>
-    <string name="instrument_config_error_cents_format">Use cents like -13.7 or 0.0.</string>
+    <string name="instrument_config_error_cents_format">Use finite cents from -1200 to 1200, like -13.7 or 0.0.</string>
 
     <!-- Guided Setup -->
     <string name="title_guided_setup">Guided Setup Mode</string>

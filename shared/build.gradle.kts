@@ -71,6 +71,12 @@ android {
     buildFeatures {
         compose = true
     }
+
+    sourceSets {
+        getByName("main") {
+            assets.srcDir(rootProject.file("apple"))
+        }
+    }
 }
 
 compose.resources {

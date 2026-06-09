@@ -556,8 +556,16 @@ class InstrumentConfigurationViewModel(
 
         fun parseCentsInput(value: String): Double? {
             val trimmed = value.trim()
-            return if (trimmed.isEmpty()) 0.0 else trimmed.toDoubleOrNull()
+            return if (trimmed.isEmpty()) {
+                0.0
+            } else {
+                trimmed.toDoubleOrNull()
+                    ?.takeIf { cents -> cents.isFinite() && cents in MIN_INTONATION_CENTS..MAX_INTONATION_CENTS }
+            }
         }
+
+        private const val MIN_INTONATION_CENTS = -1200.0
+        private const val MAX_INTONATION_CENTS = 1200.0
     }
 
     private fun buildUiState(
@@ -588,8 +596,16 @@ class InstrumentConfigurationViewModel(
             val inputError = if (input.isNotBlank() && parsedPitch == null) "Use format like E3 or F#4." else null
             val openIntonationInput = resizedOpenIntonationInputs[index]
             val closedIntonationInput = resizedClosedIntonationInputs[index]
-            val openIntonationError = if (parseCentsInput(openIntonationInput) == null) "Use cents like -13.7 or 0.0." else null
-            val closedIntonationError = if (parseCentsInput(closedIntonationInput) == null) "Use cents like -13.7 or 0.0." else null
+            val openIntonationError = if (parseCentsInput(openIntonationInput) == null) {
+                "Use finite cents from -1200 to 1200, like -13.7 or 0.0."
+            } else {
+                null
+            }
+            val closedIntonationError = if (parseCentsInput(closedIntonationInput) == null) {
+                "Use finite cents from -1200 to 1200, like -13.7 or 0.0."
+            } else {
+                null
+            }
 
             InstrumentStringRowUiState(
                 stringNumber = index + 1,

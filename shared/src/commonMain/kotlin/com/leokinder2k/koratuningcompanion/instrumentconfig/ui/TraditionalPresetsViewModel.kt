@@ -97,7 +97,7 @@ class TraditionalPresetsViewModel(
     }
 
     fun onCustomPresetNameChanged(value: String) {
-        customPresetNameInput = value
+        customPresetNameInput = sanitizeCustomPresetNameInput(value)
         refreshUiState()
     }
 
@@ -108,7 +108,7 @@ class TraditionalPresetsViewModel(
             return
         }
 
-        val name = customPresetNameInput.trim()
+        val name = sanitizeCustomPresetName(customPresetNameInput)
         if (name.isBlank()) {
             statusMessage = "Enter a preset name."
             refreshUiState()
@@ -265,6 +265,22 @@ class TraditionalPresetsViewModel(
     companion object {
         private const val DEFAULT_STRING_COUNT = 21
         private const val PREVIEW_LIMIT = 5
+        private const val MAX_CUSTOM_PRESET_NAME_LENGTH = 64
         private val SUPPORTED_STRING_COUNTS = setOf(19, 21, 22)
+
+        private fun sanitizeCustomPresetNameInput(value: String): String {
+            return value
+                .replace(Regex("\\p{Cntrl}+"), " ")
+                .take(MAX_CUSTOM_PRESET_NAME_LENGTH)
+        }
+
+        private fun sanitizeCustomPresetName(value: String): String {
+            return value
+                .trim()
+                .replace(Regex("\\p{Cntrl}+"), " ")
+                .replace(Regex("\\s+"), " ")
+                .take(MAX_CUSTOM_PRESET_NAME_LENGTH)
+                .trim()
+        }
     }
 }

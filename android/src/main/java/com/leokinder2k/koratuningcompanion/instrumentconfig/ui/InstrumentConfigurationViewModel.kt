@@ -620,9 +620,12 @@ class InstrumentConfigurationViewModel(
                 return 0.0
             }
             return trimmed.toDoubleOrNull()
+                ?.takeIf { cents -> cents.isFinite() && cents in MIN_INTONATION_CENTS..MAX_INTONATION_CENTS }
         }
 
         private const val DEFAULT_INTONATION_INPUT = "0.0"
+        private const val MIN_INTONATION_CENTS = -1200.0
+        private const val MAX_INTONATION_CENTS = 1200.0
     }
 
     private fun buildUiState(

@@ -456,6 +456,8 @@ class VersatilityAnalyzer(
             add(ScaleRootReference.LEFT_6)
             if (stringCount >= 21) {
                 add(ScaleRootReference.RIGHT_1)
+                add(ScaleRootReference.RIGHT_2)
+                add(ScaleRootReference.RIGHT_3)
             }
         }
     }
@@ -483,6 +485,8 @@ class VersatilityAnalyzer(
             ScaleRootReference.LEFT_5 -> 4
             ScaleRootReference.LEFT_6 -> 5
             ScaleRootReference.RIGHT_1 -> 6
+            ScaleRootReference.RIGHT_2 -> 7
+            ScaleRootReference.RIGHT_3 -> 8
         }
     }
 

@@ -210,7 +210,8 @@ private fun buildVersatilityPdf(context: Context, analysis: VersatilityAnalysis)
 }
 
 private fun sharePdf(context: Context, bytes: ByteArray, fileName: String) {
-    val file = File(context.cacheDir, fileName)
+    val exportDir = File(context.cacheDir, "kora_exports").apply { mkdirs() }
+    val file = File(exportDir, fileName)
     file.writeBytes(bytes)
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     val intent = Intent(Intent.ACTION_SEND).apply {
@@ -282,6 +283,8 @@ private fun rootReferenceLabel(context: Context, reference: ScaleRootReference):
         ScaleRootReference.LEFT_5  -> context.getString(R.string.scale_root_reference_left_5)
         ScaleRootReference.LEFT_6  -> context.getString(R.string.scale_root_reference_left_6)
         ScaleRootReference.RIGHT_1 -> context.getString(R.string.scale_root_reference_right_1)
+        ScaleRootReference.RIGHT_2 -> context.getString(R.string.scale_root_reference_right_2)
+        ScaleRootReference.RIGHT_3 -> context.getString(R.string.scale_root_reference_right_3)
     }
 
 private fun scaleTypeLabelText(context: Context, scaleType: ScaleType): String =

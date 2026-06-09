@@ -111,6 +111,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -176,6 +178,8 @@ private val StickyDiagramHeight = 360.dp
 private const val KORA_DIAGRAM_PDF_ASSET_NAME = "Kora_x22.pdf"
 private const val KORA_DIAGRAM_PDF_PAGE_INDEX = 0
 private const val KORA_DIAGRAM_PDF_SCALE = 2
+private val KORA_DIAGRAM_BITMAP_LOCK = Any()
+private var cachedKoraDiagramBitmap: Bitmap? = null
 
 private data class MetronomeTimeSignature(
     val numerator: Int,
@@ -288,6 +292,7 @@ fun InstantOverviewScreen(
             tonePlayer.stopAll()
             metronomePlayer.stopAll()
             isMetronomeRunning = false
+            isTimedExerciseRunning = false
             playingStringNumbers = emptySet()
         }
     }
@@ -329,12 +334,14 @@ fun InstantOverviewScreen(
         metronomeTimeSignature,
         metronomeEnabledBeats,
         metronomeSound,
-        metronomeVolumePercent
+        metronomeVolumePercent,
+        isMuted
     ) {
-        if (!isMetronomeRunning) {
+        if (!isMetronomeRunning || isMuted) {
             metronomePlayer.stopAll()
             metronomeCurrentBeat = 0
             metronomeTick = 0L
+            if (isMuted) isMetronomeRunning = false
             return@LaunchedEffect
         }
 
@@ -343,7 +350,7 @@ fun InstantOverviewScreen(
             .roundToInt()
             .coerceAtLeast(50)
             .toLong()
-        while (isActive && isMetronomeRunning) {
+        while (isActive && isMetronomeRunning && !isMuted) {
             beat = if (beat >= metronomeTimeSignature.numerator) {
                 1
             } else {
@@ -351,7 +358,7 @@ fun InstantOverviewScreen(
             }
             metronomeCurrentBeat = beat
             metronomeTick += 1L
-            if (beat in metronomeEnabledBeats) {
+            if (beat in metronomeEnabledBeats && !isMuted) {
                 metronomePlayer.play(
                     sound = metronomeSound,
                     accent = beat == 1,
@@ -424,6 +431,7 @@ fun InstantOverviewScreen(
         pitch: Pitch,
         centsOffset: Double
     ) {
+        if (isMuted) return
         val frequency = TunerTargetMatcher.pitchToFrequencyHz(
             pitch = pitch,
             centsOffset = centsOffset
@@ -683,12 +691,14 @@ fun InstantOverviewScreen(
                         text = uiState.profileStatus,
                         style = MaterialTheme.typography.labelLarge
                     )
+                    val referenceVolumeLabel = stringResource(R.string.overview_reference_volume_label)
+                    val noteLettersLabel = stringResource(R.string.overview_note_letters_label)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = stringResource(R.string.overview_reference_volume_label),
+                            text = referenceVolumeLabel,
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Spacer(modifier = Modifier.weight(1f))
@@ -700,20 +710,22 @@ fun InstantOverviewScreen(
                     Slider(
                         value = toneVolumeDb,
                         onValueChange = { toneVolumeDb = it },
-                        valueRange = 30f..100f
+                        valueRange = 30f..100f,
+                        modifier = Modifier.semantics { contentDescription = referenceVolumeLabel }
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = stringResource(R.string.overview_note_letters_label),
+                            text = noteLettersLabel,
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         Switch(
                             checked = showNoteLabels,
-                            onCheckedChange = { showNoteLabels = it }
+                            onCheckedChange = { showNoteLabels = it },
+                            modifier = Modifier.semantics { contentDescription = noteLettersLabel }
                         )
                     }
                 }
@@ -725,7 +737,7 @@ fun InstantOverviewScreen(
                 scaleType = uiState.scaleType,
                 onScaleTypeSelected = onScaleTypeSelected,
                 scaleRootReference = uiState.scaleRootReference,
-                allowRight1 = uiState.allowRight1,
+                allowRightRootReferences = uiState.allowRightRootReferences,
                 onScaleRootReferenceSelected = onScaleRootReferenceSelected
             )
             TuningOrchestrationCard(
@@ -849,8 +861,8 @@ fun InstantOverviewScreen(
                     },
                     isTimedExerciseRunning = isTimedExerciseRunning,
                     onTimedExerciseRunningChanged = { running ->
-                        isTimedExerciseRunning = running
-                        if (running && !isMetronomeRunning) {
+                        isTimedExerciseRunning = running && !isMuted
+                        if (running && !isMuted && !isMetronomeRunning) {
                             isMetronomeRunning = true
                         }
                     },
@@ -882,7 +894,7 @@ fun InstantOverviewScreen(
                     metronomeSound = metronomeSound,
                     onMetronomeSoundChanged = { sound -> metronomeSound = sound },
                     isMetronomeRunning = isMetronomeRunning,
-                    onMetronomeRunningChanged = { running -> isMetronomeRunning = running },
+                    onMetronomeRunningChanged = { running -> isMetronomeRunning = running && !isMuted },
                     metronomeCurrentBeat = metronomeCurrentBeat,
                     suggestedNonDetunedChord = suggestedNonDetunedChord,
                     bestMatches = bestChordMatches,
@@ -910,7 +922,7 @@ private fun OverviewSelectionControls(
     scaleType: ScaleType,
     onScaleTypeSelected: (ScaleType) -> Unit,
     scaleRootReference: ScaleRootReference,
-    allowRight1: Boolean,
+    allowRightRootReferences: Boolean,
     onScaleRootReferenceSelected: (ScaleRootReference) -> Unit
 ) {
     Card(
@@ -965,11 +977,21 @@ private fun OverviewSelectionControls(
                 onClick = { onScaleRootReferenceSelected(ScaleRootReference.LEFT_6) },
                 label = { Text(stringResource(R.string.scale_root_reference_left_6)) }
             )
-            if (allowRight1) {
+            if (allowRightRootReferences) {
                 FilterChip(
                     selected = scaleRootReference == ScaleRootReference.RIGHT_1,
                     onClick = { onScaleRootReferenceSelected(ScaleRootReference.RIGHT_1) },
                     label = { Text(stringResource(R.string.scale_root_reference_right_1)) }
+                )
+                FilterChip(
+                    selected = scaleRootReference == ScaleRootReference.RIGHT_2,
+                    onClick = { onScaleRootReferenceSelected(ScaleRootReference.RIGHT_2) },
+                    label = { Text(stringResource(R.string.scale_root_reference_right_2)) }
+                )
+                FilterChip(
+                    selected = scaleRootReference == ScaleRootReference.RIGHT_3,
+                    onClick = { onScaleRootReferenceSelected(ScaleRootReference.RIGHT_3) },
+                    label = { Text(stringResource(R.string.scale_root_reference_right_3)) }
                 )
             }
         }
@@ -1884,28 +1906,34 @@ private fun KoraDiagramBackground(
 }
 
 private fun renderKoraDiagramPdfBitmap(context: Context): Bitmap {
-    val cachedPdfFile = File(context.cacheDir, KORA_DIAGRAM_PDF_ASSET_NAME)
-    if (!cachedPdfFile.exists() || cachedPdfFile.length() <= 0L) {
-        context.assets.open(KORA_DIAGRAM_PDF_ASSET_NAME).use { input ->
-            FileOutputStream(cachedPdfFile, false).use { output ->
-                input.copyTo(output)
+    cachedKoraDiagramBitmap?.takeIf { bitmap -> !bitmap.isRecycled }?.let { return it }
+    return synchronized(KORA_DIAGRAM_BITMAP_LOCK) {
+        cachedKoraDiagramBitmap?.takeIf { bitmap -> !bitmap.isRecycled } ?: run {
+            val cachedPdfFile = File(context.cacheDir, KORA_DIAGRAM_PDF_ASSET_NAME)
+            if (!cachedPdfFile.exists() || cachedPdfFile.length() <= 0L) {
+                context.assets.open(KORA_DIAGRAM_PDF_ASSET_NAME).use { input ->
+                    FileOutputStream(cachedPdfFile, false).use { output ->
+                        input.copyTo(output)
+                    }
+                }
             }
-        }
-    }
 
-    return ParcelFileDescriptor.open(cachedPdfFile, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
-        PdfRenderer(descriptor).use { renderer ->
-            require(renderer.pageCount > KORA_DIAGRAM_PDF_PAGE_INDEX) {
-                "Kora diagram PDF has no page index $KORA_DIAGRAM_PDF_PAGE_INDEX"
-            }
-            renderer.openPage(KORA_DIAGRAM_PDF_PAGE_INDEX).use { page ->
-                val bitmap = Bitmap.createBitmap(
-                    (page.width * KORA_DIAGRAM_PDF_SCALE).coerceAtLeast(1),
-                    (page.height * KORA_DIAGRAM_PDF_SCALE).coerceAtLeast(1),
-                    Bitmap.Config.ARGB_8888
-                )
-                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                bitmap
+            ParcelFileDescriptor.open(cachedPdfFile, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
+                PdfRenderer(descriptor).use { renderer ->
+                    require(renderer.pageCount > KORA_DIAGRAM_PDF_PAGE_INDEX) {
+                        "Kora diagram PDF has no page index $KORA_DIAGRAM_PDF_PAGE_INDEX"
+                    }
+                    renderer.openPage(KORA_DIAGRAM_PDF_PAGE_INDEX).use { page ->
+                        Bitmap.createBitmap(
+                            (page.width * KORA_DIAGRAM_PDF_SCALE).coerceAtLeast(1),
+                            (page.height * KORA_DIAGRAM_PDF_SCALE).coerceAtLeast(1),
+                            Bitmap.Config.ARGB_8888
+                        ).also { bitmap ->
+                            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            cachedKoraDiagramBitmap = bitmap
+                        }
+                    }
+                }
             }
         }
     }
@@ -2590,12 +2618,14 @@ private fun ChordExerciseOverview(
                     text = stringResource(R.string.overview_metronome_bpm_line, metronomeBpm),
                     style = MaterialTheme.typography.bodySmall
                 )
+                val metronomeBpmLabel = stringResource(R.string.overview_metronome_bpm_line, metronomeBpm)
                 Slider(
                     value = metronomeBpm.toFloat(),
                     onValueChange = { value ->
                         onMetronomeBpmChanged(value.roundToInt())
                     },
-                    valueRange = 40f..250f
+                    valueRange = 40f..250f,
+                    modifier = Modifier.semantics { contentDescription = metronomeBpmLabel }
                 )
                 Text(
                     text = stringResource(R.string.overview_metronome_time_signature_label),
@@ -2656,17 +2686,19 @@ private fun ChordExerciseOverview(
                         )
                     }
                 }
+                val metronomeVolumeLabel = stringResource(
+                    R.string.overview_metronome_volume_label,
+                    metronomeVolumePercent.roundToInt()
+                )
                 Text(
-                    text = stringResource(
-                        R.string.overview_metronome_volume_label,
-                        metronomeVolumePercent.roundToInt()
-                    ),
+                    text = metronomeVolumeLabel,
                     style = MaterialTheme.typography.labelMedium
                 )
                 Slider(
                     value = metronomeVolumePercent,
                     onValueChange = onMetronomeVolumePercentChanged,
-                    valueRange = 30f..180f
+                    valueRange = 30f..180f,
+                    modifier = Modifier.semantics { contentDescription = metronomeVolumeLabel }
                 )
                 OutlinedButton(
                     onClick = { onMetronomeRunningChanged(!isMetronomeRunning) },

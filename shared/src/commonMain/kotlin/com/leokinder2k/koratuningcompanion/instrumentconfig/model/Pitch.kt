@@ -28,7 +28,11 @@ enum class EnharmonicPreference {
     FLATS,
 }
 
-fun NoteName.displaySymbol(preference: EnharmonicPreference = EnharmonicPreference.SHARPS): String {
+object EnharmonicDisplayState {
+    var preference: EnharmonicPreference = EnharmonicPreference.SHARPS
+}
+
+fun NoteName.displaySymbol(preference: EnharmonicPreference = EnharmonicDisplayState.preference): String {
     return when (this) {
         NoteName.C -> "C"
         NoteName.C_SHARP -> if (preference == EnharmonicPreference.FLATS) "Db" else "C#"
@@ -56,7 +60,7 @@ data class Pitch(
         return Pitch(note = normalizedNote, octave = normalizedOctave)
     }
 
-    fun asText(preference: EnharmonicPreference = EnharmonicPreference.SHARPS): String =
+    fun asText(preference: EnharmonicPreference = EnharmonicDisplayState.preference): String =
         "${note.displaySymbol(preference)}$octave"
 
     companion object {

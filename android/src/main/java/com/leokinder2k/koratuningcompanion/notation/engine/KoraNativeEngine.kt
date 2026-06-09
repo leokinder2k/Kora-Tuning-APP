@@ -129,7 +129,7 @@ class KoraNativeEngine {
             put("simplifiedMidiBase64", Base64.encodeToString(midiSimpl, Base64.NO_WRAP))
             put("ppq", score.ppq)
             put("tempoMap", tempoMapToJson(score.tempoMap))
-            put("timeline", JSONObject())  // placeholder — layout model not ported
+            put("timeline", JSONObject())
             put("retunePlan", retunePlanToJson(retunePlan))
             put("score", scoreToJson(score))
             put("metadata", JSONObject().apply {

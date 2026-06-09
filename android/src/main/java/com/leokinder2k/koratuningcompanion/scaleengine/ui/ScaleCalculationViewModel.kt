@@ -38,7 +38,7 @@ data class ScaleCalculationUiState(
     val scaleType: ScaleType,
     val scaleRootReference: ScaleRootReference,
     val isChromatic: Boolean,
-    val allowRight1: Boolean,
+    val allowRightRootReferences: Boolean,
     val profileStatus: String,
     val orchestrationPlan: TuningOrchestrationPlan,
     val versatilityAnalysis: VersatilityAnalysis,
@@ -171,8 +171,8 @@ class ScaleCalculationViewModel(
     ): ScaleCalculationUiState {
         val scaleRootNote = effectiveScaleRootNote(profile)
         val isChromatic = profile.tuningMode == KoraTuningMode.PEG_TUNING
-        val allowRight1 = profile.stringCount >= 21
-        val effectiveReference = if (!allowRight1 && scaleRootReference == ScaleRootReference.RIGHT_1) {
+        val allowRightRootReferences = profile.stringCount >= 21
+        val effectiveReference = if (!allowRightRootReferences && scaleRootReference.isRightReference()) {
             currentScaleRootReference = ScaleRootReference.LEFT_1
             ScaleRootReference.LEFT_1
         } else {
@@ -193,7 +193,7 @@ class ScaleCalculationViewModel(
             scaleType = scaleType,
             scaleRootReference = effectiveReference,
             isChromatic = isChromatic,
-            allowRight1 = allowRight1,
+            allowRightRootReferences = allowRightRootReferences,
             profileStatus = profileStatus,
             orchestrationPlan = orchestrationPlan,
             versatilityAnalysis = versatilityAnalysis,
@@ -254,5 +254,14 @@ class ScaleCalculationViewModel(
 
     private fun analysisKey(profile: InstrumentProfile): Pair<Int, NoteName> {
         return profile.stringCount to profile.rootNote
+    }
+
+    private fun ScaleRootReference.isRightReference(): Boolean {
+        return when (this) {
+            ScaleRootReference.RIGHT_1,
+            ScaleRootReference.RIGHT_2,
+            ScaleRootReference.RIGHT_3 -> true
+            else -> false
+        }
     }
 }

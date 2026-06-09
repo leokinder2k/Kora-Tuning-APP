@@ -128,7 +128,7 @@ fun ScaleCalculationScreen(
 
             ScaleRootReferenceSection(
                 selected = uiState.scaleRootReference,
-                allowRight1 = uiState.allowRight1,
+                allowRightRootReferences = uiState.allowRightRootReferences,
                 onSelected = onScaleRootReferenceSelected
             )
 
@@ -169,7 +169,7 @@ fun ScaleCalculationScreen(
 @Composable
 private fun ScaleRootReferenceSection(
     selected: ScaleRootReference,
-    allowRight1: Boolean,
+    allowRightRootReferences: Boolean,
     onSelected: (ScaleRootReference) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -208,11 +208,21 @@ private fun ScaleRootReferenceSection(
                 onClick = { onSelected(ScaleRootReference.LEFT_6) },
                 label = { Text(stringResource(R.string.scale_root_reference_left_6)) }
             )
-            if (allowRight1) {
+            if (allowRightRootReferences) {
                 FilterChip(
                     selected = selected == ScaleRootReference.RIGHT_1,
                     onClick = { onSelected(ScaleRootReference.RIGHT_1) },
                     label = { Text(stringResource(R.string.scale_root_reference_right_1)) }
+                )
+                FilterChip(
+                    selected = selected == ScaleRootReference.RIGHT_2,
+                    onClick = { onSelected(ScaleRootReference.RIGHT_2) },
+                    label = { Text(stringResource(R.string.scale_root_reference_right_2)) }
+                )
+                FilterChip(
+                    selected = selected == ScaleRootReference.RIGHT_3,
+                    onClick = { onSelected(ScaleRootReference.RIGHT_3) },
+                    label = { Text(stringResource(R.string.scale_root_reference_right_3)) }
                 )
             }
         }

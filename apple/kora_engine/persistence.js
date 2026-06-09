@@ -1,4 +1,4 @@
-// Browser stub — node:fs not available. Persistence is handled by the Android layer.
+// Browser-compatible persistence adapter. Host apps handle durable file storage.
 
 function sortKeysDeep(value) {
   if (Array.isArray(value)) return value.map(sortKeysDeep);

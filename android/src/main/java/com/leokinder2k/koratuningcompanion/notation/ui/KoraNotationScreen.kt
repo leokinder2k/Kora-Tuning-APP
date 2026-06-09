@@ -25,6 +25,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,15 +43,22 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 @Composable
-fun KoraNotationRoute(modifier: Modifier = Modifier) {
+fun KoraNotationRoute(
+    modifier: Modifier = Modifier,
+    isMuted: Boolean = false
+) {
     val context = LocalContext.current
     val vm: KoraNotationViewModel = viewModel(factory = KoraNotationViewModel.factory(context))
-    KoraNotationScreen(vm = vm, modifier = modifier)
+    KoraNotationScreen(vm = vm, isMuted = isMuted, modifier = modifier)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun KoraNotationScreen(vm: KoraNotationViewModel, modifier: Modifier = Modifier) {
+fun KoraNotationScreen(
+    vm: KoraNotationViewModel,
+    isMuted: Boolean = false,
+    modifier: Modifier = Modifier
+) {
     val uiState by vm.uiState.collectAsStateWithLifecycle()
     val transposeOffset by vm.transposeOffset.collectAsStateWithLifecycle()
     val originalKeyFifths by vm.originalKeyFifths.collectAsStateWithLifecycle()
@@ -68,12 +77,7 @@ fun KoraNotationScreen(vm: KoraNotationViewModel, modifier: Modifier = Modifier)
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
-            // Resolve display name from content resolver (lastPathSegment is unreliable)
-            var displayName = uri.lastPathSegment ?: "file"
-            context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) displayName = cursor.getString(0) ?: displayName
-            }
-            selectedFileName = displayName
+            selectedFileName = safeDisplayName(context, uri)
             vm.processFile(context, uri, selectedInstrument)
         }
     }
@@ -81,6 +85,13 @@ fun KoraNotationScreen(vm: KoraNotationViewModel, modifier: Modifier = Modifier)
     val darkCard = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1C))
     val onDark = Color.White
     val onDarkMuted = Color(0xFFAAAAAA)
+
+    LaunchedEffect(isMuted) {
+        if (isMuted) {
+            stopActivePlayback()
+            vm.stopPreview()
+        }
+    }
 
     Column(
         modifier = modifier
@@ -176,6 +187,7 @@ fun KoraNotationScreen(vm: KoraNotationViewModel, modifier: Modifier = Modifier)
                     onRequestAudio = vm::requestAudioExport,
                     onRequestPdf = vm::requestPdfExport,
                     onClearExport = vm::clearExportState,
+                    isMuted = isMuted,
                 )
             }
             else -> {}
@@ -223,13 +235,13 @@ private fun ResultSection(
     onRequestAudio: () -> Unit = {},
     onRequestPdf: () -> Unit = {},
     onClearExport: () -> Unit = {},
+    isMuted: Boolean = false,
 ) {
     // Release the module-level MediaPlayer when this composable leaves composition.
     DisposableEffect(Unit) {
         onDispose {
-            activePlayer?.release()
-            activePlayer = null
-            activePlayerFile = null
+            stopActivePlayback()
+            onStopPreview()
         }
     }
 
@@ -328,18 +340,22 @@ private fun ResultSection(
             }
 
             // Debounced audio pitch preview on slider drag — stops main playback first.
-            LaunchedEffect(sliderTarget) {
+            LaunchedEffect(sliderTarget, isMuted) {
                 delay(150L)
+                if (isMuted) {
+                    stopActivePlayback()
+                    onStopPreview()
+                    return@LaunchedEffect
+                }
                 val d = sliderTarget - transposeOffset
                 if (d != 0) {
-                    activePlayer?.release()
-                    activePlayer = null
-                    activePlayerFile = null
+                    stopActivePlayback()
                     onPreviewTranspose(d)
                 }
             }
 
             // Slider -12 → +12
+            val transposeSliderLabel = stringResource(R.string.notation_transpose_title)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -351,7 +367,9 @@ private fun ResultSection(
                     onValueChange = { sliderTarget = it.roundToInt() },
                     valueRange = -12f..12f,
                     steps = 23,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { contentDescription = transposeSliderLabel }
                 )
                 Text("+12", style = MaterialTheme.typography.labelSmall, color = onDarkMuted)
             }
@@ -413,10 +431,10 @@ private fun ResultSection(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = {
-                        if (audioReady != null) playBase64Wav(context, audioReady.koraBase64, "_kora_audio.wav", onStopPreview)
+                        if (audioReady != null) playBase64Wav(context, audioReady.koraBase64, "_kora_audio.wav", onStopPreview, isMuted)
                         else onRequestAudio()
                     },
-                    enabled = !exportBusy,
+                    enabled = !exportBusy && !isMuted,
                 ) {
                     if (exportState is ExportState.LoadingAudio) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
@@ -428,10 +446,10 @@ private fun ResultSection(
                 }
                 OutlinedButton(
                     onClick = {
-                        if (audioReady != null) playBase64Wav(context, audioReady.simplifiedBase64, "_original_audio.wav", onStopPreview)
+                        if (audioReady != null) playBase64Wav(context, audioReady.simplifiedBase64, "_original_audio.wav", onStopPreview, isMuted)
                         else onRequestAudio()
                     },
-                    enabled = !exportBusy,
+                    enabled = !exportBusy && !isMuted,
                 ) {
                     if (exportState is ExportState.LoadingAudio) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
@@ -535,7 +553,7 @@ private fun KoraDiagramCard(
 
 private fun shareBase64(context: Context, base64: String, fileName: String, mimeType: String) {
     val bytes = Base64.decode(base64, Base64.DEFAULT)
-    val file = java.io.File(context.cacheDir, fileName)
+    val file = safeCacheFile(context, fileName, "kora_exports")
     file.writeBytes(bytes)
     val uri = androidx.core.content.FileProvider.getUriForFile(
         context,
@@ -550,22 +568,70 @@ private fun shareBase64(context: Context, base64: String, fileName: String, mime
     context.startActivity(Intent.createChooser(intent, fileName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }
 
+private fun safeCacheFile(context: Context, requestedName: String, directoryName: String): java.io.File {
+    val dir = java.io.File(context.cacheDir, directoryName).apply { mkdirs() }
+    val safeName = requestedName
+        .substringAfterLast('/')
+        .substringAfterLast('\\')
+        .replace(Regex("[^A-Za-z0-9._ -]"), "_")
+        .trim()
+        .take(96)
+        .ifBlank { "export" }
+    return java.io.File(dir, safeName)
+}
+
+private fun safeDisplayName(context: Context, uri: Uri): String {
+    var displayName: String? = null
+    context.contentResolver.query(
+        uri,
+        arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),
+        null,
+        null,
+        null
+    )?.use { cursor ->
+        if (cursor.moveToFirst()) {
+            displayName = cursor.getString(0)
+        }
+    }
+    return (displayName ?: uri.lastPathSegment ?: "file")
+        .substringAfterLast('/')
+        .substringAfterLast('\\')
+        .replace(Regex("\\p{Cntrl}+"), " ")
+        .replace(Regex("\\s+"), " ")
+        .trim()
+        .take(96)
+        .ifBlank { "file" }
+}
+
 private var activePlayer: MediaPlayer? = null
 private var activePlayerFile: String? = null
 
-private fun playBase64Wav(context: Context, base64: String, fileName: String, stopPreview: () -> Unit = {}) {
+private fun stopActivePlayback() {
+    activePlayer?.release()
+    activePlayer = null
+    activePlayerFile = null
+}
+
+private fun playBase64Wav(
+    context: Context,
+    base64: String,
+    fileName: String,
+    stopPreview: () -> Unit = {},
+    isMuted: Boolean = false
+) {
+    if (isMuted) {
+        stopActivePlayback()
+        stopPreview()
+        return
+    }
     // Toggle off if the same track is already playing.
     if (activePlayerFile == fileName && activePlayer?.isPlaying == true) {
-        activePlayer?.release()
-        activePlayer = null
-        activePlayerFile = null
+        stopActivePlayback()
         return
     }
     try {
         stopPreview()                   // kill any pitch-preview that may be running
-        activePlayer?.release()
-        activePlayer = null
-        activePlayerFile = null
+        stopActivePlayback()
         if (base64.isBlank()) return
         val bytes = Base64.decode(base64, Base64.DEFAULT)
         val file = java.io.File(context.cacheDir, fileName)

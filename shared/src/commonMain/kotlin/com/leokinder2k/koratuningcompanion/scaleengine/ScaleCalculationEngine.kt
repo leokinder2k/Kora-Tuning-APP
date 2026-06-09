@@ -385,6 +385,7 @@ class ScaleCalculationEngine {
     ): Int {
         val stringCount = request.instrumentProfile.stringCount
         val leftOrder = KoraStringLayout.leftOrder(stringCount)
+        val rightOrder = KoraStringLayout.rightOrder(stringCount)
         val referenceStringNumber = when (request.scaleRootReference) {
             ScaleRootReference.LEFT_1 -> leftOrder.getOrNull(0) ?: 1
             ScaleRootReference.LEFT_2 -> leftOrder.getOrNull(1) ?: leftOrder.firstOrNull() ?: 1
@@ -392,7 +393,9 @@ class ScaleCalculationEngine {
             ScaleRootReference.LEFT_4 -> leftOrder.getOrNull(3) ?: leftOrder.firstOrNull() ?: 1
             ScaleRootReference.LEFT_5 -> leftOrder.getOrNull(4) ?: leftOrder.firstOrNull() ?: 1
             ScaleRootReference.LEFT_6 -> leftOrder.getOrNull(5) ?: leftOrder.firstOrNull() ?: 1
-            ScaleRootReference.RIGHT_1 -> KoraStringLayout.rightOrder(stringCount).getOrNull(0) ?: 1
+            ScaleRootReference.RIGHT_1 -> rightOrder.getOrNull(0) ?: rightOrder.firstOrNull() ?: 1
+            ScaleRootReference.RIGHT_2 -> rightOrder.getOrNull(1) ?: rightOrder.firstOrNull() ?: 1
+            ScaleRootReference.RIGHT_3 -> rightOrder.getOrNull(2) ?: rightOrder.firstOrNull() ?: 1
         }
         // Use the current working open pitch of the reference string so that the root-anchor
         // calculation correctly handles instruments whose openPitches have already been

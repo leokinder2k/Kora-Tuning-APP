@@ -1,45 +1,47 @@
 package com.leokinder2k.koratuningcompanion.livetuner.audio
 
-import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.isActive
 import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioSystem
+import javax.sound.sampled.DataLine
 import javax.sound.sampled.TargetDataLine
 
-class DesktopAudioFrameSource(
-    private val sampleRateHz: Int = 44_100,
-    private val frameSizeHint: Int = 4096
-) : AudioFrameSource {
+class DesktopAudioFrameSource : AudioFrameSource {
 
-    override fun frames(): Flow<ShortArray> = callbackFlow {
-        val format = AudioFormat(sampleRateHz.toFloat(), 16, 1, true, false)
-        val info = AudioSystem.getTargetDataLineInfo(format).firstOrNull()
-        val line: TargetDataLine = if (info != null) {
-            AudioSystem.getTargetDataLine(format, info)
-        } else {
-            AudioSystem.getTargetDataLine(format)
-        }
-        line.open(format, frameSizeHint * 2)
-        line.start()
+    override fun frames(sampleRate: Int, frameSize: Int): Flow<ShortArray> = flow {
+        val format = AudioFormat(sampleRate.toFloat(), 16, 1, true, false)
+        val info = DataLine.Info(TargetDataLine::class.java, format)
+        val line = AudioSystem.getLine(info) as TargetDataLine
+        val byteBuffer = ByteArray(frameSize.coerceAtLeast(1) * BYTES_PER_SAMPLE)
 
-        val byteBuffer = ByteArray(frameSizeHint * 2)
         try {
-            while (!isClosedForSend) {
+            line.open(format, byteBuffer.size)
+            line.start()
+
+            while (currentCoroutineContext().isActive) {
                 val bytesRead = line.read(byteBuffer, 0, byteBuffer.size)
-                if (bytesRead <= 0) continue
-                val sampleCount = bytesRead / 2
-                val shorts = ShortArray(sampleCount) { i ->
-                    val lo = byteBuffer[i * 2].toInt() and 0xFF
-                    val hi = byteBuffer[i * 2 + 1].toInt()
+                if (bytesRead <= 0) {
+                    continue
+                }
+
+                val sampleCount = bytesRead / BYTES_PER_SAMPLE
+                val shorts = ShortArray(sampleCount) { index ->
+                    val lo = byteBuffer[index * BYTES_PER_SAMPLE].toInt() and 0xFF
+                    val hi = byteBuffer[index * BYTES_PER_SAMPLE + 1].toInt()
                     ((hi shl 8) or lo).toShort()
                 }
-                trySend(shorts)
+                emit(shorts)
             }
         } finally {
-            line.stop()
-            line.close()
+            runCatching { line.stop() }
+            runCatching { line.close() }
         }
-        awaitClose { line.stop(); line.close() }
+    }
+
+    private companion object {
+        private const val BYTES_PER_SAMPLE = 2
     }
 }

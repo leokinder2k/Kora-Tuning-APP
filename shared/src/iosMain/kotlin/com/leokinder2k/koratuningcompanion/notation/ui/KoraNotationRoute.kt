@@ -40,7 +40,10 @@ window.AndroidBridge = {
 
 @OptIn(ExperimentalForeignApi::class)
 @Composable
-actual fun KoraNotationRoute(modifier: Modifier) {
+actual fun KoraNotationRoute(
+    modifier: Modifier,
+    isMuted: Boolean
+) {
     var selectedInstrument by remember { mutableStateOf("KORA_21") }
     var isProcessing by remember { mutableStateOf(false) }
     var resultTitle by remember { mutableStateOf<String?>(null) }
@@ -271,7 +274,7 @@ private class ResultMessageHandler(
     ) {
         val body = didReceiveScriptMessage.body as? String ?: return
         // Parse with NSJSONSerialization (Foundation, available on iOS)
-        val data = (body as NSString).dataUsingEncoding(NSUTF8StringEncoding) ?: return
+        val data = NSString.create(string = body).dataUsingEncoding(NSUTF8StringEncoding) ?: return
         @Suppress("UNCHECKED_CAST")
         val map = NSJSONSerialization.JSONObjectWithData(data, 0UL, null) as? Map<String, Any?> ?: return
         val callbackId = map["callbackId"] as? String ?: return

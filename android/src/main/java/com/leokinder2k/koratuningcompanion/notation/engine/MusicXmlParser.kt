@@ -32,16 +32,26 @@ private fun first(text: String, pattern: String): String? =
     Regex(pattern, RegexOption.IGNORE_CASE).find(text)?.groupValues?.get(1)
 
 private fun parseInt(v: String?): Int? = v?.trim()?.toIntOrNull()
-private fun parseFloat(v: String?): Double? = v?.trim()?.toDoubleOrNull()
+private fun parseFloat(v: String?): Double? = v?.trim()?.toDoubleOrNull()?.takeIf { it.isFinite() }
 
 private fun pitchToMidi(step: Char, alter: Int, octave: Int): Int? {
     val pc = STEP_TO_PC[step.uppercaseChar()] ?: return null
-    val midi = (octave + 1) * 12 + pc + alter
-    return if (midi in 0..127) midi else null
+    val midi = (octave.toLong() + 1L) * 12L + pc.toLong() + alter.toLong()
+    return if (midi in 0L..127L) midi.toInt() else null
 }
 
 private fun measureLenTicks(ppq: Int, num: Int, den: Int): Int =
-    maxOf(1, ((ppq * 4.0 * num) / den).toInt())
+    maxOf(1, ((ppq * 4.0 * num) / den).toInt()).coerceAtMost(MAX_MEASURE_TICKS)
+
+private fun durationDivisionsToTicks(durationDivisions: Int, divisions: Int, ppq: Int): Int {
+    if (durationDivisions <= 0) return 1
+    val ticks = (durationDivisions.toLong() * ppq.toLong()) / maxOf(1, divisions).toLong()
+    return ticks.coerceIn(1L, MAX_EVENT_DURATION_TICKS.toLong()).toInt()
+}
+
+private fun safeAddTicks(startTick: Int, deltaTicks: Int): Int {
+    return (startTick.toLong() + deltaTicks.toLong()).coerceIn(0L, MAX_SCORE_TICK.toLong()).toInt()
+}
 
 private data class ParsedMeasure(
     val measureNumber: Int,
@@ -141,18 +151,18 @@ private fun parsePart(partId: String, name: String, partXml: String, ppq: Int, t
                 }
                 "backup" -> {
                     val dTicks = parseInt(first(block, """<duration[^>]*>\s*([^<]+)\s*</duration>""")) ?: 0
-                    val dt = maxOf(1, ((dTicks.toLong() * ppq) / maxOf(1, divisions)).toInt())
+                    val dt = durationDivisionsToTicks(dTicks, divisions, ppq)
                     measureCursor = maxOf(measureStartTick, measureCursor - dt)
                 }
                 "forward" -> {
                     val dTicks = parseInt(first(block, """<duration[^>]*>\s*([^<]+)\s*</duration>""")) ?: 0
-                    measureCursor += maxOf(1, ((dTicks.toLong() * ppq) / maxOf(1, divisions)).toInt())
+                    measureCursor = safeAddTicks(measureCursor, durationDivisionsToTicks(dTicks, divisions, ppq))
                 }
                 "note" -> {
                     val isRest = Regex("""<rest\b""", RegexOption.IGNORE_CASE).containsMatchIn(block)
                     val isChord = Regex("""<chord\b""", RegexOption.IGNORE_CASE).containsMatchIn(block)
                     val durDiv = parseInt(first(block, """<duration[^>]*>\s*([^<]+)\s*</duration>""")) ?: 0
-                    val durTicks = maxOf(1, ((durDiv.toLong() * ppq) / maxOf(1, divisions)).toInt())
+                    val durTicks = durationDivisionsToTicks(durDiv, divisions, ppq)
                     val noteStart = if (isChord) lastNonChordStart else measureCursor
                     if (!isChord) lastNonChordStart = noteStart
 
@@ -180,7 +190,7 @@ private fun parsePart(partId: String, name: String, partXml: String, ppq: Int, t
                         }
                     }
 
-                    if (!isChord) measureCursor += durTicks
+                    if (!isChord) measureCursor = safeAddTicks(measureCursor, durTicks)
                 }
             }
         }
@@ -193,7 +203,7 @@ private fun parsePart(partId: String, name: String, partXml: String, ppq: Int, t
             maxOf(1, len)
         }
         measures.add(ParsedMeasure(measureNumber, measureStartTick, measuredLen, tsNum, tsDen))
-        cursorTick = measureStartTick + measuredLen
+        cursorTick = safeAddTicks(measureStartTick, measuredLen)
     }
 
     // Deduplicate and normalize tempo rows
@@ -217,6 +227,10 @@ private fun parsePart(partId: String, name: String, partXml: String, ppq: Int, t
         chordSymbols = chords.sortedBy { it.tick },
     )
 }
+
+private const val MAX_EVENT_DURATION_TICKS = 960 * 64
+private const val MAX_MEASURE_TICKS = 960 * 128
+private const val MAX_SCORE_TICK = 960 * 4096
 
 private fun extendMeasures(
     measures: List<ParsedMeasure>,

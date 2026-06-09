@@ -21,7 +21,7 @@ class VersatilityAnalyzerTest {
         assertEquals(NoteName.E, analysis.instrumentKey)
         assertEquals(12, analysis.evaluatedRoots)
         assertEquals(VersatilityAnalyzer.PRACTICAL_SCALE_TYPES.size, analysis.evaluatedScaleTypes)
-        assertEquals(7, analysis.evaluatedReferences)
+        assertEquals(9, analysis.evaluatedReferences)
         assertEquals(4, analysis.tuningSummaries.size)
         assertEquals(15, analysis.recommendedRoute.size)
         assertNotNull(analysis.bestTuning)

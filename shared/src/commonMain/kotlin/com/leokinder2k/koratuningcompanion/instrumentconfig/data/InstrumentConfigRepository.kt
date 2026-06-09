@@ -144,6 +144,7 @@ class DataStoreInstrumentConfigRepository(
         private val OPEN_INTONATION_CENTS_KEY = stringPreferencesKey("instrument_open_intonation_cents")
         private val CLOSED_INTONATION_CENTS_KEY = stringPreferencesKey("instrument_closed_intonation_cents")
         private val BASE_TUNING_KEY = stringPreferencesKey("instrument_base_tuning")
+        private val HOME_LEVER_POSITION_KEY = stringPreferencesKey("instrument_home_lever_position")
         private val USER_PRESETS_KEY = stringPreferencesKey("instrument_user_presets")
 
         private fun parseCentsList(serialized: String?, stringCount: Int): List<Double> {
@@ -153,7 +154,7 @@ class DataStoreInstrumentConfigRepository(
             val parsed = serialized.split(PITCH_DELIMITER)
                 .map { item -> item.trim() }
                 .filter { item -> item.isNotEmpty() }
-                .mapNotNull { value -> value.toDoubleOrNull() }
+                .mapNotNull { value -> value.toFiniteCentsOrNull() }
 
             return if (parsed.size == stringCount) parsed else fallback
         }
@@ -185,13 +186,13 @@ class DataStoreInstrumentConfigRepository(
 
             val openIntonation = decodeField(fields[5])
                 ?.split(PITCH_DELIMITER)
-                ?.mapNotNull { value -> value.toDoubleOrNull() }
+                ?.mapNotNull { value -> value.toFiniteCentsOrNull() }
                 ?: return null
             if (openIntonation.size != stringCount) return null
 
             val closedIntonation = decodeField(fields[6])
                 ?.split(PITCH_DELIMITER)
-                ?.mapNotNull { value -> value.toDoubleOrNull() }
+                ?.mapNotNull { value -> value.toFiniteCentsOrNull() }
                 ?: return null
             if (closedIntonation.size != stringCount) return null
 
@@ -244,8 +245,18 @@ class DataStoreInstrumentConfigRepository(
         }
 
         private fun sanitizePresetName(name: String): String {
-            val cleaned = name.trim().replace(Regex("\\s+"), " ")
+            val cleaned = name
+                .trim()
+                .replace(Regex("\\p{Cntrl}+"), " ")
+                .replace(Regex("\\s+"), " ")
+                .take(MAX_PRESET_NAME_LENGTH)
+                .trim()
             return if (cleaned.isBlank()) "Custom Preset" else cleaned
+        }
+
+        private fun String.toFiniteCentsOrNull(): Double? {
+            return trim().toDoubleOrNull()
+                ?.takeIf { cents -> cents.isFinite() && cents in MIN_INTONATION_CENTS..MAX_INTONATION_CENTS }
         }
 
         private fun buildPresetId(): String {
@@ -266,6 +277,10 @@ class DataStoreInstrumentConfigRepository(
                 Base64.UrlSafe.decode(padded).decodeToString()
             }.getOrNull()
         }
+
+        private const val MAX_PRESET_NAME_LENGTH = 64
+        private const val MIN_INTONATION_CENTS = -1200.0
+        private const val MAX_INTONATION_CENTS = 1200.0
     }
 }
 

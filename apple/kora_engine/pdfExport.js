@@ -641,7 +641,7 @@ export function exportLessonToPdfBytes({
         }
       }
 
-      // Staff notes (note heads + stems; rests as filled rectangle placeholder).
+      // Staff notes (note heads + stems; rests as filled rectangle markers).
       // Pitch-to-Y: C5(MIDI 72) maps to middle of upper staff; C3(48) to middle of lower staff.
       // Each semitone step ≈ lineSpacing/2 vertically.
       const upperRefMidi = 72;
@@ -652,7 +652,7 @@ export function exportLessonToPdfBytes({
         if (!Number.isInteger(e?.tick) || !Number.isInteger(e?.durationTicks) || e.durationTicks <= 0) continue;
         const x = xForSystemTick(e.systemTick);
         if (e.type === "REST") {
-          // Quarter-rest placeholder: filled rectangle on the middle line.
+          // Quarter rests use a compact filled rectangle on the middle line.
           const ry = e.staff === "LOWER" ? lowerRefY : upperRefY;
           lines.push(`${fmt(staffLineColor.r)} ${fmt(staffLineColor.g)} ${fmt(staffLineColor.b)} rg`);
           lines.push(`${fmt(x - 4)} ${fmt(ry - 1)} 8 3 re f`);

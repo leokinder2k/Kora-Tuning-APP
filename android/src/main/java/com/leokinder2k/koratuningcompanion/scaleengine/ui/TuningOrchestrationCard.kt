@@ -188,6 +188,8 @@ private fun scaleRootReferenceLabel(reference: ScaleRootReference): String {
         ScaleRootReference.LEFT_5 -> stringResource(R.string.scale_root_reference_left_5)
         ScaleRootReference.LEFT_6 -> stringResource(R.string.scale_root_reference_left_6)
         ScaleRootReference.RIGHT_1 -> stringResource(R.string.scale_root_reference_right_1)
+        ScaleRootReference.RIGHT_2 -> stringResource(R.string.scale_root_reference_right_2)
+        ScaleRootReference.RIGHT_3 -> stringResource(R.string.scale_root_reference_right_3)
     }
 }
 

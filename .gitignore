@@ -24,3 +24,13 @@ local.properties
 .local-signing/
 .android-home/
 .gradle-user/
+
+# Local generated/development artifacts.
+.android_user_home/
+.gradle_user_home/
+.konan_user_home/
+.claude/
+/DEBUG
+/hs_err_pid*.log
+/replay_pid*.log
+/lenovo_startup.png

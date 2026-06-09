@@ -1,3 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Backups are disabled in AndroidManifest.xml via android:allowBackup="false". -->
-<full-backup-content />
+<!-- Backups are disabled in AndroidManifest.xml via android:allowBackup="false".
+     These explicit excludes keep the privacy posture clear if backup settings change later. -->
+<full-backup-content>
+    <exclude domain="file" path="." />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+</full-backup-content>

@@ -203,13 +203,14 @@ fun LiveTunerScreen(
             onStopListening()
         }
     }
-    LaunchedEffect(isReferenceTonePlaying, selectedTarget?.stringNumber) {
-        if (isReferenceTonePlaying && selectedTarget != null) {
+    LaunchedEffect(isReferenceTonePlaying, selectedTarget?.stringNumber, isMuted) {
+        if (isReferenceTonePlaying && selectedTarget != null && !isMuted) {
             referenceTonePlayer.play(
                 selectedTarget.targetFrequencyHz * REFERENCE_TONE_OCTAVE_MULTIPLIER
             )
         } else {
             referenceTonePlayer.stop()
+            if (isMuted) isReferenceTonePlaying = false
         }
     }
     DisposableEffect(Unit) {
@@ -304,7 +305,10 @@ fun LiveTunerScreen(
                         }
                     } else {
                         if (!tunerUiState.isListening) {
-                            Button(onClick = onStartListening) {
+                            Button(
+                                onClick = onStartListening,
+                                enabled = !isMuted
+                            ) {
                                 Text(stringResource(R.string.live_tuner_action_start))
                             }
                         } else {
@@ -460,11 +464,12 @@ fun LiveTunerScreen(
                 selectedTargetStringNumber = selectedTargetStringNumber,
                 onTargetSelected = { selected ->
                     selectedTargetStringNumber = selected
-                    isReferenceTonePlaying = true
+                    if (!isMuted) isReferenceTonePlaying = true
                 },
                 isReferenceTonePlaying = isReferenceTonePlaying,
-                onPlay = { isReferenceTonePlaying = true },
-                onStop = { isReferenceTonePlaying = false }
+                onPlay = { if (!isMuted) isReferenceTonePlaying = true },
+                onStop = { isReferenceTonePlaying = false },
+                isMuted = isMuted
             )
 
         }
@@ -808,7 +813,8 @@ private fun ReferenceToneCard(
     onTargetSelected: (Int) -> Unit,
     isReferenceTonePlaying: Boolean,
     onPlay: () -> Unit,
-    onStop: () -> Unit
+    onStop: () -> Unit,
+    isMuted: Boolean
 ) {
     val leftTargets = targets
         .filter { target -> target.roleLabel.startsWith("L") }
@@ -899,7 +905,10 @@ private fun ReferenceToneCard(
                     style = MaterialTheme.typography.bodySmall
                 )
                 if (!isReferenceTonePlaying) {
-                    Button(onClick = onPlay) {
+                    Button(
+                        onClick = onPlay,
+                        enabled = !isMuted
+                    ) {
                         Text(stringResource(R.string.live_tuner_reference_tone_action_play))
                     }
                 } else {

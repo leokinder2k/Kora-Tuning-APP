@@ -2,7 +2,6 @@ package com.leokinder2k.koratuningcompanion.notation.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -10,13 +9,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.leokinder2k.koratuningcompanion.platform.openUrl
 import org.jetbrains.compose.resources.stringResource
 import com.leokinder2k.koratuningcompanion.generated.resources.Res
 import com.leokinder2k.koratuningcompanion.generated.resources.*
 
 @Composable
-actual fun KoraNotationRoute(modifier: Modifier) {
+actual fun KoraNotationRoute(
+    modifier: Modifier,
+    isMuted: Boolean
+) {
     Box(
         modifier = modifier.fillMaxSize().padding(32.dp),
         contentAlignment = Alignment.Center
@@ -41,14 +42,6 @@ actual fun KoraNotationRoute(modifier: Modifier) {
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Button(
-                onClick = { openUrl("http://localhost:3000") },
-                modifier = Modifier.height(48.dp)
-            ) {
-                Icon(Icons.Default.Language, null, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Open Local Web App")
-            }
         }
     }
 }
