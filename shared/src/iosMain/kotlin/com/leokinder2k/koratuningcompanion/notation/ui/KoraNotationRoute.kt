@@ -48,7 +48,10 @@ import platform.UIKit.UIApplication
 import platform.UIKit.UIDocumentPickerDelegateProtocol
 import platform.UIKit.UIDocumentPickerMode
 import platform.UIKit.UIDocumentPickerViewController
+import platform.UIKit.UISceneActivationStateForegroundActive
 import platform.UIKit.UIViewController
+import platform.UIKit.UIWindow
+import platform.UIKit.UIWindowScene
 import platform.WebKit.WKScriptMessage
 import platform.WebKit.WKScriptMessageHandlerProtocol
 import platform.WebKit.WKUserContentController
@@ -899,7 +902,19 @@ private fun jsonString(value: String): String = buildString {
 }
 
 private fun topViewController(): UIViewController? {
-    var controller = UIApplication.sharedApplication.keyWindow?.rootViewController
+    val app = UIApplication.sharedApplication
+    val sceneWindow = app.connectedScenes
+        .filterIsInstance<UIWindowScene>()
+        .firstOrNull { it.activationState == UISceneActivationStateForegroundActive }
+        ?.windows
+        ?.filterIsInstance<UIWindow>()
+        ?.firstOrNull { it.isKeyWindow() }
+    val fallbackWindow = app.windows
+        .filterIsInstance<UIWindow>()
+        .firstOrNull { it.isKeyWindow() }
+        ?: app.keyWindow
+
+    var controller = (sceneWindow ?: fallbackWindow)?.rootViewController
     while (controller?.presentedViewController != null) {
         controller = controller.presentedViewController
     }

@@ -79,3 +79,29 @@ targets:
           mkdir -p "$BUNDLED_RESOURCES"
           /usr/bin/ditto "$PREPARED_RESOURCES" "$BUNDLED_RESOURCES"
         basedOnDependencyAnalysis: false
+  iosAppUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "26.5"
+    sources:
+      - path: iosAppUITests
+    dependencies:
+      - target: iosApp
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.leokinder2k.koratuningcompanion.ios.uitests
+        TEST_TARGET_NAME: iosApp
+
+schemes:
+  iosApp:
+    build:
+      targets:
+        iosApp: all
+        iosAppUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - iosAppUITests
+    run:
+      config: Debug
