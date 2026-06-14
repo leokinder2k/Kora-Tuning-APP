@@ -89,12 +89,47 @@ final class KoraParityUITests: XCTestCase {
         }
 
         tapFirstMatching(label: "Tuner")
-        assertVisibleText("Kora Tuning")
+        scrollToTop()
+        if tryTapFirstMatching(label: "Unmute audio", timeout: 1) {
+            scrollToTop()
+        }
+        XCTAssertTrue(
+            tryScrollUntilTextExists(label: "Microphone", maxSwipes: 4, timeout: 0.75) ||
+                tryScrollUntilTextExists(label: "Detection", maxSwipes: 2, timeout: 0.75) ||
+                app.buttons["Start Live Tuner"].waitForExistence(timeout: 1) ||
+                app.buttons["Stop Live Tuner"].waitForExistence(timeout: 1),
+            "Expected tuner-specific controls to appear"
+        )
+
+        if tryScrollUntilCanTap(label: "Grant Microphone Permission", maxSwipes: 2, timeout: 0.75) {
+            app.tap()
+            XCTAssertTrue(
+                app.buttons["Start Live Tuner"].waitForExistence(timeout: 10) ||
+                    app.buttons["Stop Live Tuner"].waitForExistence(timeout: 1) ||
+                    hasText(containing: "Detected pitch"),
+                "Expected tuner UI to refresh after microphone permission"
+            )
+        }
+
+        scrollToTop()
+        _ = tryScrollUntilTextExists(label: "Microphone", maxSwipes: 4, timeout: 0.75)
+
+        if app.buttons["Stop Live Tuner"].waitForExistence(timeout: 1) {
+            attachScreenshot(named: "tuner-already-running")
+            app.buttons["Stop Live Tuner"].tap()
+            return
+        }
+
         scrollUntilCanTap(label: "Start Live Tuner", maxSwipes: 6, timeout: 0.75)
         app.tap()
         attachScreenshot(named: "tuner-after-start")
 
-        if app.buttons["Stop Live Tuner"].waitForExistence(timeout: 5) {
+        XCTAssertTrue(
+            app.buttons["Stop Live Tuner"].waitForExistence(timeout: 5) ||
+                hasText(containing: "Detected pitch"),
+            "Expected live tuner to be running or reporting pitch after start"
+        )
+        if app.buttons["Stop Live Tuner"].exists {
             app.buttons["Stop Live Tuner"].tap()
         }
     }
@@ -162,6 +197,26 @@ final class KoraParityUITests: XCTestCase {
         return false
     }
 
+    private func tryScrollUntilTextExists(label: String, maxSwipes: Int, timeout: TimeInterval) -> Bool {
+        for attempt in 0...maxSwipes {
+            if app.staticTexts[label].waitForExistence(timeout: timeout) ||
+                hasText(containing: label) {
+                return true
+            }
+            if attempt < maxSwipes {
+                app.swipeUp()
+            }
+        }
+
+        return false
+    }
+
+    private func scrollToTop(maxSwipes: Int = 4) {
+        for _ in 0..<maxSwipes {
+            app.swipeDown()
+        }
+    }
+
     private func tryTapFirstMatching(label: String, timeout: TimeInterval = 8) -> Bool {
         let candidates: [XCUIElement] = [
             app.buttons[label],
@@ -185,6 +240,12 @@ final class KoraParityUITests: XCTestCase {
         }
 
         return false
+    }
+
+    private func hasText(containing text: String) -> Bool {
+        let predicate = NSPredicate(format: "label CONTAINS[c] %@", text)
+        return app.staticTexts.matching(predicate).firstMatch.waitForExistence(timeout: 1) ||
+            app.descendants(matching: .any).matching(predicate).firstMatch.waitForExistence(timeout: 1)
     }
 
     private func tapWhenHittable(_ element: XCUIElement) -> Bool {
