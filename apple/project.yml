@@ -19,16 +19,22 @@ targets:
         buildPhase: resources
         type: folder
     settings:
-      INFOPLIST_FILE: iosApp/Info.plist
-      PRODUCT_BUNDLE_IDENTIFIER: com.leokinder2k.koratuningcompanion.ios
-      PRODUCT_NAME: KoraTuning
-      SWIFT_EMIT_LOC_STRINGS: YES
-      FRAMEWORK_SEARCH_PATHS: $(inherited)
-      FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*]: $(inherited) $(SRCROOT)/../shared/build/bin/iosSimulatorArm64/debugFramework
-      FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]: $(inherited) $(SRCROOT)/../shared/build/bin/iosArm64/releaseFramework
-      EXCLUDED_ARCHS[sdk=iphonesimulator*]: x86_64
-      OTHER_LDFLAGS: $(inherited) -framework shared
-      ENABLE_DEBUG_DYLIB: NO
+      base:
+        INFOPLIST_FILE: iosApp/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.leokinder2k.koratuningcompanion.ios
+        PRODUCT_NAME: KoraTuning
+        SWIFT_EMIT_LOC_STRINGS: YES
+        FRAMEWORK_SEARCH_PATHS: $(inherited)
+        FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*]: $(inherited) $(SRCROOT)/../shared/build/bin/iosSimulatorArm64/$(KOTLIN_FRAMEWORK_BUILD_TYPE)Framework
+        FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]: $(inherited) $(SRCROOT)/../shared/build/bin/iosArm64/$(KOTLIN_FRAMEWORK_BUILD_TYPE)Framework
+        EXCLUDED_ARCHS[sdk=iphonesimulator*]: x86_64
+        OTHER_LDFLAGS: $(inherited) -framework shared
+        ENABLE_DEBUG_DYLIB: NO
+      configs:
+        Debug:
+          KOTLIN_FRAMEWORK_BUILD_TYPE: debug
+        Release:
+          KOTLIN_FRAMEWORK_BUILD_TYPE: release
     preBuildScripts:
       - name: Build Kotlin Framework
         script: |
@@ -46,11 +52,30 @@ targets:
           export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$SRCROOT/../.gradle_user_home}"
           mkdir -p "$GRADLE_USER_HOME"
 
-          if [[ "$PLATFORM_NAME" == *"simulator"* ]]; then
-            cd "$SRCROOT/.."
-            ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64 --no-daemon
+          if [[ "${KOTLIN_FRAMEWORK_BUILD_TYPE:-debug}" == "release" ]]; then
+            GRADLE_BUILD_TYPE="Release"
           else
-            cd "$SRCROOT/.."
-            ./gradlew :shared:linkReleaseFrameworkIosArm64 --no-daemon
+            GRADLE_BUILD_TYPE="Debug"
           fi
+
+          if [[ "$PLATFORM_NAME" == *"simulator"* ]]; then
+            GRADLE_TARGET="IosSimulatorArm64"
+          else
+            GRADLE_TARGET="IosArm64"
+          fi
+
+          cd "$SRCROOT/.."
+          ./gradlew ":shared:link${GRADLE_BUILD_TYPE}Framework${GRADLE_TARGET}" --no-daemon
+
+          RESOURCE_PACKAGE="com.leokinder2k.koratuningcompanion.generated.resources"
+          PREPARED_RESOURCES="$SRCROOT/../shared/build/generated/compose/resourceGenerator/preparedResources/commonMain/composeResources"
+          BUNDLED_RESOURCES="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/compose-resources/composeResources/$RESOURCE_PACKAGE"
+
+          if [[ ! -d "$PREPARED_RESOURCES" ]]; then
+            echo "Compose resources were not generated at $PREPARED_RESOURCES" >&2
+            exit 1
+          fi
+
+          mkdir -p "$BUNDLED_RESOURCES"
+          /usr/bin/ditto "$PREPARED_RESOURCES" "$BUNDLED_RESOURCES"
         basedOnDependencyAnalysis: false

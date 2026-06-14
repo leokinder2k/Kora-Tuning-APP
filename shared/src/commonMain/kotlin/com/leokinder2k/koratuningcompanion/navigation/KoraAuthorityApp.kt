@@ -45,6 +45,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -58,8 +59,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.generated.resources.Res
 import com.leokinder2k.koratuningcompanion.generated.resources.*
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicDisplayState
@@ -71,6 +70,7 @@ import com.leokinder2k.koratuningcompanion.notation.ui.KoraNotationRoute
 import com.leokinder2k.koratuningcompanion.platform.changeLocale
 import com.leokinder2k.koratuningcompanion.platform.getCurrentLocaleTag
 import com.leokinder2k.koratuningcompanion.platform.openUrl
+import com.leokinder2k.koratuningcompanion.platform.rememberKoraViewModel
 import com.leokinder2k.koratuningcompanion.scaleengine.ui.InstantOverviewScreen
 import com.leokinder2k.koratuningcompanion.scaleengine.ui.ScaleCalculationScreen
 import com.leokinder2k.koratuningcompanion.scaleengine.ui.ScaleCalculationViewModel
@@ -85,8 +85,8 @@ fun KoraAuthorityApp(
     themeMode: String = "SYSTEM",
     onThemeModeChange: (String) -> Unit = {}
 ) {
-    val scaleViewModel: ScaleCalculationViewModel = viewModel { ScaleCalculationViewModel() }
-    val scaleUiState by scaleViewModel.uiState.collectAsStateWithLifecycle()
+    val scaleViewModel: ScaleCalculationViewModel = rememberKoraViewModel { ScaleCalculationViewModel() }
+    val scaleUiState by scaleViewModel.uiState.collectAsState()
 
     val destinations = AppDestination.entries
     val pagerState = rememberPagerState(
@@ -415,5 +415,3 @@ private enum class AppDestination(
     PRESETS(Res.string.nav_presets_label, Icons.Default.LibraryMusic),
     NOTATION(Res.string.nav_notation_label, Icons.Default.Piano),
 }
-
-

@@ -44,6 +44,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,8 +57,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.generated.resources.Res
 import com.leokinder2k.koratuningcompanion.generated.resources.*
 import com.leokinder2k.koratuningcompanion.instrumentconfig.data.DataStoreInstrumentConfigRepository
@@ -75,6 +74,7 @@ import com.leokinder2k.koratuningcompanion.livetuner.ui.LiveTunerPerformanceMode
 import com.leokinder2k.koratuningcompanion.livetuner.ui.LiveTunerUiState
 import com.leokinder2k.koratuningcompanion.livetuner.ui.LiveTunerViewModel
 import com.leokinder2k.koratuningcompanion.platform.isMicPermissionGranted
+import com.leokinder2k.koratuningcompanion.platform.rememberKoraViewModel
 import com.leokinder2k.koratuningcompanion.platform.rememberMicPermissionLauncher
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraFlatColor
 import com.leokinder2k.koratuningcompanion.ui.theme.KoraInTuneColor
@@ -91,10 +91,10 @@ fun InstrumentConfigurationRoute(
     isActive: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    val configViewModel: InstrumentConfigurationViewModel = viewModel { InstrumentConfigurationViewModel() }
-    val tunerViewModel: LiveTunerViewModel = viewModel { LiveTunerViewModel() }
-    val uiState by configViewModel.uiState.collectAsStateWithLifecycle()
-    val tunerUiState by tunerViewModel.uiState.collectAsStateWithLifecycle()
+    val configViewModel: InstrumentConfigurationViewModel = rememberKoraViewModel { InstrumentConfigurationViewModel() }
+    val tunerViewModel: LiveTunerViewModel = rememberKoraViewModel { LiveTunerViewModel() }
+    val uiState by configViewModel.uiState.collectAsState()
+    val tunerUiState by tunerViewModel.uiState.collectAsState()
 
     InstrumentConfigurationScreen(
         uiState = uiState,
@@ -1096,5 +1096,3 @@ private fun liveTunerPerformanceModeLabel(mode: LiveTunerPerformanceMode): Strin
 }
 
 private const val PEG_TUNING_IN_TUNE_THRESHOLD_CENTS = 200.0
-
-

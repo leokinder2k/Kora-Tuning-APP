@@ -39,6 +39,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,8 +55,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.generated.resources.Res
 import com.leokinder2k.koratuningcompanion.generated.resources.*
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
@@ -71,6 +70,7 @@ import com.leokinder2k.koratuningcompanion.livetuner.model.TuningFeedbackClassif
 import com.leokinder2k.koratuningcompanion.livetuner.model.TuningFeedbackState
 import com.leokinder2k.koratuningcompanion.platform.isMicPermissionGranted
 import com.leokinder2k.koratuningcompanion.platform.rememberMicPermissionLauncher
+import com.leokinder2k.koratuningcompanion.platform.rememberKoraViewModel
 import com.leokinder2k.koratuningcompanion.scaleengine.model.PegCorrectStringResult
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
 import com.leokinder2k.koratuningcompanion.scaleengine.ui.ScaleCalculationUiState
@@ -93,8 +93,8 @@ fun LiveTunerRoute(
     onToggleMute: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val viewModel: LiveTunerViewModel = viewModel { LiveTunerViewModel() }
-    val tunerUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val viewModel: LiveTunerViewModel = rememberKoraViewModel { LiveTunerViewModel() }
+    val tunerUiState by viewModel.uiState.collectAsState()
 
     LiveTunerScreen(
         scaleUiState = scaleUiState,
@@ -924,5 +924,3 @@ private fun liveTunerPerformanceModeSummary(mode: LiveTunerPerformanceMode): Str
     LiveTunerPerformanceMode.REALTIME -> stringResource(Res.string.live_tuner_mode_realtime_summary)
     LiveTunerPerformanceMode.PRECISION -> stringResource(Res.string.live_tuner_mode_precision_summary)
 }
-
-

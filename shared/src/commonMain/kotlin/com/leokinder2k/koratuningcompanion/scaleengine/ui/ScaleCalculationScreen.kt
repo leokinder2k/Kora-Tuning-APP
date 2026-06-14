@@ -21,11 +21,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.generated.resources.Res
 import com.leokinder2k.koratuningcompanion.generated.resources.*
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
@@ -39,6 +38,7 @@ import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
 import com.leokinder2k.koratuningcompanion.scaleengine.model.StringSide
 import com.leokinder2k.koratuningcompanion.scaleengine.model.VoicingConflict
 import com.leokinder2k.koratuningcompanion.scaleengine.model.VoicingSuggestion
+import com.leokinder2k.koratuningcompanion.platform.rememberKoraViewModel
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -46,8 +46,8 @@ fun ScaleCalculationRoute(
     enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     modifier: Modifier = Modifier
 ) {
-    val viewModel: ScaleCalculationViewModel = viewModel { ScaleCalculationViewModel() }
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val viewModel: ScaleCalculationViewModel = rememberKoraViewModel { ScaleCalculationViewModel() }
+    val uiState by viewModel.uiState.collectAsState()
 
     ScaleCalculationScreen(
         uiState = uiState,
@@ -525,5 +525,3 @@ private fun SuggestionCard(suggestions: List<VoicingSuggestion>) {
         }
     }
 }
-
-
