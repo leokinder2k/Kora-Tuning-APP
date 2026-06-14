@@ -1,9 +1,11 @@
 package com.leokinder2k.koratuningcompanion.navigation
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,6 +39,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -56,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -209,30 +213,50 @@ fun KoraAuthorityApp(
             }
         }
         } // end Box
-        NavigationBar {
-            destinations.forEachIndexed { index, destination ->
-                NavigationBarItem(
-                    icon = {
-                        Icon(
-                            imageVector = destination.icon,
-                            contentDescription = stringResource(destination.labelRes)
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = stringResource(destination.labelRes),
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    selected = index == pagerState.currentPage,
-                    onClick = {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(index)
-                        }
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(NavigationBarDefaults.containerColor)
+                .padding(horizontal = 8.dp)
+        ) {
+            val useCompactLabels = maxWidth < 460.dp
+            NavigationBar(
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = NavigationBarDefaults.containerColor
+            ) {
+                destinations.forEachIndexed { index, destination ->
+                    val labelRes = if (useCompactLabels) {
+                        destination.compactLabelRes
+                    } else {
+                        destination.labelRes
                     }
-                )
+                    NavigationBarItem(
+                        icon = {
+                            Icon(
+                                imageVector = destination.icon,
+                                contentDescription = stringResource(destination.labelRes)
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = stringResource(labelRes),
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Clip,
+                                fontSize = 10.sp,
+                                lineHeight = 12.sp,
+                                letterSpacing = 0.sp
+                            )
+                        },
+                        selected = index == pagerState.currentPage,
+                        alwaysShowLabel = true,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                        }
+                    )
+                }
             }
         }
     } // end Column
@@ -406,12 +430,13 @@ private fun AboutDialog(
 
 private enum class AppDestination(
     val labelRes: StringResource,
+    val compactLabelRes: StringResource,
     val icon: ImageVector
 ) {
-    INSTRUMENT_CONFIG(Res.string.nav_instrument_label, Icons.Default.Tune),
-    SCALE_ENGINE(Res.string.nav_scale_label, Icons.Default.MusicNote),
-    INSTANT_OVERVIEW(Res.string.nav_overview_label, Icons.Default.GridView),
-    LIVE_TUNER(Res.string.nav_tuner_label, Icons.Default.GraphicEq),
-    PRESETS(Res.string.nav_presets_label, Icons.Default.LibraryMusic),
-    NOTATION(Res.string.nav_notation_label, Icons.Default.Piano),
+    INSTRUMENT_CONFIG(Res.string.nav_instrument_label, Res.string.nav_instrument_compact_label, Icons.Default.Tune),
+    SCALE_ENGINE(Res.string.nav_scale_label, Res.string.nav_scale_compact_label, Icons.Default.MusicNote),
+    INSTANT_OVERVIEW(Res.string.nav_overview_label, Res.string.nav_overview_compact_label, Icons.Default.GridView),
+    LIVE_TUNER(Res.string.nav_tuner_label, Res.string.nav_tuner_compact_label, Icons.Default.GraphicEq),
+    PRESETS(Res.string.nav_presets_label, Res.string.nav_presets_compact_label, Icons.Default.LibraryMusic),
+    NOTATION(Res.string.nav_notation_label, Res.string.nav_notation_compact_label, Icons.Default.Piano),
 }
