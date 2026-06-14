@@ -1,7 +1,7 @@
 name: iosApp
 options:
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "26.5"
   bundleIdPrefix: com.leokinder2k.koratuningcompanion
 
 settings:
@@ -12,7 +12,7 @@ targets:
   iosApp:
     type: application
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "26.5"
     sources:
       - path: iosApp
       - path: kora_engine
