@@ -10,6 +10,7 @@
 		1DB954C2B6C304E498850323 /* KoraParityUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17897AEBF1921DC92A545AEE /* KoraParityUITests.swift */; };
 		307C2654CD5972A25FB7FD87 /* iOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 668CECA83ACC03A83C85A623 /* iOSApp.swift */; };
 		56B0305B5D3847FC6B326502 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8509E5A49E4A5CAAEB3ADB /* ContentView.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6D /* Assets.xcassets */; };
 		E559F37EFEB4CE0E40A61647 /* kora_engine in Resources */ = {isa = PBXBuildFile; fileRef = 57D4C63873A5653FF849CEBC /* kora_engine */; };
 /* End PBXBuildFile section */
 
@@ -29,6 +30,7 @@
 		57D4C63873A5653FF849CEBC /* kora_engine */ = {isa = PBXFileReference; lastKnownFileType = folder; path = kora_engine; sourceTree = SOURCE_ROOT; };
 		668CECA83ACC03A83C85A623 /* iOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSApp.swift; sourceTree = "<group>"; };
 		86038AE1032E284E79B32AD6 /* iosApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B2C3D4E5F60718293A4B5C6D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C117AD187833E2513BD2F553 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		CE8509E5A49E4A5CAAEB3ADB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -40,6 +42,7 @@
 				CE8509E5A49E4A5CAAEB3ADB /* ContentView.swift */,
 				C117AD187833E2513BD2F553 /* Info.plist */,
 				668CECA83ACC03A83C85A623 /* iOSApp.swift */,
+				B2C3D4E5F60718293A4B5C6D /* Assets.xcassets */,
 			);
 			path = iosApp;
 			sourceTree = "<group>";
@@ -150,6 +153,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D4E5F60718293A4B5C /* Assets.xcassets in Resources */,
 				E559F37EFEB4CE0E40A61647 /* kora_engine in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
