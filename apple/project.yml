@@ -18,28 +18,34 @@ targets:
       - path: kora_engine
         buildPhase: resources
         type: folder
-    info:
-      path: iosApp/Info.plist
     settings:
+      INFOPLIST_FILE: iosApp/Info.plist
       PRODUCT_BUNDLE_IDENTIFIER: com.leokinder2k.koratuningcompanion.ios
       PRODUCT_NAME: KoraTuning
       SWIFT_EMIT_LOC_STRINGS: YES
-      FRAMEWORK_SEARCH_PATHS: $(inherited) $(SRCROOT)/../shared/build/bin/iosSimulatorArm64/debugFramework $(SRCROOT)/../shared/build/bin/iosArm64/releaseFramework
+      FRAMEWORK_SEARCH_PATHS: $(inherited)
+      FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*]: $(inherited) $(SRCROOT)/../shared/build/bin/iosSimulatorArm64/debugFramework
+      FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]: $(inherited) $(SRCROOT)/../shared/build/bin/iosArm64/releaseFramework
+      EXCLUDED_ARCHS[sdk=iphonesimulator*]: x86_64
       OTHER_LDFLAGS: $(inherited) -framework shared
-    dependencies:
-      - framework:
-          path: ../shared/build/bin/iosSimulatorArm64/debugFramework/shared.framework
-          embed: true
-          codeSign: false
-          condition: sdk:iphonesimulator*
-      - framework:
-          path: ../shared/build/bin/iosArm64/releaseFramework/shared.framework
-          embed: true
-          codeSign: true
-          condition: sdk:iphoneos*
+      ENABLE_DEBUG_DYLIB: NO
     preBuildScripts:
       - name: Build Kotlin Framework
         script: |
+          if [[ -z "$JAVA_HOME" ]]; then
+            if [[ -d "/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home" ]]; then
+              export JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
+            elif /usr/libexec/java_home -v 21 >/dev/null 2>&1; then
+              export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
+            else
+              echo "Java 21 is required to build the shared Kotlin framework." >&2
+              exit 1
+            fi
+          fi
+          export PATH="$JAVA_HOME/bin:$PATH"
+          export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$SRCROOT/../.gradle_user_home}"
+          mkdir -p "$GRADLE_USER_HOME"
+
           if [[ "$PLATFORM_NAME" == *"simulator"* ]]; then
             cd "$SRCROOT/.."
             ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64 --no-daemon

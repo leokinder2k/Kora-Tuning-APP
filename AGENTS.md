@@ -1,41 +1,63 @@
-# KoraTuningSystem — Codex Agent Guide
+# KoraTuningSystem - Codex Agent Guide
 
 ## Project
 
-Android app (Kotlin + Jetpack Compose) — a tuning companion for the kora (21-string West African harp).
+Kotlin Multiplatform tuning companion for the kora (21-string West African harp).
 
 - **Package:** `com.leokinder2k.koratuningcompanion`
-- **Min SDK:** 24 | **Target SDK:** 36
-- **Build system:** Gradle (Kotlin DSL), Gradle Play Publisher plugin
+- **Android:** Kotlin + Jetpack Compose, Min SDK 24, Target SDK 36
+- **iOS:** Kotlin/Native shared framework + SwiftUI host generated with XcodeGen
+- **Build system:** Gradle (Kotlin DSL), Kotlin Multiplatform, Gradle Play Publisher, XcodeGen
 
 ## Package Structure
 
 ```
-app/src/main/java/com/leokinder2k/koratuningcompanion/
+android/src/main/java/com/leokinder2k/koratuningcompanion/
   MainActivity.kt
-  instrumentconfig/ui/   — InstrumentConfigurationScreen.kt (bridge + tuning strip)
-  livetuner/ui/          — LiveTunerScreen.kt (live pitch detection)
-  livetuner/audio/       — MetronomeClickPlayer.kt
-  navigation/            — KoraAuthorityApp.kt (nav host)
-  scaleengine/ui/        — InstantOverviewScreen.kt (kora body canvas renderer)
-  settings/              — settings dialogs
-  ui/theme/              — KoraStatusColors.kt
+
+shared/src/commonMain/kotlin/com/leokinder2k/koratuningcompanion/
+  navigation/             - KoraAuthorityApp.kt (shared root app)
+  instrumentconfig/ui/    - bridge + tuning strip
+  livetuner/ui/           - live pitch detection
+  notation/ui/            - notation import/export flow
+  scaleengine/ui/         - kora body canvas renderer
+  settings/               - settings dialogs
+  ui/theme/               - shared Material theme
+
+shared/src/iosMain/kotlin/com/leokinder2k/koratuningcompanion/
+  MainViewController.kt   - shared Compose entrypoint for SwiftUI host
+  notation/ui/            - iOS notation bridge and file sharing
+
+apple/
+  project.yml             - XcodeGen source config
+  iosApp/                 - SwiftUI host app
+  kora_engine/            - bundled notation bridge resources
 ```
 
 ## Build Commands
 
 Always set a project-local Gradle home to avoid polluting the system cache:
 
-```powershell
-$env:GRADLE_USER_HOME = "$PWD\.gradle_user_home"
-.\gradlew.bat :app:lintDebug :app:testDebugUnitTest :app:assembleDebug --no-daemon
+```bash
+export GRADLE_USER_HOME="$PWD/.gradle_user_home"
+./gradlew :app:lintDebug :app:testDebugUnitTest :app:assembleDebug --no-daemon
 ```
 
-Install and smoke-test on connected device:
+Build the shared iOS framework and generate the Xcode project:
 
-```powershell
+```bash
+export GRADLE_USER_HOME="$PWD/.gradle_user_home"
+./gradlew :shared:linkDebugFrameworkIosSimulatorArm64 --no-daemon
+cd apple
+xcodegen generate
+xcodebuild -project iosApp.xcodeproj -scheme iosApp -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath build/ios-derived CODE_SIGNING_ALLOWED=NO build
+```
+
+Install and smoke-test on a connected Android device:
+
+```bash
 adb devices
-adb install -r "app/build/outputs/apk/debug/app-debug.apk"
+adb install -r "android/build/outputs/apk/debug/app-debug.apk"
 adb shell monkey -p com.leokinder2k.koratuningcompanion 1
 adb logcat -d -s AndroidRuntime
 ```
@@ -45,18 +67,29 @@ adb logcat -d -s AndroidRuntime
 | File | Purpose |
 |------|---------|
 | `release-version.properties` | Current VERSION_NAME / VERSION_CODE (auto-updated on publish) |
-| `app/build.gradle.kts` | Build config, signing, Play publisher config |
+| `android/build.gradle.kts` | Android build config |
+| `shared/build.gradle.kts` | Shared Kotlin Multiplatform build config |
+| `apple/project.yml` | iOS XcodeGen project config |
 | `scripts/publish_internal_with_symbols.ps1` | Release build + upload to Play internal track |
 | `docs/CODEX_CLAUDE_WORKFLOW.md` | Full collaboration protocol with Claude |
 | `docs/CLAUDE_ACTIVE_TASK_PACKET.md` | Current Claude-owned visual task (bridge + tuner) |
 | `Images/bridge-reference/` | Drop bridge photos here for visual reference tasks |
 
+## Git Workflow
+
+- Commit and push completed work as you go without waiting for an explicit prompt.
+- Before committing, run the relevant verification commands for the project you changed.
+- Do not stage untracked editor, IDE, cache, virtualenv, dependency, build, or machine-local files unless the user explicitly asks for them.
+- Treat `.env*`, `.gradle_user_home/`, `.gradle-user/`, `.gradle/`, `build/`, `**/build/`, Xcode DerivedData, and local simulator output as local-only.
+- If there are unrelated user changes in the worktree, leave them untouched and commit only files that belong to the completed task.
+- Never print or commit API keys, signing keys, provisioning profiles, keystores, or Play Console credentials.
+
 ## Codex Role
 
 - Implement code changes from Claude's task packets
-- Run build, lint, tests, and device install to validate
+- Run the relevant build, lint, tests, simulator/device install, and smoke tests to validate
 - Report: files changed, commands run, pass/fail, blockers
-- Do **not** invent visual designs — Claude owns the visual spec for the tuner strip and kora bridge
+- Do **not** invent visual designs - Claude owns the visual spec for the tuner strip and kora bridge
 
 ## Publishing (Internal Track)
 
