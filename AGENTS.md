@@ -9,6 +9,11 @@ Kotlin Multiplatform tuning companion for the kora (21-string West African harp)
 - **iOS:** Kotlin/Native shared framework + SwiftUI host generated with XcodeGen
 - **Build system:** Gradle (Kotlin DSL), Kotlin Multiplatform, Gradle Play Publisher, XcodeGen
 
+## Cross-App Changes
+
+- When the user asks for a change to the Android app, also inspect the sibling `Kora-Tuning-iOS-Swift/` repository and make the corresponding iOS change where appropriate.
+- If the Android change has no appropriate iOS counterpart, mention that explicitly in the final response.
+
 ## Package Structure
 
 ```
@@ -77,7 +82,7 @@ adb logcat -d -s AndroidRuntime
 
 ## Git Workflow
 
-- Commit and push completed work as you go without waiting for an explicit prompt.
+- Commit and push each coherent piece of completed work as you go, without waiting for an explicit prompt.
 - Before committing, run the relevant verification commands for the project you changed.
 - Do not stage untracked editor, IDE, cache, virtualenv, dependency, build, or machine-local files unless the user explicitly asks for them.
 - Treat `.env*`, `.gradle_user_home/`, `.gradle-user/`, `.gradle/`, `build/`, `**/build/`, Xcode DerivedData, and local simulator output as local-only.
