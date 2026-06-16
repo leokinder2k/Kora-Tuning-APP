@@ -14,6 +14,7 @@ We use a concert-F nominal reference and encode per-note cent offsets relative t
 Derived templates:
 
 - `Tomora Ba / Silaba`: `F G A Bb C D E` with cents `[0, 0, -15, 0, 0, 0, -15]`
+- `Tomora Mesengo`: `F G Ab Bb C D Eb` with cents `[0, +30, +25, 0, 0, +30, +25]`
 - `Sauta`: `F G A B C D E` with cents `[0, -15, +5, +5, 0, -15, +5]`
 - `Hardino`: `F G A Bb C D E` with cents `[0, -15, +5, 0, 0, -15, +5]`
 

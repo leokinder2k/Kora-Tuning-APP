@@ -32,7 +32,15 @@ class TraditionalPresetsTest {
         listOf(21, 22).forEach { stringCount ->
             val ids = TraditionalPresets.presetsForStringCount(stringCount).map { preset -> preset.id }
             assertEquals(ids.size, ids.toSet().size)
-            assertTrue(ids.all { id -> id.endsWith("_$stringCount") })
+            assertEquals(
+                setOf(
+                    "hardino_$stringCount",
+                    "sauta_$stringCount",
+                    "silaba_$stringCount",
+                    "tomora_mesengo_$stringCount"
+                ),
+                ids.toSet()
+            )
         }
     }
 
@@ -70,15 +78,36 @@ class TraditionalPresetsTest {
     }
 
     @Test
+    fun tomoraMesengo21_matchesTraditionalConcertFLayout() {
+        val tomoraMesengo = TraditionalPresets.presetsForStringCount(21)
+            .first { preset -> preset.id == "tomora_mesengo_21" }
+
+        assertEquals("Tomora Mesengo", tomoraMesengo.displayName)
+        assertEquals(
+            listOf(
+                "F2", "C3", "D3", "D#3",
+                "F3", "G3", "G#3", "A#3", "C4", "D4", "D#4",
+                "F4", "G4", "G#4", "A#4", "C5", "D5", "D#5",
+                "F5", "G5", "G#5"
+            ),
+            tomoraMesengo.openPitches.map(Pitch::asText)
+        )
+    }
+
+    @Test
     fun bridgeSideOrder_matchesTraditionalScaleDegreeLayout() {
         val silaba21 = TraditionalPresets.presetsForStringCount(21)
             .first { preset -> preset.id == "silaba_21" }
         val sauta21 = TraditionalPresets.presetsForStringCount(21)
             .first { preset -> preset.id == "sauta_21" }
+        val tomoraMesengo21 = TraditionalPresets.presetsForStringCount(21)
+            .first { preset -> preset.id == "tomora_mesengo_21" }
         val silaba22 = TraditionalPresets.presetsForStringCount(22)
             .first { preset -> preset.id == "silaba_22" }
         val sauta22 = TraditionalPresets.presetsForStringCount(22)
             .first { preset -> preset.id == "sauta_22" }
+        val tomoraMesengo22 = TraditionalPresets.presetsForStringCount(22)
+            .first { preset -> preset.id == "tomora_mesengo_22" }
 
         assertEquals(
             listOf("F2", "C3", "D3", "E3", "G3", "A#3", "D4", "F4", "A4", "C5", "E5"),
@@ -97,9 +126,18 @@ class TraditionalPresetsTest {
             listOf("F3", "A3", "C4", "E4", "G4", "B4", "D5", "F5", "G5", "A5"),
             sidePitches(sauta21, KoraStringLayout.rightOrder(21))
         )
+        assertEquals(
+            listOf("F2", "C3", "D3", "D#3", "G3", "A#3", "D4", "F4", "G#4", "C5", "D#5"),
+            sidePitches(tomoraMesengo21, KoraStringLayout.leftOrder(21))
+        )
+        assertEquals(
+            listOf("F3", "G#3", "C4", "D#4", "G4", "A#4", "D5", "F5", "G5", "G#5"),
+            sidePitches(tomoraMesengo21, KoraStringLayout.rightOrder(21))
+        )
 
         assertEquals("A#2", sidePitches(silaba22, KoraStringLayout.rightOrder(22)).first())
         assertEquals("B2", sidePitches(sauta22, KoraStringLayout.rightOrder(22)).first())
+        assertEquals("A#2", sidePitches(tomoraMesengo22, KoraStringLayout.rightOrder(22)).first())
     }
 
     @Test
@@ -108,6 +146,8 @@ class TraditionalPresetsTest {
             .first { preset -> preset.id == "silaba_22" }
         val sauta22 = TraditionalPresets.presetsForStringCount(22)
             .first { preset -> preset.id == "sauta_22" }
+        val tomoraMesengo22 = TraditionalPresets.presetsForStringCount(22)
+            .first { preset -> preset.id == "tomora_mesengo_22" }
 
         assertEquals("F2", silaba22.openPitches.first().asText())
         assertEquals("A#2", silaba22.openPitches[1].asText())
@@ -116,6 +156,10 @@ class TraditionalPresetsTest {
         assertEquals("F2", sauta22.openPitches.first().asText())
         assertEquals("B2", sauta22.openPitches[1].asText())
         assertEquals("C3", sauta22.openPitches[2].asText())
+
+        assertEquals("F2", tomoraMesengo22.openPitches.first().asText())
+        assertEquals("A#2", tomoraMesengo22.openPitches[1].asText())
+        assertEquals("C3", tomoraMesengo22.openPitches[2].asText())
     }
 
     @Test
@@ -126,6 +170,8 @@ class TraditionalPresetsTest {
             .first { preset -> preset.id == "sauta_21" }
         val silaba21 = TraditionalPresets.presetsForStringCount(21)
             .first { preset -> preset.id == "silaba_21" }
+        val tomoraMesengo21 = TraditionalPresets.presetsForStringCount(21)
+            .first { preset -> preset.id == "tomora_mesengo_21" }
 
         assertTrue(hardino21.openIntonationCents.any { cents -> cents != 0.0 })
         assertEquals(hardino21.openPitches.size, hardino21.closedIntonationCents.size)
@@ -141,6 +187,10 @@ class TraditionalPresetsTest {
 
         assertEquals(5.0, sauta21.openIntonationCents[7], 0.0) // B3
         assertEquals(-15.0, sauta21.openIntonationCents[5], 0.0) // G3
+
+        assertEquals(30.0, tomoraMesengo21.openIntonationCents[5], 0.0) // G3
+        assertEquals(25.0, tomoraMesengo21.openIntonationCents[6], 0.0) // G#3
+        assertEquals(25.0, tomoraMesengo21.openIntonationCents[10], 0.0) // D#4
     }
 
     private fun sidePitches(

@@ -52,6 +52,7 @@ object TraditionalPresets {
     /*
      * Source-derived intonation maps (concert F reference):
      * - Tomora Ba / Silaba: F G A Bb C D E with cents deviations [0, 0, -15, 0, 0, 0, -15]
+     * - Tomora Mesengo: F G Ab Bb C D Eb with cents deviations [0, +30, +25, 0, 0, +30, +25]
      * - Sauta: F G A B C D E with cents deviations [0, -15, +5, +5, 0, -15, +5]
      * - Hardino: F G A Bb C D E with cents deviations [0, -15, +5, 0, 0, -15, +5]
      */
@@ -91,7 +92,17 @@ object TraditionalPresets {
         )
     )
 
-    private val tomoraBaIntonationTemplate = silabaIntonationTemplate
+    private val tomoraMesengoIntonationTemplate = IntonationTemplate(
+        centsByNoteSymbol = mapOf(
+            "F" to 0.0,
+            "G" to 30.0,
+            "G#" to 25.0,
+            "A#" to 0.0,
+            "C" to 0.0,
+            "D" to 30.0,
+            "D#" to 25.0
+        )
+    )
 
     private val definitions = listOf(
         PresetDefinition(
@@ -132,8 +143,8 @@ object TraditionalPresets {
         ),
         PresetDefinition(
             id = "silaba",
-            displayName = "Silaba",
-            description = "Traditional Silaba map (Tomora Ba family) in concert-F reference.",
+            displayName = "Silaba / Tomora Ba",
+            description = "Traditional Silaba, also called Tomora Ba, in concert-F reference.",
             openPitches21 = listOf(
                 "F2", "C3", "D3", "E3",
                 "F3", "G3", "A3", "Bb3", "C4", "D4", "E4",
@@ -149,22 +160,22 @@ object TraditionalPresets {
             intonationTemplate = silabaIntonationTemplate
         ),
         PresetDefinition(
-            id = "tomora_ba",
-            displayName = "Tomora Ba",
-            description = "Traditional Tomora Ba map in concert-F reference.",
+            id = "tomora_mesengo",
+            displayName = "Tomora Mesengo",
+            description = "Traditional Tomora Mesengo map with lowered third and seventh in concert-F reference.",
             openPitches21 = listOf(
-                "F2", "C3", "D3", "E3",
-                "F3", "G3", "A3", "Bb3", "C4", "D4", "E4",
-                "F4", "G4", "A4", "Bb4", "C5", "D5", "E5",
-                "F5", "G5", "A5"
+                "F2", "C3", "D3", "Eb3",
+                "F3", "G3", "Ab3", "Bb3", "C4", "D4", "Eb4",
+                "F4", "G4", "Ab4", "Bb4", "C5", "D5", "Eb5",
+                "F5", "G5", "Ab5"
             ),
             openPitches22 = listOf(
-                "F2", "Bb2", "C3", "D3", "E3",
-                "F3", "G3", "A3", "Bb3", "C4", "D4", "E4",
-                "F4", "G4", "A4", "Bb4", "C5", "D5", "E5",
-                "F5", "G5", "A5"
+                "F2", "Bb2", "C3", "D3", "Eb3",
+                "F3", "G3", "Ab3", "Bb3", "C4", "D4", "Eb4",
+                "F4", "G4", "Ab4", "Bb4", "C5", "D5", "Eb5",
+                "F5", "G5", "Ab5"
             ),
-            intonationTemplate = tomoraBaIntonationTemplate
+            intonationTemplate = tomoraMesengoIntonationTemplate
         )
     )
 
