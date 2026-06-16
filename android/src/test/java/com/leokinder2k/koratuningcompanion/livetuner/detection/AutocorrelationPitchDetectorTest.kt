@@ -48,6 +48,28 @@ class AutocorrelationPitchDetectorTest {
         assertEquals(0.0, result.confidence, 0.0)
     }
 
+    @Test
+    fun prefersFirstStrongLocalPeakForOctaveProneSignal() {
+        val sampleRate = 44100
+        val frame = compositeFrame(
+            sampleRate = sampleRate,
+            size = 8192,
+            components = listOf(
+                WaveComponent(frequencyHz = 220.0, amplitude = 0.1),
+                WaveComponent(frequencyHz = 440.0, amplitude = 1.0)
+            )
+        )
+
+        val result = detector.detect(frame, sampleRate)
+
+        assertNotNull("Expected a detection for the dominant 440 Hz tone", result.frequencyHz)
+        val centsError = centsDifference(result.frequencyHz!!, 440.0)
+        assertTrue(
+            "Expected the dominant pitch near 440 Hz, but got ${result.frequencyHz} Hz",
+            centsError <= 8.0
+        )
+    }
+
     private fun sineFrame(
         frequencyHz: Double,
         sampleRate: Int,
@@ -60,6 +82,25 @@ class AutocorrelationPitchDetectorTest {
             data[index] = (value * 22000.0).toInt().toShort()
         }
         return data
+    }
+
+    private data class WaveComponent(
+        val frequencyHz: Double,
+        val amplitude: Double
+    )
+
+    private fun compositeFrame(
+        sampleRate: Int,
+        size: Int,
+        components: List<WaveComponent>
+    ): ShortArray {
+        val amplitudeSum = components.sumOf { component -> abs(component.amplitude) }.coerceAtLeast(1.0)
+        return ShortArray(size) { index ->
+            val value = components.sumOf { component ->
+                component.amplitude * sin((2.0 * PI * component.frequencyHz * index / sampleRate) + 0.37)
+            } / amplitudeSum
+            (value * 22000.0).toInt().toShort()
+        }
     }
 
     private fun centsDifference(detectedFrequencyHz: Double, targetFrequencyHz: Double): Double {

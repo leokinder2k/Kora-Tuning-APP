@@ -224,7 +224,7 @@ class AutocorrelationPitchDetector(
     companion object {
         private const val PCM_FULL_SCALE = 32768.0
         private const val DEFAULT_REFINEMENT_ITERATIONS = 22
-        private const val LOCAL_PEAK_RELATIVE_THRESHOLD = 0.985
+        private const val LOCAL_PEAK_RELATIVE_THRESHOLD = 0.90
     }
 }
 
