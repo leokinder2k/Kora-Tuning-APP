@@ -276,6 +276,22 @@ fun InstrumentConfigurationScreen(
             inTuneThresholdCents = inTuneThresholdCents
         )
     }
+    val selectedPresetName = uiState.presetOptions
+        .firstOrNull { option -> option.id == uiState.selectedPresetId }
+        ?.displayName
+        ?: uiState.selectedPresetId
+    val tuningSourceLabel = if (
+        uiState.selectedPresetId == MANUAL_PRESET_ID ||
+        !uiState.autoCalibrateEnabled
+    ) {
+        stringResource(R.string.instrument_tuning_assistant_source_rows)
+    } else {
+        stringResource(
+            R.string.instrument_tuning_assistant_source_preset,
+            selectedPresetName,
+            uiState.lowestLeftPitchInput
+        )
+    }
 
     key(enharmonicPreference) {
     Scaffold(
@@ -385,6 +401,7 @@ fun InstrumentConfigurationScreen(
                         selectedCentsDeviation = selectedCentsDeviation,
                         tuningState = tuningState,
                         tunerUiState = tunerUiState,
+                        tuningSourceLabel = tuningSourceLabel,
                         isReferenceTonePlaying = isReferenceTonePlaying || isPlayingAll,
                         isPlayingAll = isPlayingAll,
                         playbackDirection = playbackDirection,
@@ -557,6 +574,7 @@ private fun InstrumentTuningAssistantCard(
     selectedCentsDeviation: Double?,
     tuningState: TuningFeedbackState?,
     tunerUiState: LiveTunerUiState,
+    tuningSourceLabel: String,
     isReferenceTonePlaying: Boolean,
     isPlayingAll: Boolean,
     playbackDirection: PlaybackDirection,
@@ -608,6 +626,11 @@ private fun InstrumentTuningAssistantCard(
                     Text(
                         text = stringResource(R.string.instrument_tuning_assistant_title),
                         style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = tuningSourceLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Column(
@@ -1050,6 +1073,7 @@ private fun signed(value: Double): String {
 private enum class PlaybackDirection { HIGH_TO_LOW, LOW_TO_HIGH }
 private enum class PlaybackSideOrder { LEFT_FIRST, RIGHT_FIRST }
 
+private const val MANUAL_PRESET_ID = "manual"
 private const val MIN_INTONATION_CENTS = -1200.0
 private const val MAX_INTONATION_CENTS = 1200.0
 

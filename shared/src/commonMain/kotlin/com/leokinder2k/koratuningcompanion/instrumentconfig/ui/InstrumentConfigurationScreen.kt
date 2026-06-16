@@ -198,10 +198,9 @@ fun InstrumentConfigurationScreen(
     } else {
         null
     }
-    // Single-string reference tone: reacts when the selected string changes or play/stop toggled
     LaunchedEffect(isReferenceTonePlaying, selectedTargetFrequencyHz, isMuted) {
         if (isReferenceTonePlaying && !isPlayingAll && selectedTargetFrequencyHz != null && !isMuted) {
-            referenceTonePlayer.play(selectedTargetFrequencyHz * 2.0)
+            referenceTonePlayer.play(instrumentAssistantReferenceFrequencyHz(selectedTargetFrequencyHz))
         } else if (!isReferenceTonePlaying || isMuted) {
             referenceTonePlayer.stop()
             if (isMuted) { isReferenceTonePlaying = false; isPlayingAll = false }
@@ -220,7 +219,7 @@ fun InstrumentConfigurationScreen(
             if (pitch != null && cents != null) {
                 val freq = TunerTargetMatcher.pitchToFrequencyHz(pitch = pitch, centsOffset = cents)
                 selectedTuningRowIndex = uiState.rows.indexOf(row).coerceAtLeast(0)
-                referenceTonePlayer.play(freq * 2.0)
+                referenceTonePlayer.play(instrumentAssistantReferenceFrequencyHz(freq))
             }
             delay(3000L)
         }
@@ -237,6 +236,22 @@ fun InstrumentConfigurationScreen(
         TuningFeedbackClassifier.classify(
             centsDeviation = deviation,
             inTuneThresholdCents = inTuneThresholdCents
+        )
+    }
+    val selectedPresetName = uiState.presetOptions
+        .firstOrNull { option -> option.id == uiState.selectedPresetId }
+        ?.displayName
+        ?: uiState.selectedPresetId
+    val tuningSourceLabel = if (
+        uiState.selectedPresetId == MANUAL_PRESET_ID ||
+        !uiState.autoCalibrateEnabled
+    ) {
+        stringResource(Res.string.instrument_tuning_assistant_source_rows)
+    } else {
+        stringResource(
+            Res.string.instrument_tuning_assistant_source_preset,
+            selectedPresetName,
+            uiState.lowestLeftPitchInput
         )
     }
 
@@ -429,6 +444,7 @@ fun InstrumentConfigurationScreen(
                         selectedCentsDeviation = selectedCentsDeviation,
                         tuningState = tuningState,
                         tunerUiState = tunerUiState,
+                        tuningSourceLabel = tuningSourceLabel,
                         enharmonicPreference = enharmonicPreference,
                         isReferenceTonePlaying = isReferenceTonePlaying || isPlayingAll,
                         isPlayingAll = isPlayingAll,
@@ -596,6 +612,7 @@ private fun InstrumentTuningAssistantCard(
     selectedCentsDeviation: Double?,
     tuningState: TuningFeedbackState?,
     tunerUiState: LiveTunerUiState,
+    tuningSourceLabel: String,
     enharmonicPreference: EnharmonicPreference,
     isReferenceTonePlaying: Boolean,
     isPlayingAll: Boolean,
@@ -645,6 +662,11 @@ private fun InstrumentTuningAssistantCard(
                     Text(
                         text = stringResource(Res.string.instrument_tuning_assistant_title),
                         style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = tuningSourceLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Column(
@@ -1049,6 +1071,8 @@ private fun centsDeviation(
     return 1200.0 * (ln(detectedFrequencyHz / targetFrequencyHz) / ln(2.0))
 }
 
+internal fun instrumentAssistantReferenceFrequencyHz(targetFrequencyHz: Double): Double = targetFrequencyHz
+
 private fun formatDouble2(value: Double): String {
     val abs = kotlin.math.abs(value)
     val rounded = kotlin.math.round(abs * 100.0)
@@ -1069,6 +1093,7 @@ private fun signed(value: Double): String {
 
 private const val MIN_INTONATION_CENTS = -1200.0
 private const val MAX_INTONATION_CENTS = 1200.0
+private const val MANUAL_PRESET_ID = "manual"
 
 private fun tuningStateColor(state: TuningFeedbackState): Color {
     return when (state) {

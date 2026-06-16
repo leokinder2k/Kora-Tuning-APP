@@ -75,6 +75,8 @@
     <string name="instrument_tuning_assistant_detected_hz_line">Detected: %1$s</string>
     <string name="instrument_tuning_assistant_deviation_line">Deviation: %1$s c (%2$s)</string>
     <string name="instrument_tuning_assistant_deviation_none">Deviation: --</string>
+    <string name="instrument_tuning_assistant_source_rows">Source: current string rows (open pitch + open cents)</string>
+    <string name="instrument_tuning_assistant_source_preset">Source: %1$s preset, based on low-left %2$s</string>
     <string name="instrument_tuning_assistant_left_side">Left side (Bass -&gt; High)</string>
     <string name="instrument_tuning_assistant_right_side">Right side (Bass -&gt; High)</string>
     <string name="instrument_tuning_assistant_string_chip">S%1$d %2$s</string>

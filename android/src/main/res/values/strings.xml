@@ -80,6 +80,8 @@
 
     <string name="instrument_tuning_assistant_title">Instrument Tuning Assistant</string>
     <string name="instrument_tuning_assistant_subtitle">Select a string and tune its open pitch using target note/cents and status lights.</string>
+    <string name="instrument_tuning_assistant_source_rows">Source: current string rows (open pitch + open cents)</string>
+    <string name="instrument_tuning_assistant_source_preset">Source: %1$s preset, based on low-left %2$s</string>
     <string name="instrument_tuning_assistant_controls_title">Tuner Controls</string>
     <string name="instrument_tuning_assistant_status_lights_title">Tuning Lights</string>
     <string name="instrument_tuning_assistant_scroll_hint">Swipe left or right to see all strings.</string>
