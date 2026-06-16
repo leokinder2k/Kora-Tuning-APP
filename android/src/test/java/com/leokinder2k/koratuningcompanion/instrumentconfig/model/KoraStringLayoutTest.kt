@@ -8,11 +8,11 @@ class KoraStringLayoutTest {
     @Test
     fun layout21_matchesExpectedLeftAndRightOrders() {
         assertEquals(
-            listOf(1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 18),
+            listOf(1, 3, 4, 5, 7, 9, 11, 13, 15, 17, 19),
             KoraStringLayout.leftOrder(21)
         )
         assertEquals(
-            listOf(5, 7, 9, 11, 13, 15, 17, 19, 20, 21),
+            listOf(2, 6, 8, 10, 12, 14, 16, 18, 20, 21),
             KoraStringLayout.rightOrder(21)
         )
     }
@@ -40,8 +40,8 @@ class KoraStringLayoutTest {
     @Test
     fun layout21_matchesProvidedFPattern_lowToHighOnEachSide() {
         val openPitches = listOf(
-            "F", "C", "D", "E", "F", "G", "A", "Bb", "C", "D", "E",
-            "F", "G", "A", "Bb", "C", "D", "E", "F", "G", "A"
+            "F", "F", "C", "D", "E", "A", "G", "C", "Bb", "E", "D",
+            "G", "F", "Bb", "A", "D", "C", "F", "E", "G", "A"
         )
         val left = KoraStringLayout.leftOrder(21).map { stringNumber ->
             openPitches[stringNumber - 1]

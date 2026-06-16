@@ -21,3 +21,5 @@ Derived templates:
 These are applied to all octaves for preset generation in `TraditionalPresets`.
 
 For 22-string layouts, the extra bass string is on the right side and is tuned a fourth above the left bass string. In the concert-F reference layout, that extra string is `Bb2` even when the regular Sauta fourth-degree strings are raised to `B`.
+
+For 21- and 22-string layouts, preset rows follow physical tuning order from the bass: left bass, right bass, then the next left-side bass strings before continuing through the left/right bridge pattern. The left/right side helpers still expose each side low-to-high.

@@ -51,10 +51,10 @@ class TraditionalPresetsTest {
 
         assertEquals(
             listOf(
-                "F2", "C3", "D3", "E3",
-                "F3", "G3", "A3", "A#3", "C4", "D4", "E4",
-                "F4", "G4", "A4", "A#4", "C5", "D5", "E5",
-                "F5", "G5", "A5"
+                "F2", "F3", "C3", "D3", "E3", "A3",
+                "G3", "C4", "A#3", "E4", "D4",
+                "G4", "F4", "A#4", "A4", "D5", "C5",
+                "F5", "E5", "G5", "A5"
             ),
             silaba.openPitches.map(Pitch::asText)
         )
@@ -70,11 +70,11 @@ class TraditionalPresetsTest {
             silaba.openPitches[index] != sauta.openPitches[index]
         }
 
-        assertEquals(listOf(7, 14), differingIndexes)
-        assertEquals("A#3", silaba.openPitches[7].asText())
-        assertEquals("B3", sauta.openPitches[7].asText())
-        assertEquals("A#4", silaba.openPitches[14].asText())
-        assertEquals("B4", sauta.openPitches[14].asText())
+        assertEquals(listOf(8, 13), differingIndexes)
+        assertEquals("A#3", silaba.openPitches[8].asText())
+        assertEquals("B3", sauta.openPitches[8].asText())
+        assertEquals("A#4", silaba.openPitches[13].asText())
+        assertEquals("B4", sauta.openPitches[13].asText())
     }
 
     @Test
@@ -85,10 +85,10 @@ class TraditionalPresetsTest {
         assertEquals("Tomora Mesengo", tomoraMesengo.displayName)
         assertEquals(
             listOf(
-                "F2", "C3", "D3", "D#3",
-                "F3", "G3", "G#3", "A#3", "C4", "D4", "D#4",
-                "F4", "G4", "G#4", "A#4", "C5", "D5", "D#5",
-                "F5", "G5", "G#5"
+                "F2", "F3", "C3", "D3", "D#3", "G#3",
+                "G3", "C4", "A#3", "D#4", "D4",
+                "G4", "F4", "A#4", "G#4", "D5", "C5",
+                "F5", "D#5", "G5", "G#5"
             ),
             tomoraMesengo.openPitches.map(Pitch::asText)
         )
@@ -177,20 +177,20 @@ class TraditionalPresetsTest {
         assertEquals(hardino21.openPitches.size, hardino21.closedIntonationCents.size)
         assertNotEquals(hardino21.openIntonationCents, silaba21.openIntonationCents)
 
-        assertEquals(-15.0, silaba21.openIntonationCents[3], 0.0) // E3
-        assertEquals(-15.0, silaba21.openIntonationCents[6], 0.0) // A3
-        assertEquals(0.0, silaba21.closedIntonationCents[6], 0.0) // A#3
+        assertEquals(-15.0, silaba21.openIntonationCents[4], 0.0) // E3
+        assertEquals(-15.0, silaba21.openIntonationCents[5], 0.0) // A3
+        assertEquals(0.0, silaba21.closedIntonationCents[5], 0.0) // A#3
 
-        assertEquals(-15.0, hardino21.openIntonationCents[5], 0.0) // G3
-        assertEquals(5.0, hardino21.openIntonationCents[6], 0.0) // A3
-        assertEquals(5.0, hardino21.openIntonationCents[3], 0.0) // E3
+        assertEquals(-15.0, hardino21.openIntonationCents[6], 0.0) // G3
+        assertEquals(5.0, hardino21.openIntonationCents[5], 0.0) // A3
+        assertEquals(5.0, hardino21.openIntonationCents[4], 0.0) // E3
 
-        assertEquals(5.0, sauta21.openIntonationCents[7], 0.0) // B3
-        assertEquals(-15.0, sauta21.openIntonationCents[5], 0.0) // G3
+        assertEquals(5.0, sauta21.openIntonationCents[8], 0.0) // B3
+        assertEquals(-15.0, sauta21.openIntonationCents[6], 0.0) // G3
 
-        assertEquals(30.0, tomoraMesengo21.openIntonationCents[5], 0.0) // G3
-        assertEquals(25.0, tomoraMesengo21.openIntonationCents[6], 0.0) // G#3
-        assertEquals(25.0, tomoraMesengo21.openIntonationCents[10], 0.0) // D#4
+        assertEquals(30.0, tomoraMesengo21.openIntonationCents[6], 0.0) // G3
+        assertEquals(25.0, tomoraMesengo21.openIntonationCents[5], 0.0) // G#3
+        assertEquals(25.0, tomoraMesengo21.openIntonationCents[9], 0.0) // D#4
     }
 
     private fun sidePitches(

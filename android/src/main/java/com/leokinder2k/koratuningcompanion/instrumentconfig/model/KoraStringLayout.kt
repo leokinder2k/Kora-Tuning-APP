@@ -42,8 +42,8 @@ object KoraStringLayout {
         // L: F C D E G Bb D F A C E
         // R: F A C E G Bb D F G A
         21 to SideLayout(
-            leftOrder = listOf(1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 18),
-            rightOrder = listOf(5, 7, 9, 11, 13, 15, 17, 19, 20, 21)
+            leftOrder = listOf(1, 3, 4, 5, 7, 9, 11, 13, 15, 17, 19),
+            rightOrder = listOf(2, 6, 8, 10, 12, 14, 16, 18, 20, 21)
         ),
         // 22-string adds low right Bb (low -> high on each side):
         // L: F C D E G Bb D F A C E

@@ -184,7 +184,7 @@ class ScaleCalculationEngineTest {
         val rightStartIndex = 11
         assertEquals(StringSide.RIGHT, result.leverOnlyTable[rightStartIndex].role.side)
         assertEquals(1, result.leverOnlyTable[rightStartIndex].role.positionFromLow)
-        assertEquals(5, result.leverOnlyTable[rightStartIndex].stringNumber)
+        assertEquals(2, result.leverOnlyTable[rightStartIndex].stringNumber)
     }
 
     @Test
@@ -273,7 +273,7 @@ class ScaleCalculationEngineTest {
     @Test
     fun scaleRootReference_left5AnchorsToFifthLeftString() {
         val profile = profileWithPitches(
-            overrides = mapOf(6 to "E4"),
+            overrides = mapOf(7 to "E4"),
             fill = "C4"
         )
 
@@ -301,14 +301,14 @@ class ScaleCalculationEngineTest {
         assertNull(left4Result.leverOnlyTable.first { row -> row.stringNumber == 1 }.selectedLeverState)
         assertEquals(
             LeverState.OPEN,
-            left5Result.leverOnlyTable.first { row -> row.stringNumber == 6 }.selectedLeverState
+            left5Result.leverOnlyTable.first { row -> row.stringNumber == 7 }.selectedLeverState
         )
     }
 
     @Test
     fun scaleRootReference_left6AnchorsToSixthLeftString() {
         val profile = profileWithPitches(
-            overrides = mapOf(8 to "E4"),
+            overrides = mapOf(9 to "E4"),
             fill = "C4"
         )
 
@@ -336,14 +336,14 @@ class ScaleCalculationEngineTest {
         assertNull(left5Result.leverOnlyTable.first { row -> row.stringNumber == 1 }.selectedLeverState)
         assertEquals(
             LeverState.OPEN,
-            left6Result.leverOnlyTable.first { row -> row.stringNumber == 8 }.selectedLeverState
+            left6Result.leverOnlyTable.first { row -> row.stringNumber == 9 }.selectedLeverState
         )
     }
 
     @Test
     fun scaleRootReference_right2AndRight3AnchorToRightStrings() {
         val right2Profile = profileWithPitches(
-            overrides = mapOf(7 to "E4"),
+            overrides = mapOf(6 to "E4"),
             fill = "C4"
         )
 
@@ -370,12 +370,12 @@ class ScaleCalculationEngineTest {
         )
         assertEquals(
             LeverState.OPEN,
-            right2Result.leverOnlyTable.first { row -> row.stringNumber == 7 }.selectedLeverState
+            right2Result.leverOnlyTable.first { row -> row.stringNumber == 6 }.selectedLeverState
         )
         assertNull(right1Result.leverOnlyTable.first { row -> row.stringNumber == 1 }.selectedLeverState)
 
         val right3Profile = profileWithPitches(
-            overrides = mapOf(9 to "E4"),
+            overrides = mapOf(8 to "E4"),
             fill = "C4"
         )
         val right3Result = engine.calculate(
@@ -401,7 +401,7 @@ class ScaleCalculationEngineTest {
         )
         assertEquals(
             LeverState.OPEN,
-            right3Result.leverOnlyTable.first { row -> row.stringNumber == 9 }.selectedLeverState
+            right3Result.leverOnlyTable.first { row -> row.stringNumber == 8 }.selectedLeverState
         )
         assertNull(right2FallbackResult.leverOnlyTable.first { row -> row.stringNumber == 1 }.selectedLeverState)
     }

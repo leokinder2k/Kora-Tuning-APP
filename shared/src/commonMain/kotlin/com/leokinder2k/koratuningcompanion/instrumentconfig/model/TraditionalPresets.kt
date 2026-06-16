@@ -110,10 +110,10 @@ object TraditionalPresets {
             displayName = "Hardino",
             description = "Traditional Hardino map in concert-F reference (equal-tempered nominal notes).",
             openPitches21 = listOf(
-                "F2", "C3", "D3", "E3",
-                "F3", "G3", "A3", "Bb3", "C4", "D4", "E4",
-                "F4", "G4", "A4", "Bb4", "C5", "D5", "E5",
-                "F5", "G5", "A5"
+                "F2", "F3", "C3", "D3", "E3", "A3",
+                "G3", "C4", "Bb3", "E4", "D4",
+                "G4", "F4", "Bb4", "A4", "D5", "C5",
+                "F5", "E5", "G5", "A5"
             ),
             openPitches22 = listOf(
                 "F2", "Bb2", "C3", "D3", "E3",
@@ -128,10 +128,10 @@ object TraditionalPresets {
             displayName = "Sauta",
             description = "Traditional Sauta map (raised 4th degree) in concert-F reference.",
             openPitches21 = listOf(
-                "F2", "C3", "D3", "E3",
-                "F3", "G3", "A3", "B3", "C4", "D4", "E4",
-                "F4", "G4", "A4", "B4", "C5", "D5", "E5",
-                "F5", "G5", "A5"
+                "F2", "F3", "C3", "D3", "E3", "A3",
+                "G3", "C4", "B3", "E4", "D4",
+                "G4", "F4", "B4", "A4", "D5", "C5",
+                "F5", "E5", "G5", "A5"
             ),
             openPitches22 = listOf(
                 "F2", "Bb2", "C3", "D3", "E3",
@@ -146,10 +146,10 @@ object TraditionalPresets {
             displayName = "Silaba / Tomora Ba",
             description = "Traditional Silaba, also called Tomora Ba, in concert-F reference.",
             openPitches21 = listOf(
-                "F2", "C3", "D3", "E3",
-                "F3", "G3", "A3", "Bb3", "C4", "D4", "E4",
-                "F4", "G4", "A4", "Bb4", "C5", "D5", "E5",
-                "F5", "G5", "A5"
+                "F2", "F3", "C3", "D3", "E3", "A3",
+                "G3", "C4", "Bb3", "E4", "D4",
+                "G4", "F4", "Bb4", "A4", "D5", "C5",
+                "F5", "E5", "G5", "A5"
             ),
             openPitches22 = listOf(
                 "F2", "Bb2", "C3", "D3", "E3",
@@ -164,10 +164,10 @@ object TraditionalPresets {
             displayName = "Tomora Mesengo",
             description = "Traditional Tomora Mesengo map with lowered third and seventh in concert-F reference.",
             openPitches21 = listOf(
-                "F2", "C3", "D3", "Eb3",
-                "F3", "G3", "Ab3", "Bb3", "C4", "D4", "Eb4",
-                "F4", "G4", "Ab4", "Bb4", "C5", "D5", "Eb5",
-                "F5", "G5", "Ab5"
+                "F2", "F3", "C3", "D3", "Eb3", "Ab3",
+                "G3", "C4", "Bb3", "Eb4", "D4",
+                "G4", "F4", "Bb4", "Ab4", "D5", "C5",
+                "F5", "Eb5", "G5", "Ab5"
             ),
             openPitches22 = listOf(
                 "F2", "Bb2", "C3", "D3", "Eb3",
