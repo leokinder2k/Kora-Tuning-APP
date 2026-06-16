@@ -19,3 +19,5 @@ Derived templates:
 - `Hardino`: `F G A Bb C D E` with cents `[0, -15, +5, 0, 0, -15, +5]`
 
 These are applied to all octaves for preset generation in `TraditionalPresets`.
+
+For 22-string layouts, the extra bass string is on the right side and is tuned a fourth above the left bass string. In the concert-F reference layout, that extra string is `Bb2` even when the regular Sauta fourth-degree strings are raised to `B`.
