@@ -10,6 +10,7 @@ class TraditionalPresetsTest {
 
     @Test
     fun presetsForStringCount_returnsNonEmptySetsFor21And22() {
+        assertFalse(TraditionalPresets.presetsForStringCount(19).isEmpty())
         assertFalse(TraditionalPresets.presetsForStringCount(21).isEmpty())
         assertFalse(TraditionalPresets.presetsForStringCount(22).isEmpty())
     }
@@ -69,6 +70,39 @@ class TraditionalPresetsTest {
     }
 
     @Test
+    fun bridgeSideOrder_matchesTraditionalScaleDegreeLayout() {
+        val silaba21 = TraditionalPresets.presetsForStringCount(21)
+            .first { preset -> preset.id == "silaba_21" }
+        val sauta21 = TraditionalPresets.presetsForStringCount(21)
+            .first { preset -> preset.id == "sauta_21" }
+        val silaba22 = TraditionalPresets.presetsForStringCount(22)
+            .first { preset -> preset.id == "silaba_22" }
+        val sauta22 = TraditionalPresets.presetsForStringCount(22)
+            .first { preset -> preset.id == "sauta_22" }
+
+        assertEquals(
+            listOf("F2", "C3", "D3", "E3", "G3", "A#3", "D4", "F4", "A4", "C5", "E5"),
+            sidePitches(silaba21, KoraStringLayout.leftOrder(21))
+        )
+        assertEquals(
+            listOf("F3", "A3", "C4", "E4", "G4", "A#4", "D5", "F5", "G5", "A5"),
+            sidePitches(silaba21, KoraStringLayout.rightOrder(21))
+        )
+
+        assertEquals(
+            listOf("F2", "C3", "D3", "E3", "G3", "B3", "D4", "F4", "A4", "C5", "E5"),
+            sidePitches(sauta21, KoraStringLayout.leftOrder(21))
+        )
+        assertEquals(
+            listOf("F3", "A3", "C4", "E4", "G4", "B4", "D5", "F5", "G5", "A5"),
+            sidePitches(sauta21, KoraStringLayout.rightOrder(21))
+        )
+
+        assertEquals("A#2", sidePitches(silaba22, KoraStringLayout.rightOrder(22)).first())
+        assertEquals("B2", sidePitches(sauta22, KoraStringLayout.rightOrder(22)).first())
+    }
+
+    @Test
     fun string22_addsLowFourthInBassRegister() {
         val silaba22 = TraditionalPresets.presetsForStringCount(22)
             .first { preset -> preset.id == "silaba_22" }
@@ -107,6 +141,15 @@ class TraditionalPresetsTest {
 
         assertEquals(5.0, sauta21.openIntonationCents[7], 0.0) // B3
         assertEquals(-15.0, sauta21.openIntonationCents[5], 0.0) // G3
+    }
+
+    private fun sidePitches(
+        preset: TraditionalPreset,
+        stringNumbers: List<Int>
+    ): List<String> {
+        return stringNumbers.map { stringNumber ->
+            preset.openPitches[stringNumber - 1].asText()
+        }
     }
 }
 

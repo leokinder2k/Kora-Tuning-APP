@@ -228,7 +228,7 @@ fun InstrumentConfigurationScreen(
     }
     LaunchedEffect(isReferenceTonePlaying, selectedTargetFrequencyHz, isMuted) {
         if (isReferenceTonePlaying && !isPlayingAll && selectedTargetFrequencyHz != null && !isMuted) {
-            referenceTonePlayer.play(selectedTargetFrequencyHz * 2.0)
+            referenceTonePlayer.play(instrumentAssistantReferenceFrequencyHz(selectedTargetFrequencyHz))
         } else if (!isReferenceTonePlaying || isMuted) {
             referenceTonePlayer.stop()
             if (isMuted) { isReferenceTonePlaying = false; isPlayingAll = false }
@@ -257,7 +257,7 @@ fun InstrumentConfigurationScreen(
             if (pitch != null && cents != null) {
                 val freq = TunerTargetMatcher.pitchToFrequencyHz(pitch = pitch, centsOffset = cents)
                 selectedTuningRowIndex = uiState.rows.indexOf(row).coerceAtLeast(0)
-                referenceTonePlayer.play(freq * 2.0)
+                referenceTonePlayer.play(instrumentAssistantReferenceFrequencyHz(freq))
             }
             delay(4000L)
         }
@@ -1032,6 +1032,8 @@ private fun centsDeviation(
 ): Double {
     return 1200.0 * (ln(detectedFrequencyHz / targetFrequencyHz) / ln(2.0))
 }
+
+internal fun instrumentAssistantReferenceFrequencyHz(targetFrequencyHz: Double): Double = targetFrequencyHz
 
 private fun formatFrequency(frequencyHz: Double?): String {
     return if (frequencyHz == null || !frequencyHz.isFinite()) {
