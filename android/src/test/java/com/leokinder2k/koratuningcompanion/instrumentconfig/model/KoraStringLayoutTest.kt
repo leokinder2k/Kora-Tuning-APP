@@ -35,6 +35,11 @@ class KoraStringLayoutTest {
         val lowRight = KoraStringLayout.roleFor(stringCount = 22, stringNumber = 2)
         assertEquals(KoraStringSide.RIGHT, lowRight.side)
         assertEquals(1, lowRight.positionFromLow)
+
+        assertEquals("L1", KoraStringLayout.roleLabel(stringCount = 22, stringNumber = 1))
+        assertEquals("R1", KoraStringLayout.roleLabel(stringCount = 22, stringNumber = 2))
+        assertEquals("L2", KoraStringLayout.roleLabel(stringCount = 22, stringNumber = 3))
+        assertEquals("R11", KoraStringLayout.roleLabel(stringCount = 22, stringNumber = 22))
     }
 
     @Test

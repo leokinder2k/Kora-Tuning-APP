@@ -85,6 +85,12 @@ object KoraStringLayout {
         }
     }
 
+    fun roleLabel(stringCount: Int, stringNumber: Int): String {
+        val role = roleFor(stringCount = stringCount, stringNumber = stringNumber)
+        val side = if (role.side == KoraStringSide.LEFT) "L" else "R"
+        return "$side${role.positionFromLow}"
+    }
+
     private fun defaultLeftOrder(stringCount: Int): List<Int> {
         return (1..stringCount).filter { stringNumber -> stringNumber % 2 == 1 }
     }

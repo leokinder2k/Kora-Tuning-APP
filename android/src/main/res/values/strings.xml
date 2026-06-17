@@ -90,8 +90,8 @@
     <string name="instrument_tuning_assistant_detected_hz_line">Detected: %1$s</string>
     <string name="instrument_tuning_assistant_deviation_line">Deviation: %1$s c (%2$s)</string>
     <string name="instrument_tuning_assistant_deviation_none">Deviation: --</string>
-    <string name="instrument_tuning_assistant_left_side">Left side (Bass -&gt; High)</string>
-    <string name="instrument_tuning_assistant_right_side">Right side (Bass -&gt; High)</string>
+    <string name="instrument_tuning_assistant_left_side">L (Bass -&gt; High)</string>
+    <string name="instrument_tuning_assistant_right_side">R (Bass -&gt; High)</string>
     <string name="instrument_tuning_assistant_string_chip">S%1$d %2$s</string>
 
     <string name="tuning_flat">Flat</string>
@@ -238,8 +238,8 @@
     <string name="scale_engine_quick_start_peg_tuning">Pick root + scale, then retune open strings using the peg tuning table (no levers).</string>
 
     <string name="scale_engine_summary_scale_notes">Scale Notes: %1$s</string>
-    <string name="scale_engine_summary_left_strings">Left Strings (Bass -&gt; High): %1$s</string>
-    <string name="scale_engine_summary_right_strings">Right Strings (Bass -&gt; High): %1$s</string>
+    <string name="scale_engine_summary_left_strings">L strings (Bass -&gt; High): %1$s</string>
+    <string name="scale_engine_summary_right_strings">R strings (Bass -&gt; High): %1$s</string>
     <string name="scale_engine_summary_lever_only_retunes">Lever-only peg retunes: %1$d</string>
     <string name="scale_engine_summary_peg_adjustment_retunes">Peg-adjustment retunes: %1$d</string>
     <string name="scale_engine_summary_peg_tuning_retunes">Peg tuning retunes: %1$d</string>
@@ -247,10 +247,10 @@
     <string name="scale_engine_lever_only_table_title">Lever-only Table</string>
     <string name="scale_engine_peg_adjustment_table_title">Retune (Peg Adjustment) Table</string>
     <string name="scale_engine_peg_tuning_table_title">Peg Tuning Table (No Levers)</string>
-    <string name="scale_engine_two_column_note">Two-column kora view: Left strings on left, Right strings on right (both bass to high).</string>
+    <string name="scale_engine_two_column_note">Two-column kora view: L and R stay separate, both bass to high.</string>
 
-    <string name="table_left_header">Left (Bass -&gt; High)</string>
-    <string name="table_right_header">Right (Bass -&gt; High)</string>
+    <string name="table_left_header">L (Bass -&gt; High)</string>
+    <string name="table_right_header">R (Bass -&gt; High)</string>
 
     <string name="value_na">N/A</string>
     <string name="value_yes">YES</string>

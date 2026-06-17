@@ -473,13 +473,36 @@ fun InstrumentConfigurationScreen(
                 )
             }
 
-            itemsIndexed(uiState.rows, key = { _, row -> row.stringNumber }) { index, row ->
+            val rowsByNumber = uiState.rows.associateBy { row -> row.stringNumber }
+            val leftRows = KoraStringLayout.leftOrder(uiState.stringCount)
+                .mapNotNull { stringNumber -> rowsByNumber[stringNumber] }
+            val rightRows = KoraStringLayout.rightOrder(uiState.stringCount)
+                .mapNotNull { stringNumber -> rowsByNumber[stringNumber] }
+
+            item {
+                SideSectionHeader(label = "L")
+            }
+            items(leftRows, key = { row -> row.stringNumber }) { row ->
                 StringConfigurationCard(
                     row = row,
+                    stringCount = uiState.stringCount,
                     showLeverFields = uiState.tuningMode == KoraTuningMode.LEVERED,
-                    onOpenPitchChanged = { value -> onOpenPitchChanged(index, value) },
-                    onOpenIntonationChanged = { value -> onOpenIntonationChanged(index, value) },
-                    onClosedIntonationChanged = { value -> onClosedIntonationChanged(index, value) }
+                    onOpenPitchChanged = { value -> onOpenPitchChanged(row.stringNumber - 1, value) },
+                    onOpenIntonationChanged = { value -> onOpenIntonationChanged(row.stringNumber - 1, value) },
+                    onClosedIntonationChanged = { value -> onClosedIntonationChanged(row.stringNumber - 1, value) }
+                )
+            }
+            item {
+                SideSectionHeader(label = "R")
+            }
+            items(rightRows, key = { row -> row.stringNumber }) { row ->
+                StringConfigurationCard(
+                    row = row,
+                    stringCount = uiState.stringCount,
+                    showLeverFields = uiState.tuningMode == KoraTuningMode.LEVERED,
+                    onOpenPitchChanged = { value -> onOpenPitchChanged(row.stringNumber - 1, value) },
+                    onOpenIntonationChanged = { value -> onOpenIntonationChanged(row.stringNumber - 1, value) },
+                    onClosedIntonationChanged = { value -> onClosedIntonationChanged(row.stringNumber - 1, value) }
                 )
             }
 
@@ -525,6 +548,16 @@ fun InstrumentConfigurationScreen(
             }
         }
     }
+}
+
+@Composable
+private fun SideSectionHeader(label: String) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 8.dp)
+    )
 }
 
 @Composable
@@ -800,6 +833,7 @@ private fun InstrumentTuningAssistantCard(
             CompactStringSelectorRow(
                 sideLabel = "L",
                 rows = leftRows,
+                stringCount = rows.size,
                 selectedRowIndex = selectedRowIndex,
                 enharmonicPreference = enharmonicPreference,
                 onSelectedRowIndexChanged = onSelectedRowIndexChanged
@@ -807,6 +841,7 @@ private fun InstrumentTuningAssistantCard(
             CompactStringSelectorRow(
                 sideLabel = "R",
                 rows = rightRows,
+                stringCount = rows.size,
                 selectedRowIndex = selectedRowIndex,
                 enharmonicPreference = enharmonicPreference,
                 onSelectedRowIndexChanged = onSelectedRowIndexChanged
@@ -827,6 +862,7 @@ private fun InstrumentTuningAssistantCard(
 private fun CompactStringSelectorRow(
     sideLabel: String,
     rows: List<InstrumentStringRowUiState>,
+    stringCount: Int,
     selectedRowIndex: Int,
     enharmonicPreference: EnharmonicPreference,
     onSelectedRowIndexChanged: (Int) -> Unit
@@ -849,6 +885,7 @@ private fun CompactStringSelectorRow(
             items(items = rows, key = { row -> row.stringNumber }) { row ->
                 CompactStringChip(
                     row = row,
+                    stringCount = stringCount,
                     selected = row.stringNumber - 1 == selectedRowIndex,
                     enharmonicPreference = enharmonicPreference,
                     onClick = { onSelectedRowIndexChanged(row.stringNumber - 1) }
@@ -861,6 +898,7 @@ private fun CompactStringSelectorRow(
 @Composable
 private fun CompactStringChip(
     row: InstrumentStringRowUiState,
+    stringCount: Int,
     selected: Boolean,
     enharmonicPreference: EnharmonicPreference,
     onClick: () -> Unit
@@ -884,7 +922,7 @@ private fun CompactStringChip(
         border = BorderStroke(width = 1.dp, color = borderColor)
     ) {
         Text(
-            text = "${row.stringNumber} ${Pitch.parse(row.openPitchInput)?.asText(enharmonicPreference) ?: row.openPitchInput.ifBlank { "--" }}",
+            text = "${KoraStringLayout.roleLabel(stringCount, row.stringNumber)} ${Pitch.parse(row.openPitchInput)?.asText(enharmonicPreference) ?: row.openPitchInput.ifBlank { "--" }}",
             style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
@@ -991,6 +1029,7 @@ private const val TUNING_GRADIENT_RANGE_CENTS = 50.0
 @Composable
 private fun StringConfigurationCard(
     row: InstrumentStringRowUiState,
+    stringCount: Int,
     showLeverFields: Boolean,
     onOpenPitchChanged: (String) -> Unit,
     onOpenIntonationChanged: (String) -> Unit,
@@ -1003,10 +1042,21 @@ private fun StringConfigurationCard(
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(
-                text = stringResource(Res.string.instrument_config_string_title, row.stringNumber),
-                style = MaterialTheme.typography.titleSmall
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = KoraStringLayout.roleLabel(stringCount, row.stringNumber),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = "S${row.stringNumber}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             OutlinedTextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = row.openPitchInput,
