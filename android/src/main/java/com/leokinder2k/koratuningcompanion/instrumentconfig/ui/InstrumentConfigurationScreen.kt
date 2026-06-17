@@ -235,7 +235,7 @@ fun InstrumentConfigurationScreen(
         }
     }
 
-    var playbackDirection by rememberSaveable { mutableStateOf(PlaybackDirection.HIGH_TO_LOW) }
+    var playbackDirection by rememberSaveable { mutableStateOf(PlaybackDirection.LOW_TO_HIGH) }
     var playbackSideOrder by rememberSaveable { mutableStateOf(PlaybackSideOrder.LEFT_FIRST) }
 
     val allRows = run {
@@ -727,15 +727,15 @@ private fun InstrumentTuningAssistantCard(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 FilterChip(
-                    selected = playbackDirection == PlaybackDirection.HIGH_TO_LOW,
-                    onClick = { onPlaybackDirectionSelected(PlaybackDirection.HIGH_TO_LOW) },
-                    label = { Text("High→Low", style = MaterialTheme.typography.labelSmall) },
-                    enabled = !isPlayingAll
-                )
-                FilterChip(
                     selected = playbackDirection == PlaybackDirection.LOW_TO_HIGH,
                     onClick = { onPlaybackDirectionSelected(PlaybackDirection.LOW_TO_HIGH) },
                     label = { Text("Low→High", style = MaterialTheme.typography.labelSmall) },
+                    enabled = !isPlayingAll
+                )
+                FilterChip(
+                    selected = playbackDirection == PlaybackDirection.HIGH_TO_LOW,
+                    onClick = { onPlaybackDirectionSelected(PlaybackDirection.HIGH_TO_LOW) },
+                    label = { Text("High→Low", style = MaterialTheme.typography.labelSmall) },
                     enabled = !isPlayingAll
                 )
                 FilterChip(
