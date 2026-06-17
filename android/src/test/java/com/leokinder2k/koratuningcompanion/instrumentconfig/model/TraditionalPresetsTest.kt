@@ -151,6 +151,15 @@ class TraditionalPresetsTest {
         assertEquals("A#2", sidePitches(silaba22, KoraStringLayout.rightOrder(22)).first())
         assertEquals("B2", sidePitches(sauta22, KoraStringLayout.rightOrder(22)).first())
         assertEquals("A#2", sidePitches(tomoraMesengo22, KoraStringLayout.rightOrder(22)).first())
+
+        assertEquals(
+            listOf("F2", "C3", "D3", "E3", "G3", "A#3", "D4", "F4", "A4", "C5", "E5"),
+            sidePitches(silaba22, KoraStringLayout.leftOrder(22))
+        )
+        assertEquals(
+            listOf("A#2", "F3", "A3", "C4", "E4", "G4", "A#4", "D5", "F5", "G5", "A5"),
+            sidePitches(silaba22, KoraStringLayout.rightOrder(22))
+        )
     }
 
     @Test
