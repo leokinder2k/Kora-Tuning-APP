@@ -136,12 +136,12 @@ class TraditionalPresetsTest {
         )
 
         assertEquals("A#2", sidePitches(silaba22, KoraStringLayout.rightOrder(22)).first())
-        assertEquals("A#2", sidePitches(sauta22, KoraStringLayout.rightOrder(22)).first())
+        assertEquals("B2", sidePitches(sauta22, KoraStringLayout.rightOrder(22)).first())
         assertEquals("A#2", sidePitches(tomoraMesengo22, KoraStringLayout.rightOrder(22)).first())
     }
 
     @Test
-    fun string22_addsLowFourthInBassRegister() {
+    fun string22_addsPresetSpecificLowRightBass() {
         val silaba22 = TraditionalPresets.presetsForStringCount(22)
             .first { preset -> preset.id == "silaba_22" }
         val sauta22 = TraditionalPresets.presetsForStringCount(22)
@@ -154,7 +154,7 @@ class TraditionalPresetsTest {
         assertEquals("C3", silaba22.openPitches[2].asText())
 
         assertEquals("F2", sauta22.openPitches.first().asText())
-        assertEquals("A#2", sauta22.openPitches[1].asText())
+        assertEquals("B2", sauta22.openPitches[1].asText())
         assertEquals("C3", sauta22.openPitches[2].asText())
 
         assertEquals("F2", tomoraMesengo22.openPitches.first().asText())
