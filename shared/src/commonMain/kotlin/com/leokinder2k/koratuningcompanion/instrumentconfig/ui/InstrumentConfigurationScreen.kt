@@ -207,8 +207,12 @@ fun InstrumentConfigurationScreen(
         }
     }
 
-    // Play-all: cycle through every string in order, spending ~3 s on each
-    val allRows = uiState.rows.sortedBy { it.stringNumber }
+    // Play-all follows the physical tuning sequence, not side grouping.
+    val allRows = run {
+        val rowsByNumber = uiState.rows.associateBy { it.stringNumber }
+        KoraStringLayout.tuningOrder(uiState.stringCount)
+            .mapNotNull { stringNumber -> rowsByNumber[stringNumber] }
+    }
     LaunchedEffect(isPlayingAll, isMuted, isActive) {
         if (!isPlayingAll || isMuted || !isActive) return@LaunchedEffect
         isReferenceTonePlaying = true

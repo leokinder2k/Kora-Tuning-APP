@@ -62,6 +62,10 @@ object KoraStringLayout {
         return predefinedLayouts[stringCount]?.rightOrder ?: defaultRightOrder(stringCount)
     }
 
+    fun tuningOrder(stringCount: Int): List<Int> {
+        return if (stringCount > 0) (1..stringCount).toList() else emptyList()
+    }
+
     fun roleFor(stringCount: Int, stringNumber: Int): KoraStringRole {
         val predefined = predefinedLayouts[stringCount]?.roleByStringNumber?.get(stringNumber)
         if (predefined != null) {

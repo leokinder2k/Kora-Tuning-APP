@@ -236,15 +236,15 @@ fun InstrumentConfigurationScreen(
     }
 
     var playbackDirection by rememberSaveable { mutableStateOf(PlaybackDirection.LOW_TO_HIGH) }
-    var playbackSideOrder by rememberSaveable { mutableStateOf(PlaybackSideOrder.LEFT_FIRST) }
 
     val allRows = run {
         val rowsByNumber = uiState.rows.associateBy { it.stringNumber }
-        val left = KoraStringLayout.leftOrder(uiState.stringCount)
-        val right = KoraStringLayout.rightOrder(uiState.stringCount)
-        val leftOrdered = if (playbackDirection == PlaybackDirection.HIGH_TO_LOW) left.reversed() else left
-        val rightOrdered = if (playbackDirection == PlaybackDirection.HIGH_TO_LOW) right.reversed() else right
-        val ordered = if (playbackSideOrder == PlaybackSideOrder.LEFT_FIRST) leftOrdered + rightOrdered else rightOrdered + leftOrdered
+        val tuningOrder = KoraStringLayout.tuningOrder(uiState.stringCount)
+        val ordered = if (playbackDirection == PlaybackDirection.HIGH_TO_LOW) {
+            tuningOrder.reversed()
+        } else {
+            tuningOrder
+        }
         ordered.mapNotNull { rowsByNumber[it] }
     }
     LaunchedEffect(isPlayingAll, isMuted, isActive) {
@@ -405,9 +405,7 @@ fun InstrumentConfigurationScreen(
                         isReferenceTonePlaying = isReferenceTonePlaying || isPlayingAll,
                         isPlayingAll = isPlayingAll,
                         playbackDirection = playbackDirection,
-                        playbackSideOrder = playbackSideOrder,
                         onPlaybackDirectionSelected = { playbackDirection = it },
-                        onPlaybackSideOrderSelected = { playbackSideOrder = it },
                         onPlayAll = { if (!isMuted) isPlayingAll = true },
                         onStopReferenceTone = {
                             isPlayingAll = false
@@ -578,9 +576,7 @@ private fun InstrumentTuningAssistantCard(
     isReferenceTonePlaying: Boolean,
     isPlayingAll: Boolean,
     playbackDirection: PlaybackDirection,
-    playbackSideOrder: PlaybackSideOrder,
     onPlaybackDirectionSelected: (PlaybackDirection) -> Unit,
-    onPlaybackSideOrderSelected: (PlaybackSideOrder) -> Unit,
     onPlayAll: () -> Unit,
     onStopReferenceTone: () -> Unit,
     onRequestPermission: () -> Unit,
@@ -736,18 +732,6 @@ private fun InstrumentTuningAssistantCard(
                     selected = playbackDirection == PlaybackDirection.HIGH_TO_LOW,
                     onClick = { onPlaybackDirectionSelected(PlaybackDirection.HIGH_TO_LOW) },
                     label = { Text("High→Low", style = MaterialTheme.typography.labelSmall) },
-                    enabled = !isPlayingAll
-                )
-                FilterChip(
-                    selected = playbackSideOrder == PlaybackSideOrder.LEFT_FIRST,
-                    onClick = { onPlaybackSideOrderSelected(PlaybackSideOrder.LEFT_FIRST) },
-                    label = { Text("L first", style = MaterialTheme.typography.labelSmall) },
-                    enabled = !isPlayingAll
-                )
-                FilterChip(
-                    selected = playbackSideOrder == PlaybackSideOrder.RIGHT_FIRST,
-                    onClick = { onPlaybackSideOrderSelected(PlaybackSideOrder.RIGHT_FIRST) },
-                    label = { Text("R first", style = MaterialTheme.typography.labelSmall) },
                     enabled = !isPlayingAll
                 )
             }
@@ -1071,7 +1055,6 @@ private fun signed(value: Double): String {
 }
 
 private enum class PlaybackDirection { HIGH_TO_LOW, LOW_TO_HIGH }
-private enum class PlaybackSideOrder { LEFT_FIRST, RIGHT_FIRST }
 
 private const val MANUAL_PRESET_ID = "manual"
 private const val MIN_INTONATION_CENTS = -1200.0

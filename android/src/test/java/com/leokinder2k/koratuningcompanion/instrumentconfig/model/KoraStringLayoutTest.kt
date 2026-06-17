@@ -38,6 +38,44 @@ class KoraStringLayoutTest {
     }
 
     @Test
+    fun tuningOrder21_matchesPhysicalAssistantSequence() {
+        val openPitches = listOf(
+            "F", "F", "C", "D", "E", "A", "G", "C", "Bb", "E", "D",
+            "G", "F", "Bb", "A", "D", "C", "F", "E", "G", "A"
+        )
+        val tuningOrder = KoraStringLayout.tuningOrder(21)
+        val sequence = tuningOrder.map { stringNumber -> openPitches[stringNumber - 1] }
+
+        assertEquals((1..21).toList(), tuningOrder)
+        assertEquals(
+            listOf(
+                "F", "F", "C", "D", "E", "A", "G", "C", "Bb", "E", "D",
+                "G", "F", "Bb", "A", "D", "C", "F", "E", "G", "A"
+            ),
+            sequence
+        )
+    }
+
+    @Test
+    fun tuningOrder22_matchesPhysicalAssistantSequence() {
+        val openPitches = listOf(
+            "F", "Bb", "C", "D", "E", "F", "G", "A", "Bb", "C", "D",
+            "E", "F", "G", "A", "Bb", "C", "D", "E", "F", "G", "A"
+        )
+        val tuningOrder = KoraStringLayout.tuningOrder(22)
+        val sequence = tuningOrder.map { stringNumber -> openPitches[stringNumber - 1] }
+
+        assertEquals((1..22).toList(), tuningOrder)
+        assertEquals(
+            listOf(
+                "F", "Bb", "C", "D", "E", "F", "G", "A", "Bb", "C", "D",
+                "E", "F", "G", "A", "Bb", "C", "D", "E", "F", "G", "A"
+            ),
+            sequence
+        )
+    }
+
+    @Test
     fun layout21_matchesProvidedFPattern_lowToHighOnEachSide() {
         val openPitches = listOf(
             "F", "F", "C", "D", "E", "A", "G", "C", "Bb", "E", "D",
