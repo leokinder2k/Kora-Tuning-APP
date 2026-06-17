@@ -96,12 +96,16 @@ class TraditionalPresetsTest {
 
     @Test
     fun bridgeSideOrder_matchesTraditionalScaleDegreeLayout() {
+        val hardino21 = TraditionalPresets.presetsForStringCount(21)
+            .first { preset -> preset.id == "hardino_21" }
         val silaba21 = TraditionalPresets.presetsForStringCount(21)
             .first { preset -> preset.id == "silaba_21" }
         val sauta21 = TraditionalPresets.presetsForStringCount(21)
             .first { preset -> preset.id == "sauta_21" }
         val tomoraMesengo21 = TraditionalPresets.presetsForStringCount(21)
             .first { preset -> preset.id == "tomora_mesengo_21" }
+        val hardino22 = TraditionalPresets.presetsForStringCount(22)
+            .first { preset -> preset.id == "hardino_22" }
         val silaba22 = TraditionalPresets.presetsForStringCount(22)
             .first { preset -> preset.id == "silaba_22" }
         val sauta22 = TraditionalPresets.presetsForStringCount(22)
@@ -109,6 +113,14 @@ class TraditionalPresetsTest {
         val tomoraMesengo22 = TraditionalPresets.presetsForStringCount(22)
             .first { preset -> preset.id == "tomora_mesengo_22" }
 
+        assertEquals(
+            listOf("F2", "C3", "D3", "E3", "G3", "A#3", "D4", "F4", "A4", "C5", "E5"),
+            sidePitches(hardino21, KoraStringLayout.leftOrder(21))
+        )
+        assertEquals(
+            listOf("F3", "A3", "C4", "E4", "G4", "A#4", "D5", "F5", "G5", "A5"),
+            sidePitches(hardino21, KoraStringLayout.rightOrder(21))
+        )
         assertEquals(
             listOf("F2", "C3", "D3", "E3", "G3", "A#3", "D4", "F4", "A4", "C5", "E5"),
             sidePitches(silaba21, KoraStringLayout.leftOrder(21))
@@ -135,6 +147,7 @@ class TraditionalPresetsTest {
             sidePitches(tomoraMesengo21, KoraStringLayout.rightOrder(21))
         )
 
+        assertEquals("A#2", sidePitches(hardino22, KoraStringLayout.rightOrder(22)).first())
         assertEquals("A#2", sidePitches(silaba22, KoraStringLayout.rightOrder(22)).first())
         assertEquals("B2", sidePitches(sauta22, KoraStringLayout.rightOrder(22)).first())
         assertEquals("A#2", sidePitches(tomoraMesengo22, KoraStringLayout.rightOrder(22)).first())

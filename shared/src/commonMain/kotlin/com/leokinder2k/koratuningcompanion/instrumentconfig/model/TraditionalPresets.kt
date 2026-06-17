@@ -36,8 +36,9 @@ object TraditionalPresets {
         val id: String,
         val displayName: String,
         val description: String,
-        val openPitches21: List<String>,
-        val openPitches22: List<String>,
+        val leftPitches: List<String>,
+        val rightPitches: List<String>,
+        val rightBass22: String,
         val intonationTemplate: IntonationTemplate
     )
 
@@ -109,72 +110,52 @@ object TraditionalPresets {
             id = "hardino",
             displayName = "Hardino",
             description = "Traditional Hardino map in concert-F reference (equal-tempered nominal notes).",
-            openPitches21 = listOf(
-                "F2", "F3", "C3", "D3", "E3", "A3",
-                "G3", "C4", "Bb3", "E4", "D4",
-                "G4", "F4", "Bb4", "A4", "D5", "C5",
-                "F5", "E5", "G5", "A5"
+            leftPitches = listOf(
+                "F2", "C3", "D3", "E3", "G3", "Bb3", "D4", "F4", "A4", "C5", "E5"
             ),
-            openPitches22 = listOf(
-                "F2", "Bb2", "C3", "D3", "E3",
-                "F3", "G3", "A3", "Bb3", "C4", "D4", "E4",
-                "F4", "G4", "A4", "Bb4", "C5", "D5", "E5",
-                "F5", "G5", "A5"
+            rightPitches = listOf(
+                "F3", "A3", "C4", "E4", "G4", "Bb4", "D5", "F5", "G5", "A5"
             ),
+            rightBass22 = "Bb2",
             intonationTemplate = hardinoIntonationTemplate
         ),
         PresetDefinition(
             id = "sauta",
             displayName = "Sauta",
             description = "Traditional Sauta map (raised 4th degree) in concert-F reference.",
-            openPitches21 = listOf(
-                "F2", "F3", "C3", "D3", "E3", "A3",
-                "G3", "C4", "B3", "E4", "D4",
-                "G4", "F4", "B4", "A4", "D5", "C5",
-                "F5", "E5", "G5", "A5"
+            leftPitches = listOf(
+                "F2", "C3", "D3", "E3", "G3", "B3", "D4", "F4", "A4", "C5", "E5"
             ),
-            openPitches22 = listOf(
-                "F2", "B2", "C3", "D3", "E3",
-                "F3", "G3", "A3", "B3", "C4", "D4", "E4",
-                "F4", "G4", "A4", "B4", "C5", "D5", "E5",
-                "F5", "G5", "A5"
+            rightPitches = listOf(
+                "F3", "A3", "C4", "E4", "G4", "B4", "D5", "F5", "G5", "A5"
             ),
+            rightBass22 = "B2",
             intonationTemplate = sautaIntonationTemplate
         ),
         PresetDefinition(
             id = "silaba",
             displayName = "Silaba / Tomora Ba",
             description = "Traditional Silaba, also called Tomora Ba, in concert-F reference.",
-            openPitches21 = listOf(
-                "F2", "F3", "C3", "D3", "E3", "A3",
-                "G3", "C4", "Bb3", "E4", "D4",
-                "G4", "F4", "Bb4", "A4", "D5", "C5",
-                "F5", "E5", "G5", "A5"
+            leftPitches = listOf(
+                "F2", "C3", "D3", "E3", "G3", "Bb3", "D4", "F4", "A4", "C5", "E5"
             ),
-            openPitches22 = listOf(
-                "F2", "Bb2", "C3", "D3", "E3",
-                "F3", "G3", "A3", "Bb3", "C4", "D4", "E4",
-                "F4", "G4", "A4", "Bb4", "C5", "D5", "E5",
-                "F5", "G5", "A5"
+            rightPitches = listOf(
+                "F3", "A3", "C4", "E4", "G4", "Bb4", "D5", "F5", "G5", "A5"
             ),
+            rightBass22 = "Bb2",
             intonationTemplate = silabaIntonationTemplate
         ),
         PresetDefinition(
             id = "tomora_mesengo",
             displayName = "Tomora Mesengo",
             description = "Traditional Tomora Mesengo map with lowered third and seventh in concert-F reference.",
-            openPitches21 = listOf(
-                "F2", "F3", "C3", "D3", "Eb3", "Ab3",
-                "G3", "C4", "Bb3", "Eb4", "D4",
-                "G4", "F4", "Bb4", "Ab4", "D5", "C5",
-                "F5", "Eb5", "G5", "Ab5"
+            leftPitches = listOf(
+                "F2", "C3", "D3", "Eb3", "G3", "Bb3", "D4", "F4", "Ab4", "C5", "Eb5"
             ),
-            openPitches22 = listOf(
-                "F2", "Bb2", "C3", "D3", "Eb3",
-                "F3", "G3", "Ab3", "Bb3", "C4", "D4", "Eb4",
-                "F4", "G4", "Ab4", "Bb4", "C5", "D5", "Eb5",
-                "F5", "G5", "Ab5"
+            rightPitches = listOf(
+                "F3", "Ab3", "C4", "Eb4", "G4", "Bb4", "D5", "F5", "G5", "Ab5"
             ),
+            rightBass22 = "Bb2",
             intonationTemplate = tomoraMesengoIntonationTemplate
         )
     )
@@ -183,9 +164,7 @@ object TraditionalPresets {
         if (stringCount == 19) return listOf(buildKadanuPreset())
         if (stringCount !in setOf(21, 22)) return emptyList()
         return definitions.map { definition ->
-            val parsedOpenPitches = parsePitchList(
-                if (stringCount == 21) definition.openPitches21 else definition.openPitches22
-            )
+            val parsedOpenPitches = parsePitchList(definition.openPitchesFor(stringCount))
             TraditionalPreset(
                 id = "${definition.id}_$stringCount",
                 displayName = definition.displayName,
@@ -199,6 +178,34 @@ object TraditionalPresets {
                     definition.intonationTemplate.centsForPitch(openPitch.plusSemitones(1))
                 }
             )
+        }
+    }
+
+    private fun PresetDefinition.openPitchesFor(stringCount: Int): List<String> {
+        val leftOrder = KoraStringLayout.leftOrder(stringCount)
+        val rightOrder = KoraStringLayout.rightOrder(stringCount)
+        val rightSidePitches = if (stringCount == 22) {
+            listOf(rightBass22) + rightPitches
+        } else {
+            rightPitches
+        }
+
+        require(leftOrder.size == leftPitches.size) {
+            "Left pitch count does not match $stringCount-string layout"
+        }
+        require(rightOrder.size == rightSidePitches.size) {
+            "Right pitch count does not match $stringCount-string layout"
+        }
+
+        val byStringNumber = mutableMapOf<Int, String>()
+        leftOrder.zip(leftPitches).forEach { (stringNumber, pitch) ->
+            byStringNumber[stringNumber] = pitch
+        }
+        rightOrder.zip(rightSidePitches).forEach { (stringNumber, pitch) ->
+            byStringNumber[stringNumber] = pitch
+        }
+        return (1..stringCount).map { stringNumber ->
+            byStringNumber.getValue(stringNumber)
         }
     }
 
