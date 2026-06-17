@@ -524,7 +524,11 @@ class ScaleCalculationEngine {
         }
         return ScaleStringRole(
             side = side,
-            positionFromLow = layoutRole.positionFromLow
+            positionFromLow = layoutRole.positionFromLow,
+            displayLabel = KoraStringLayout.roleLabel(
+                stringCount = stringCount,
+                stringNumber = stringNumber
+            )
         )
     }
 

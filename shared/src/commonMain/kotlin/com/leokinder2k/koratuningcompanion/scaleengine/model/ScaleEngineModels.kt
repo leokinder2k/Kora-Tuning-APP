@@ -102,9 +102,10 @@ enum class EngineMode {
 
 data class ScaleStringRole(
     val side: StringSide,
-    val positionFromLow: Int
+    val positionFromLow: Int,
+    val displayLabel: String = "${side.shortLabel}$positionFromLow"
 ) {
-    fun asLabel(): String = "${side.shortLabel}$positionFromLow"
+    fun asLabel(): String = displayLabel
 }
 
 data class ScaleCalculationRequest(

@@ -184,6 +184,7 @@ class ScaleCalculationEngineTest {
         val rightStartIndex = 11
         assertEquals(StringSide.RIGHT, result.leverOnlyTable[rightStartIndex].role.side)
         assertEquals(1, result.leverOnlyTable[rightStartIndex].role.positionFromLow)
+        assertEquals("R1", result.leverOnlyTable[rightStartIndex].role.asLabel())
         assertEquals(2, result.leverOnlyTable[rightStartIndex].stringNumber)
     }
 
@@ -211,6 +212,9 @@ class ScaleCalculationEngineTest {
             10,
             result.leverOnlyTable.count { row -> row.role.side == StringSide.RIGHT }
         )
+        val rightRows = result.leverOnlyTable.filter { row -> row.role.side == StringSide.RIGHT }
+        assertEquals("R1", rightRows.first().role.asLabel())
+        assertEquals("R10", rightRows.last().role.asLabel())
     }
 
     @Test
@@ -237,6 +241,9 @@ class ScaleCalculationEngineTest {
             11,
             result.leverOnlyTable.count { row -> row.role.side == StringSide.RIGHT }
         )
+        val rightRows = result.leverOnlyTable.filter { row -> row.role.side == StringSide.RIGHT }
+        assertEquals("R0", rightRows.first().role.asLabel())
+        assertEquals("R10", rightRows.last().role.asLabel())
     }
 
     @Test

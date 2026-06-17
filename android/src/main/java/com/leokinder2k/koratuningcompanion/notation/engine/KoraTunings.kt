@@ -12,23 +12,23 @@ fun fTuning(instrumentType: KoraInstrumentType): KoraTuning {
         KoraInstrumentType.KORA_22_CHROMATIC -> KoraTuning(
             name = "F tuning",
             stringNoteNames = mapOf(
-                // Left L01..L11
-                "L01" to "F1", "L02" to "C2", "L03" to "D2", "L04" to "E2", "L05" to "G2",
-                "L06" to "Bb2", "L07" to "D3", "L08" to "F3", "L09" to "A3", "L10" to "C4", "L11" to "E4",
-                // Right R01..R11
-                "R01" to "Bb1", "R02" to "F2", "R03" to "A2", "R04" to "C3", "R05" to "E3",
-                "R06" to "G3", "R07" to "Bb3", "R08" to "D4", "R09" to "F4", "R10" to "G4", "R11" to "A4",
+                // Left L1..L11
+                "L1" to "F1", "L2" to "C2", "L3" to "D2", "L4" to "E2", "L5" to "G2",
+                "L6" to "Bb2", "L7" to "D3", "L8" to "F3", "L9" to "A3", "L10" to "C4", "L11" to "E4",
+                // Right R0..R10
+                "R0" to "Bb1", "R1" to "F2", "R2" to "A2", "R3" to "C3", "R4" to "E3",
+                "R5" to "G3", "R6" to "Bb3", "R7" to "D4", "R8" to "F4", "R9" to "G4", "R10" to "A4",
             )
         )
         KoraInstrumentType.KORA_21 -> KoraTuning(
             name = "F tuning",
             stringNoteNames = mapOf(
-                // Left L01..L11
-                "L01" to "F1", "L02" to "C2", "L03" to "D2", "L04" to "E2", "L05" to "G2",
-                "L06" to "Bb2", "L07" to "D3", "L08" to "F3", "L09" to "A3", "L10" to "C4", "L11" to "E4",
-                // Right R01..R10
-                "R01" to "F2", "R02" to "A2", "R03" to "C3", "R04" to "E3", "R05" to "G3",
-                "R06" to "Bb3", "R07" to "D4", "R08" to "F4", "R09" to "G4", "R10" to "A4",
+                // Left L1..L11
+                "L1" to "F1", "L2" to "C2", "L3" to "D2", "L4" to "E2", "L5" to "G2",
+                "L6" to "Bb2", "L7" to "D3", "L8" to "F3", "L9" to "A3", "L10" to "C4", "L11" to "E4",
+                // Right R1..R10
+                "R1" to "F2", "R2" to "A2", "R3" to "C3", "R4" to "E3", "R5" to "G3",
+                "R6" to "Bb3", "R7" to "D4", "R8" to "F4", "R9" to "G4", "R10" to "A4",
             )
         )
     }
