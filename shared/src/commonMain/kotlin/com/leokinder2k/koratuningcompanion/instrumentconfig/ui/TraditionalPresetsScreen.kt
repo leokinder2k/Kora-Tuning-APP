@@ -25,11 +25,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.leokinder2k.koratuningcompanion.generated.resources.Res
 import com.leokinder2k.koratuningcompanion.generated.resources.*
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringLayout
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
 import com.leokinder2k.koratuningcompanion.platform.rememberKoraViewModel
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun TraditionalPresetsRoute(modifier: Modifier = Modifier) {
+fun TraditionalPresetsRoute(
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
+    modifier: Modifier = Modifier
+) {
     val viewModel: TraditionalPresetsViewModel = rememberKoraViewModel { TraditionalPresetsViewModel() }
     val uiState by viewModel.uiState.collectAsState()
 
@@ -41,6 +47,7 @@ fun TraditionalPresetsRoute(modifier: Modifier = Modifier) {
         onSaveCustomPreset = viewModel::saveCurrentProfileAsCustomPreset,
         onDeleteSelectedCustomPreset = viewModel::deleteSelectedCustomPreset,
         onApplyPreset = viewModel::applySelectedPreset,
+        enharmonicPreference = enharmonicPreference,
         modifier = modifier
     )
 }
@@ -54,6 +61,7 @@ fun TraditionalPresetsScreen(
     onSaveCustomPreset: () -> Unit,
     onDeleteSelectedCustomPreset: () -> Unit,
     onApplyPreset: () -> Unit,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -219,7 +227,11 @@ fun TraditionalPresetsScreen(
                         Text(
                             text = stringResource(
                                 Res.string.traditional_presets_open_tuning_preview,
-                                preset.openPitchPreview
+                                presetSidePreview(
+                                    pitches = preset.openPitches,
+                                    stringCount = preset.stringCount,
+                                    enharmonicPreference = enharmonicPreference
+                                )
                             ),
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -254,14 +266,14 @@ fun TraditionalPresetsScreen(
                         )
                         uiState.previewRows.forEach { row ->
                             Text(
-                                text = stringResource(
-                                    Res.string.traditional_presets_selected_string_row,
-                                    row.stringNumber,
-                                    row.openPitch,
-                                    signed(row.openIntonationCents),
-                                    row.closedPitch,
-                                    signed(row.closedIntonationCents)
-                                ),
+                                text = "${row.roleLabel} | " + stringResource(
+                                        Res.string.traditional_presets_selected_string_row,
+                                        row.stringNumber,
+                                        row.openPitch.asText(enharmonicPreference),
+                                        signed(row.openIntonationCents),
+                                        row.closedPitch.asText(enharmonicPreference),
+                                        signed(row.closedIntonationCents)
+                                    ),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -296,4 +308,25 @@ private fun signed(value: Double): String {
     val dec = rounded % 10
     val formatted = "$whole.$dec"
     return if (value >= 0.0) "+$formatted" else "-$formatted"
+}
+
+private fun presetSidePreview(
+    pitches: List<Pitch>,
+    stringCount: Int,
+    enharmonicPreference: EnharmonicPreference
+): String {
+    val left = sidePreview("L", KoraStringLayout.leftOrder(stringCount), pitches, enharmonicPreference)
+    val right = sidePreview("R", KoraStringLayout.rightOrder(stringCount), pitches, enharmonicPreference)
+    return "$left | $right"
+}
+
+private fun sidePreview(
+    label: String,
+    order: List<Int>,
+    pitches: List<Pitch>,
+    enharmonicPreference: EnharmonicPreference
+): String {
+    return order
+        .mapNotNull { stringNumber -> pitches.getOrNull(stringNumber - 1) }
+        .joinToString(" ", prefix = "$label ") { pitch -> pitch.asText(enharmonicPreference) }
 }

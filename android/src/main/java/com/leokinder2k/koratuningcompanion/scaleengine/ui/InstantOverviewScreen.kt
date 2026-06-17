@@ -121,6 +121,7 @@ import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPref
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.displaySymbol
 import com.leokinder2k.koratuningcompanion.livetuner.audio.MetronomeClickPlayer
 import com.leokinder2k.koratuningcompanion.livetuner.audio.MetronomeSoundOption
 import com.leokinder2k.koratuningcompanion.livetuner.audio.PluckedStringPlayer
@@ -738,14 +739,17 @@ fun InstantOverviewScreen(
                 onScaleTypeSelected = onScaleTypeSelected,
                 scaleRootReference = uiState.scaleRootReference,
                 allowRightRootReferences = uiState.allowRightRootReferences,
+                enharmonicPreference = enharmonicPreference,
                 onScaleRootReferenceSelected = onScaleRootReferenceSelected
             )
             TuningOrchestrationCard(
                 plan = uiState.orchestrationPlan,
+                enharmonicPreference = enharmonicPreference,
                 maxInstructionLines = 6
             )
             VersatilityRecommendationsCard(
-                analysis = uiState.versatilityAnalysis
+                analysis = uiState.versatilityAnalysis,
+                enharmonicPreference = enharmonicPreference
             )
 
             WrappingChipRow {
@@ -805,14 +809,16 @@ fun InstantOverviewScreen(
                     onDiagramZoomChanged = { value -> diagramZoom = value },
                     isDiagramLocked = isDiagramLocked,
                     onDiagramLockedChanged = { locked -> isDiagramLocked = locked },
-                    showNoteLetters = showNoteLabels
+                    showNoteLetters = showNoteLabels,
+                    enharmonicPreference = enharmonicPreference
                 )
                 OverviewViewMode.TABLE -> TableOverview(
                     rows = rows,
                     pitchShiftByString = pitchShiftByString,
                     playingStringNumbers = playingStringNumbers,
                     onStringTouched = onStringTouched,
-                    showLeverInfo = showLeverInfo
+                    showLeverInfo = showLeverInfo,
+                    enharmonicPreference = enharmonicPreference
                 )
                 OverviewViewMode.CHORDS -> ChordOverview(
                     rows = rows,
@@ -904,7 +910,8 @@ fun InstantOverviewScreen(
                         circleExerciseStepOffset = 0
                     },
                     playingStringNumbers = playingStringNumbers,
-                    onStringTouched = onStringTouched
+                    onStringTouched = onStringTouched,
+                    enharmonicPreference = enharmonicPreference
                 )
                 }
             }
@@ -923,6 +930,7 @@ private fun OverviewSelectionControls(
     onScaleTypeSelected: (ScaleType) -> Unit,
     scaleRootReference: ScaleRootReference,
     allowRightRootReferences: Boolean,
+    enharmonicPreference: EnharmonicPreference,
     onScaleRootReferenceSelected: (ScaleRootReference) -> Unit
 ) {
     Card(
@@ -938,7 +946,7 @@ private fun OverviewSelectionControls(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "${stringResource(R.string.instrument_config_section_root_note)} ${instrumentKey.symbol} • ${stringResource(R.string.scale_root_note_label)} ${rootNote.symbol}",
+                text = "${stringResource(R.string.instrument_config_section_root_note)} ${instrumentKey.displaySymbol(enharmonicPreference)} • ${stringResource(R.string.scale_root_note_label)} ${rootNote.displaySymbol(enharmonicPreference)}",
                 style = MaterialTheme.typography.labelLarge
             )
 
@@ -1100,7 +1108,8 @@ private fun DiagramOverview(
     onDiagramZoomChanged: (Float) -> Unit,
     isDiagramLocked: Boolean,
     onDiagramLockedChanged: (Boolean) -> Unit,
-    showNoteLetters: Boolean
+    showNoteLetters: Boolean,
+    enharmonicPreference: EnharmonicPreference
 ) {
     val left = rows
         .filter { row -> row.role.side == StringSide.LEFT }
@@ -1264,7 +1273,8 @@ private fun DiagramOverview(
                                 noteLabelsVisible = showNoteLetters,
                                 tuningPlanByString = tuningPlanByString,
                                 pitchShiftByString = pitchShiftByString,
-                                vibrationPhase = vibrationPhase
+                                vibrationPhase = vibrationPhase,
+                                enharmonicPreference = enharmonicPreference
                             )
                         }
                     }
@@ -1278,10 +1288,11 @@ private fun DiagramOverview(
                 tuningPlanByString = tuningPlanByString,
                 playingStringNumbers = playingStringNumbers,
                 onStringTouched = onStringTouched,
-                onStringSharpened = onStringSharpened,
-                onStringFlattened = onStringFlattened,
-                showLeverInfo = showLeverInfo
-            )
+                    onStringSharpened = onStringSharpened,
+                    onStringFlattened = onStringFlattened,
+                    showLeverInfo = showLeverInfo,
+                    enharmonicPreference = enharmonicPreference
+                )
             }
         }
         if (playingStringNumbers.isNotEmpty()) {
@@ -1477,7 +1488,8 @@ private fun DrawScope.drawKoraDiagram(
     noteLabelsVisible: Boolean,
     tuningPlanByString: Map<Int, TuningStringPlan> = emptyMap(),
     pitchShiftByString: Map<Int, Int>,
-    vibrationPhase: Float = 0f
+    vibrationPhase: Float = 0f,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS
 ) {
     val bridgeCenterY = size.height * 0.60f
     val bridgeTop = bridgeCenterY - (size.height * 0.17f)
@@ -1494,7 +1506,8 @@ private fun DrawScope.drawKoraDiagram(
         noteLabelsVisible = noteLabelsVisible,
         tuningPlanByString = tuningPlanByString,
         pitchShiftByString = pitchShiftByString,
-        vibrationPhase = vibrationPhase
+        vibrationPhase = vibrationPhase,
+        enharmonicPreference = enharmonicPreference
     )
     drawStringSet(
         rows = rightRows,
@@ -1507,7 +1520,8 @@ private fun DrawScope.drawKoraDiagram(
         noteLabelsVisible = noteLabelsVisible,
         tuningPlanByString = tuningPlanByString,
         pitchShiftByString = pitchShiftByString,
-        vibrationPhase = vibrationPhase
+        vibrationPhase = vibrationPhase,
+        enharmonicPreference = enharmonicPreference
     )
 }
 
@@ -1522,7 +1536,8 @@ private fun DrawScope.drawStringSet(
     noteLabelsVisible: Boolean,
     tuningPlanByString: Map<Int, TuningStringPlan>,
     pitchShiftByString: Map<Int, Int>,
-    vibrationPhase: Float = 0f
+    vibrationPhase: Float = 0f,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS
 ) {
     if (rows.isEmpty()) {
         return
@@ -1653,7 +1668,8 @@ private fun DrawScope.drawStringSet(
                 displayPitchLabel(
                     effectivePitch = row.selectedPitch,
                     semitoneShift = manualSemitoneShift,
-                    includeOctave = false
+                    includeOctave = false,
+                    enharmonicPreference = enharmonicPreference
                 ),
                 labelX,
                 pegY + (width * 0.010f),
@@ -1990,7 +2006,8 @@ private fun TouchStringRows(
     onStringTouched: (PegCorrectStringResult) -> Unit,
     onStringSharpened: (PegCorrectStringResult) -> Unit,
     onStringFlattened: (PegCorrectStringResult) -> Unit,
-    showLeverInfo: Boolean
+    showLeverInfo: Boolean,
+    enharmonicPreference: EnharmonicPreference
 ) {
     Text(
         text = stringResource(R.string.overview_diagram_tap_to_hear),
@@ -2015,7 +2032,8 @@ private fun TouchStringRows(
                         displayPitchLabel(
                             effectivePitch = row.selectedPitch,
                             semitoneShift = semitoneShift,
-                            includeOctave = false
+                            includeOctave = false,
+                            enharmonicPreference = enharmonicPreference
                         )
                     }",
                     actionLabel
@@ -2045,7 +2063,8 @@ private fun TouchStringRows(
                         displayPitchLabel(
                             effectivePitch = row.selectedPitch,
                             semitoneShift = semitoneShift,
-                            includeOctave = false
+                            includeOctave = false,
+                            enharmonicPreference = enharmonicPreference
                         )
                     }",
                     actionLabel
@@ -2133,7 +2152,8 @@ private fun ChordOverview(
     bestMatches: List<ChordMatch>,
     onChordSelected: (ChordDefinition) -> Unit,
     playingStringNumbers: Set<Int>,
-    onStringTouched: (PegCorrectStringResult) -> Unit
+    onStringTouched: (PegCorrectStringResult) -> Unit,
+    enharmonicPreference: EnharmonicPreference
 ) {
     var isQualityMenuExpanded by remember { mutableStateOf(false) }
     val leftRows = rows
@@ -2172,7 +2192,7 @@ private fun ChordOverview(
                     FilterChip(
                         selected = note == selectedRoot,
                         onClick = { onRootSelected(note) },
-                        label = { Text(note.symbol) }
+                        label = { Text(note.displaySymbol(enharmonicPreference)) }
                     )
                 }
             }
@@ -2207,7 +2227,9 @@ private fun ChordOverview(
             Text(
                 text = stringResource(
                     R.string.overview_chords_notes_line,
-                    selectedMatch.definition.chordNotes.joinToString(" ") { note -> note.symbol }
+                    selectedMatch.definition.chordNotes.joinToString(" ") { note ->
+                        note.displaySymbol(enharmonicPreference)
+                    }
                 ),
                 style = MaterialTheme.typography.bodySmall
             )
@@ -2233,7 +2255,9 @@ private fun ChordOverview(
                 } else {
                     stringResource(
                         R.string.overview_chords_coverage_missing,
-                        selectedMatch.missingNotes.joinToString(" ") { note -> note.symbol }
+                        selectedMatch.missingNotes.joinToString(" ") { note ->
+                            note.displaySymbol(enharmonicPreference)
+                        }
                     )
                 },
                 style = MaterialTheme.typography.bodySmall
@@ -2289,7 +2313,7 @@ private fun ChordOverview(
 
             if (selectedMatch.usesDetunedStrings) {
                 val stableChordLabel = suggestedNonDetunedChord?.definition?.let { definition ->
-                    chordDefinitionLabel(definition)
+                    chordDefinitionLabel(definition, enharmonicPreference)
                 } ?: stringResource(R.string.value_none_found)
                 Text(
                     text = stringResource(R.string.overview_chords_detuned_warning, stableChordLabel),
@@ -2320,7 +2344,8 @@ private fun ChordOverview(
                 chordStringNumbers = selectedChordStringNumbers,
                 playingStringNumbers = playingStringNumbers,
                 onStringTouched = onStringTouched,
-                showLeverInfo = showLeverInfo
+                showLeverInfo = showLeverInfo,
+                enharmonicPreference = enharmonicPreference
             )
             SideColumnHeader()
             repeat(rowCount) { index ->
@@ -2337,6 +2362,7 @@ private fun ChordOverview(
                             isSounding = leftRow.stringNumber in playingStringNumbers,
                             onStringTouched = onStringTouched,
                             showLeverInfo = showLeverInfo,
+                            enharmonicPreference = enharmonicPreference,
                             modifier = Modifier.weight(1f)
                         )
                     } else {
@@ -2351,6 +2377,7 @@ private fun ChordOverview(
                             isSounding = rightRow.stringNumber in playingStringNumbers,
                             onStringTouched = onStringTouched,
                             showLeverInfo = showLeverInfo,
+                            enharmonicPreference = enharmonicPreference,
                             modifier = Modifier.weight(1f)
                         )
                     } else {
@@ -2383,13 +2410,15 @@ private fun ChordOverview(
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Text(
-                            text = chordDefinitionLabel(match.definition),
+                            text = chordDefinitionLabel(match.definition, enharmonicPreference),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
                             text = stringResource(
                                 R.string.overview_chords_match_notes_play_line,
-                                match.definition.chordNotes.joinToString(" ") { note -> note.symbol },
+                                match.definition.chordNotes.joinToString(" ") { note ->
+                                    note.displaySymbol(enharmonicPreference)
+                                },
                                 match.playedStringNumbers.size
                             ),
                             style = MaterialTheme.typography.bodySmall
@@ -2422,6 +2451,7 @@ private fun ChordOverview(
 @Composable
 private fun ChordExerciseOverview(
     selectedQuality: ChordQuality,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     circleExerciseStartRoot: NoteName,
     onCircleExerciseStartRootChanged: (NoteName) -> Unit,
     nextCircleExerciseRoot: NoteName,
@@ -2490,7 +2520,7 @@ private fun ChordExerciseOverview(
                         FilterChip(
                             selected = note == circleExerciseStartRoot,
                             onClick = { onCircleExerciseStartRootChanged(note) },
-                            label = { Text(circleOfFifthsLabel(note)) }
+                            label = { Text(circleOfFifthsLabel(note, enharmonicPreference)) }
                         )
                     }
                 }
@@ -2514,14 +2544,15 @@ private fun ChordExerciseOverview(
                     exerciseDiagramZoom = exerciseDiagramZoom,
                     onExerciseDiagramZoomChanged = onExerciseDiagramZoomChanged,
                     isExerciseDiagramLocked = isExerciseDiagramLocked,
-                    onExerciseDiagramLockedChanged = onExerciseDiagramLockedChanged
+                    onExerciseDiagramLockedChanged = onExerciseDiagramLockedChanged,
+                    enharmonicPreference = enharmonicPreference
                 )
                 if (timedExerciseTargetRoot != null) {
                     Text(
                         text = pluralStringResource(
                             R.plurals.overview_exercise_suggested_next,
                             timedExerciseBeatsUntilDue,
-                            circleOfFifthsLabel(timedExerciseTargetRoot),
+                            circleOfFifthsLabel(timedExerciseTargetRoot, enharmonicPreference),
                             chordQualityLabel(selectedQuality),
                             timedExerciseBeatsUntilDue,
                             timedExerciseDueBeat
@@ -2537,7 +2568,7 @@ private fun ChordExerciseOverview(
                                     Text(
                                         text = stringResource(
                                             R.string.overview_exercise_choice_item,
-                                            circleOfFifthsLabel(choiceRoot),
+                                            circleOfFifthsLabel(choiceRoot, enharmonicPreference),
                                             chordQualityLabel(selectedQuality)
                                         )
                                     )
@@ -2549,7 +2580,7 @@ private fun ChordExerciseOverview(
                 Text(
                     text = stringResource(
                         R.string.overview_exercise_next_step,
-                        circleOfFifthsLabel(nextCircleExerciseRoot),
+                        circleOfFifthsLabel(nextCircleExerciseRoot, enharmonicPreference),
                         chordQualityLabel(selectedQuality)
                     ),
                     style = MaterialTheme.typography.bodySmall
@@ -2725,7 +2756,8 @@ private fun CircleOfFifthsExerciseDiagram(
     exerciseDiagramZoom: Float,
     onExerciseDiagramZoomChanged: (Float) -> Unit,
     isExerciseDiagramLocked: Boolean,
-    onExerciseDiagramLockedChanged: (Boolean) -> Unit
+    onExerciseDiagramLockedChanged: (Boolean) -> Unit,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val textPaint = remember {
@@ -2835,7 +2867,7 @@ private fun CircleOfFifthsExerciseDiagram(
                                 colorScheme.onSurface.toArgb()
                             }
                             drawContext.canvas.nativeCanvas.drawText(
-                                circleOfFifthsLabel(note),
+                                circleOfFifthsLabel(note, enharmonicPreference),
                                 markerCenter.x,
                                 markerCenter.y + (textPaint.textSize * 0.33f),
                                 textPaint
@@ -2859,7 +2891,8 @@ private fun ChordPictorialKoraDiagram(
     chordStringNumbers: Set<Int>,
     playingStringNumbers: Set<Int>,
     onStringTouched: (PegCorrectStringResult) -> Unit,
-    showLeverInfo: Boolean
+    showLeverInfo: Boolean,
+    enharmonicPreference: EnharmonicPreference
 ) {
     val leftRows = rows
         .filter { row -> row.role.side == StringSide.LEFT }
@@ -2911,7 +2944,8 @@ private fun ChordPictorialKoraDiagram(
                         activeStringNumbers = playingStringNumbers,
                         showLeverInfo = showLeverInfo,
                         noteLabelsVisible = false,
-                        pitchShiftByString = emptyMap()
+                        pitchShiftByString = emptyMap(),
+                        enharmonicPreference = enharmonicPreference
                     )
                     drawChordMarkers(
                         segments = buildDiagramStringSegments(
@@ -2969,6 +3003,7 @@ private fun ChordSideCell(
     isSounding: Boolean,
     onStringTouched: (PegCorrectStringResult) -> Unit,
     showLeverInfo: Boolean,
+    enharmonicPreference: EnharmonicPreference,
     modifier: Modifier = Modifier
 ) {
     val baseColor = when {
@@ -3004,7 +3039,8 @@ private fun ChordSideCell(
                     displayPitchLabel(
                         effectivePitch = row.selectedPitch,
                         semitoneShift = semitoneShift,
-                        includeOctave = true
+                        includeOctave = true,
+                        enharmonicPreference = enharmonicPreference
                     )
                 )
                 if (showLeverInfo) {
@@ -3047,7 +3083,8 @@ private fun TableOverview(
     pitchShiftByString: Map<Int, Int>,
     playingStringNumbers: Set<Int>,
     onStringTouched: (PegCorrectStringResult) -> Unit,
-    showLeverInfo: Boolean
+    showLeverInfo: Boolean,
+    enharmonicPreference: EnharmonicPreference
 ) {
     val leftRows = rows
         .filter { row -> row.role.side == StringSide.LEFT }
@@ -3084,7 +3121,8 @@ private fun TableOverview(
                             text = formatOverviewRow(
                                 row = leftRow,
                                 showLeverInfo = showLeverInfo,
-                                pitchShiftByString = pitchShiftByString
+                                pitchShiftByString = pitchShiftByString,
+                                enharmonicPreference = enharmonicPreference
                             ),
                             isActive = leftRow.stringNumber in playingStringNumbers,
                             onClick = { onStringTouched(leftRow) },
@@ -3099,7 +3137,8 @@ private fun TableOverview(
                             text = formatOverviewRow(
                                 row = rightRow,
                                 showLeverInfo = showLeverInfo,
-                                pitchShiftByString = pitchShiftByString
+                                pitchShiftByString = pitchShiftByString,
+                                enharmonicPreference = enharmonicPreference
                             ),
                             isActive = rightRow.stringNumber in playingStringNumbers,
                             onClick = { onStringTouched(rightRow) },
@@ -3162,7 +3201,8 @@ private fun SideCell(
 private fun formatOverviewRow(
     row: PegCorrectStringResult,
     showLeverInfo: Boolean,
-    pitchShiftByString: Map<Int, Int>
+    pitchShiftByString: Map<Int, Int>,
+    enharmonicPreference: EnharmonicPreference
 ): String {
     val pegIndicator = if (row.pegRetuneRequired) {
         signed(row.pegRetuneSemitones)
@@ -3173,7 +3213,8 @@ private fun formatOverviewRow(
     val pitchLabel = displayPitchLabel(
         effectivePitch = row.selectedPitch,
         semitoneShift = semitoneShift,
-        includeOctave = true
+        includeOctave = true,
+        enharmonicPreference = enharmonicPreference
     )
     return buildString {
         append("${row.role.asLabel()} (S${row.stringNumber})\n")
@@ -3211,13 +3252,18 @@ private fun signed(value: Double): String {
 private fun displayPitchLabel(
     effectivePitch: Pitch,
     semitoneShift: Int,
-    includeOctave: Boolean
+    includeOctave: Boolean,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS
 ): String {
     val resolvedPitch = when (semitoneShift.coerceIn(-1, 1)) {
         -1, 0, 1 -> effectivePitch
         else -> effectivePitch
     }
-    return if (includeOctave) resolvedPitch.asText() else resolvedPitch.note.symbol
+    return if (includeOctave) {
+        resolvedPitch.asText(enharmonicPreference)
+    } else {
+        resolvedPitch.note.displaySymbol(enharmonicPreference)
+    }
 }
 
 private const val DOUBLE_TAP_STOP_WINDOW_MS = 280L
@@ -3271,8 +3317,11 @@ private fun circleOfFifthsIndexFor(note: NoteName): Int {
     return if (index >= 0) index else 0
 }
 
-private fun circleOfFifthsLabel(note: NoteName): String {
-    return note.symbol
+private fun circleOfFifthsLabel(
+    note: NoteName,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS
+): String {
+    return note.displaySymbol(enharmonicPreference)
 }
 
 private fun buildExerciseChoices(
@@ -3305,8 +3354,11 @@ private fun chordQualityLabel(quality: ChordQuality): String {
 }
 
 @Composable
-private fun chordDefinitionLabel(definition: ChordDefinition): String {
-    return "${definition.root.symbol} ${chordQualityLabel(definition.quality)}"
+private fun chordDefinitionLabel(
+    definition: ChordDefinition,
+    enharmonicPreference: EnharmonicPreference
+): String {
+    return "${definition.root.displaySymbol(enharmonicPreference)} ${chordQualityLabel(definition.quality)}"
 }
 
 @Composable

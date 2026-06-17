@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.leokinder2k.koratuningcompanion.R
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.displaySymbol
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleRootReference
 import com.leokinder2k.koratuningcompanion.scaleengine.orchestration.TuningLeverAction
 import com.leokinder2k.koratuningcompanion.scaleengine.orchestration.TuningOrchestrationPlan
@@ -21,6 +23,7 @@ import com.leokinder2k.koratuningcompanion.scaleengine.orchestration.TuningStrin
 internal fun TuningOrchestrationCard(
     plan: TuningOrchestrationPlan,
     modifier: Modifier = Modifier,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     maxInstructionLines: Int = 5
 ) {
     val changedPlans = plan.stringPlans.filter { stringPlan ->
@@ -43,8 +46,8 @@ internal fun TuningOrchestrationCard(
             Text(
                 text = stringResource(
                     R.string.scale_engine_orchestrator_reference,
-                    plan.instrumentKey.symbol,
-                    plan.requestedRoot.symbol,
+                    plan.instrumentKey.displaySymbol(enharmonicPreference),
+                    plan.requestedRoot.displaySymbol(enharmonicPreference),
                     scaleTypeLabel(plan.scaleType),
                     scaleRootReferenceLabel(plan.rootReference)
                 ),
@@ -97,7 +100,7 @@ internal fun TuningOrchestrationCard(
             } else {
                 visiblePlans.forEach { stringPlan ->
                     Text(
-                        text = tuningInstructionLabel(stringPlan),
+                        text = tuningInstructionLabel(stringPlan, enharmonicPreference),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -116,7 +119,10 @@ internal fun TuningOrchestrationCard(
 }
 
 @Composable
-private fun tuningInstructionLabel(plan: TuningStringPlan): String {
+private fun tuningInstructionLabel(
+    plan: TuningStringPlan,
+    enharmonicPreference: EnharmonicPreference
+): String {
     val leverActionLabel = when (plan.leverAction) {
         TuningLeverAction.KEEP -> stringResource(R.string.scale_engine_orchestrator_lever_keep)
         TuningLeverAction.OPEN -> stringResource(R.string.scale_engine_orchestrator_lever_open)
@@ -131,27 +137,27 @@ private fun tuningInstructionLabel(plan: TuningStringPlan): String {
             plan.stringNumber,
             pegLabel,
             leverActionLabel,
-            plan.soundingPitch.asText()
+            plan.soundingPitch.asText(enharmonicPreference)
         )
         plan.needsPegChange -> stringResource(
             R.string.scale_engine_orchestrator_line_peg,
             plan.roleLabel,
             plan.stringNumber,
             pegLabel,
-            plan.soundingPitch.asText()
+            plan.soundingPitch.asText(enharmonicPreference)
         )
         plan.needsLeverChange -> stringResource(
             R.string.scale_engine_orchestrator_line_lever,
             plan.roleLabel,
             plan.stringNumber,
             leverActionLabel,
-            plan.soundingPitch.asText()
+            plan.soundingPitch.asText(enharmonicPreference)
         )
         else -> stringResource(
             R.string.scale_engine_orchestrator_line_keep,
             plan.roleLabel,
             plan.stringNumber,
-            plan.soundingPitch.asText()
+            plan.soundingPitch.asText(enharmonicPreference)
         )
     }
 }

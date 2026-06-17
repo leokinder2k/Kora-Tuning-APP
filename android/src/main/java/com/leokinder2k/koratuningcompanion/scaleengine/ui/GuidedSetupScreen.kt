@@ -32,6 +32,7 @@ import com.leokinder2k.koratuningcompanion.R
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.displaySymbol
 import com.leokinder2k.koratuningcompanion.scaleengine.model.PegCorrectStringResult
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
 
@@ -77,6 +78,7 @@ fun GuidedSetupScreen(
                 instrumentKey = uiState.instrumentKey,
                 rootNote = uiState.rootNote,
                 scaleType = uiState.scaleType,
+                enharmonicPreference = enharmonicPreference,
                 onScaleTypeSelected = onScaleTypeSelected
             )
 
@@ -96,7 +98,8 @@ fun GuidedSetupScreen(
                     currentStep = currentStepIndex + 1,
                     totalSteps = steps.size,
                     progress = progress,
-                    tuningMode = tuningMode
+                    tuningMode = tuningMode,
+                    enharmonicPreference = enharmonicPreference
                 )
 
                 Row(
@@ -132,7 +135,8 @@ private fun GuidedStepCard(
     currentStep: Int,
     totalSteps: Int,
     progress: Float,
-    tuningMode: KoraTuningMode
+    tuningMode: KoraTuningMode,
+    enharmonicPreference: EnharmonicPreference
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -160,7 +164,7 @@ private fun GuidedStepCard(
             Text(
                 text = stringResource(
                     R.string.guided_setup_target_pitch_line,
-                    step.selectedPitch.asText()
+                    step.selectedPitch.asText(enharmonicPreference)
                 ),
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -201,6 +205,7 @@ private fun SelectionControls(
     instrumentKey: NoteName,
     rootNote: NoteName,
     scaleType: ScaleType,
+    enharmonicPreference: EnharmonicPreference,
     onScaleTypeSelected: (ScaleType) -> Unit
 ) {
     Card(
@@ -220,7 +225,7 @@ private fun SelectionControls(
                 style = MaterialTheme.typography.labelLarge
             )
             Text(
-                text = "${stringResource(R.string.instrument_config_section_root_note)} ${instrumentKey.symbol} • ${stringResource(R.string.scale_root_note_label)} ${rootNote.symbol}",
+                text = "${stringResource(R.string.instrument_config_section_root_note)} ${instrumentKey.displaySymbol(enharmonicPreference)} • ${stringResource(R.string.scale_root_note_label)} ${rootNote.displaySymbol(enharmonicPreference)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -21,6 +21,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.leokinder2k.koratuningcompanion.R
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.displaySymbol
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleRootReference
 import com.leokinder2k.koratuningcompanion.scaleengine.model.ScaleType
 import com.leokinder2k.koratuningcompanion.scaleengine.recommendation.LeverOnlyReachableState
@@ -37,6 +39,7 @@ import java.io.File
 @Composable
 internal fun VersatilityRecommendationsCard(
     analysis: VersatilityAnalysis,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS,
     modifier: Modifier = Modifier
 ) {
     if (analysis.bestTuning == null) return
@@ -52,7 +55,10 @@ internal fun VersatilityRecommendationsCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = stringResource(R.string.versatility_title, analysis.instrumentKey.symbol),
+                text = stringResource(
+                    R.string.versatility_title,
+                    analysis.instrumentKey.displaySymbol(enharmonicPreference)
+                ),
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
@@ -68,12 +74,17 @@ internal fun VersatilityRecommendationsCard(
                 onClick = {
                     scope.launch {
                         val bytes = withContext(Dispatchers.Default) {
-                            buildVersatilityPdf(context, analysis)
+                            buildVersatilityPdf(context, analysis, enharmonicPreference)
                         }
                         sharePdf(
                             context = context,
                             bytes = bytes,
-                            fileName = "chromatic-lever-analysis-${analysis.instrumentKey.symbol}.pdf"
+                            fileName = "chromatic-lever-analysis-${
+                                analysis.instrumentKey
+                                    .displaySymbol(enharmonicPreference)
+                                    .replace("#", "sharp")
+                                    .replace("b", "flat")
+                            }.pdf"
                         )
                     }
                 },
@@ -92,7 +103,11 @@ private const val PAGE_H = 842f
 private const val MARGIN = 52f
 private val CONTENT_W = PAGE_W - MARGIN * 2
 
-private fun buildVersatilityPdf(context: Context, analysis: VersatilityAnalysis): ByteArray {
+private fun buildVersatilityPdf(
+    context: Context,
+    analysis: VersatilityAnalysis,
+    enharmonicPreference: EnharmonicPreference
+): ByteArray {
     val doc = PdfDocument()
     var pageNum = 1
 
@@ -156,7 +171,10 @@ private fun buildVersatilityPdf(context: Context, analysis: VersatilityAnalysis)
     }
 
     // ── Title ─────────────────────────────────────────────────────────────────
-    drawWrapped("Chromatic Lever Analysis — Natural ${analysis.instrumentKey.symbol}", titlePaint)
+    drawWrapped(
+        "Chromatic Lever Analysis - Natural ${analysis.instrumentKey.displaySymbol(enharmonicPreference)}",
+        titlePaint
+    )
     gap(2f)
     drawWrapped(
         "Scope: ${analysis.evaluatedRoots} roots × " +
@@ -168,7 +186,10 @@ private fun buildVersatilityPdf(context: Context, analysis: VersatilityAnalysis)
 
     // ── Best tuning ───────────────────────────────────────────────────────────
     analysis.bestTuning?.let { best ->
-        drawWrapped("Best tuning: ${best.tuningName} (${best.instrumentKey.symbol})", headPaint)
+        drawWrapped(
+            "Best tuning: ${best.tuningName} (${best.instrumentKey.displaySymbol(enharmonicPreference)})",
+            headPaint
+        )
         drawWrapped(
             "${best.reachableStateCount} reachable states — " +
             "${best.distinctRoots} roots, ${best.distinctScaleTypes} scale types, " +
@@ -183,7 +204,7 @@ private fun buildVersatilityPdf(context: Context, analysis: VersatilityAnalysis)
     gap(4f)
     analysis.tuningSummaries.forEach { s ->
         drawWrapped(
-            "#${s.rank}  ${s.tuningName} (${s.instrumentKey.symbol})  |  " +
+            "#${s.rank}  ${s.tuningName} (${s.instrumentKey.displaySymbol(enharmonicPreference)})  |  " +
             "States: ${s.reachableStateCount}  " +
             "Roots: ${s.distinctRoots}  Scales: ${s.distinctScaleTypes}",
             bodyPaint
@@ -195,7 +216,7 @@ private fun buildVersatilityPdf(context: Context, analysis: VersatilityAnalysis)
     drawWrapped("Recommended Lever Route", headPaint)
     gap(4f)
     analysis.recommendedRoute.forEach { step ->
-        drawWrapped(routeStepLabel(context, step), bodyPaint)
+        drawWrapped(routeStepLabel(context, step, enharmonicPreference), bodyPaint)
         gap(2f)
     }
 
@@ -226,16 +247,24 @@ private fun sharePdf(context: Context, bytes: ByteArray, fileName: String) {
 
 // ── Text formatters (reused for PDF) ─────────────────────────────────────────
 
-private fun tuningSummaryLabel(context: Context, summary: TuningVersatilitySummary): String =
+private fun tuningSummaryLabel(
+    context: Context,
+    summary: TuningVersatilitySummary,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS
+): String =
     context.getString(
         R.string.versatility_tuning_line,
         summary.rank, summary.tuningName,
         summary.reachableStateCount, summary.distinctRoots,
         summary.distinctScaleTypes, summary.distinctReferences,
-        summary.exampleStates.joinToString { stateLabel(context, it) }
+        summary.exampleStates.joinToString { stateLabel(context, it, enharmonicPreference) }
     )
 
-private fun routeStepLabel(context: Context, step: LeverRouteStep): String {
+private fun routeStepLabel(
+    context: Context,
+    step: LeverRouteStep,
+    enharmonicPreference: EnharmonicPreference
+): String {
     val transition = when (step.transitionType) {
         RouteTransitionType.FROM_NATURAL_OPEN -> context.getString(
             R.string.versatility_route_from_natural, leverListLabel(context, step.leversToClose)
@@ -255,17 +284,22 @@ private fun routeStepLabel(context: Context, step: LeverRouteStep): String {
     return context.getString(
         R.string.versatility_route_line,
         step.stepNumber,
-        step.state.tuningName, step.state.rootNote.symbol,
+        step.state.tuningName,
+        step.state.rootNote.displaySymbol(enharmonicPreference),
         scaleTypeLabelText(context, step.state.scaleType),
         rootReferenceLabel(context, step.state.rootReference),
         transition
     )
 }
 
-private fun stateLabel(context: Context, state: LeverOnlyReachableState): String =
+private fun stateLabel(
+    context: Context,
+    state: LeverOnlyReachableState,
+    enharmonicPreference: EnharmonicPreference = EnharmonicPreference.SHARPS
+): String =
     context.getString(
         R.string.versatility_target_label,
-        state.rootNote.symbol,
+        state.rootNote.displaySymbol(enharmonicPreference),
         scaleTypeLabelText(context, state.scaleType),
         rootReferenceLabel(context, state.rootReference)
     )

@@ -46,7 +46,24 @@ object TraditionalPresets {
         val centsByNoteSymbol: Map<String, Double>
     ) {
         fun centsForPitch(pitch: Pitch): Double {
-            return centsByNoteSymbol[pitch.note.symbol] ?: 0.0
+            return centsByNoteSymbol[pitch.note.canonicalSharpSymbol()] ?: 0.0
+        }
+    }
+
+    private fun NoteName.canonicalSharpSymbol(): String {
+        return when (this) {
+            NoteName.C -> "C"
+            NoteName.C_SHARP -> "C#"
+            NoteName.D -> "D"
+            NoteName.D_SHARP -> "D#"
+            NoteName.E -> "E"
+            NoteName.F -> "F"
+            NoteName.F_SHARP -> "F#"
+            NoteName.G -> "G"
+            NoteName.G_SHARP -> "G#"
+            NoteName.A -> "A"
+            NoteName.A_SHARP -> "A#"
+            NoteName.B -> "B"
         }
     }
 

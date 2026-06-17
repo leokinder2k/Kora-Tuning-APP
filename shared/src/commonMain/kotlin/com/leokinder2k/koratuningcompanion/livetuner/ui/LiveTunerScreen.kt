@@ -433,13 +433,13 @@ private fun ChromaticTunerCard(
     isListening: Boolean,
     enharmonicPreference: EnharmonicPreference
 ) {
-    val allTargets = remember {
+    val allTargets = remember(enharmonicPreference) {
         NoteName.entries.flatMap { note ->
             (2..6).map { octave ->
                 val pitch = Pitch(note, octave)
                 TunerTarget(
                     stringNumber = note.semitone * 10 + octave,
-                    roleLabel = pitch.asText(),
+                    roleLabel = pitch.asText(enharmonicPreference),
                     targetPitch = pitch,
                     targetFrequencyHz = TunerTargetMatcher.pitchToFrequencyHz(pitch),
                     requiredLeverState = LeverState.OPEN,

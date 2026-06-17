@@ -276,7 +276,9 @@ fun KoraAuthorityApp(
                             onToggleMute = { isMuted = !isMuted }
                         )
                     }
-                    AppDestination.PRESETS -> TraditionalPresetsRoute()
+                    AppDestination.PRESETS -> TraditionalPresetsRoute(
+                        enharmonicPreference = enharmonicPreference
+                    )
                     AppDestination.NOTATION -> KoraNotationRoute(isMuted = isMuted)
                 }
             }

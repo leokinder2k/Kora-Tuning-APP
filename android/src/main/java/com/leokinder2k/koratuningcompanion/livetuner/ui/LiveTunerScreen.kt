@@ -264,6 +264,7 @@ fun LiveTunerScreen(
                 instrumentKey = scaleUiState.instrumentKey,
                 rootNote = scaleUiState.rootNote,
                 scaleType = scaleUiState.scaleType,
+                enharmonicPreference = enharmonicPreference,
                 onScaleTypeSelected = onScaleTypeSelected
             )
 
@@ -279,7 +280,8 @@ fun LiveTunerScreen(
                             .coerceAtMost(guidedSteps.lastIndex)
                     }
                 },
-                tuningMode = tuningMode
+                tuningMode = tuningMode,
+                enharmonicPreference = enharmonicPreference
             )
 
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -357,7 +359,8 @@ fun LiveTunerScreen(
 
             ChromaticTunerCard(
                 detectedFrequencyHz = tunerUiState.detectedFrequencyHz,
-                isListening = tunerUiState.isListening
+                isListening = tunerUiState.isListening,
+                enharmonicPreference = enharmonicPreference
             )
 
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -404,7 +407,7 @@ fun LiveTunerScreen(
                         Text(
                             text = stringResource(
                                 R.string.live_tuner_nearest_target_pitch_line,
-                                match.target.targetPitch.asText(),
+                                match.target.targetPitch.asText(enharmonicPreference),
                                 formatFrequency(match.target.targetFrequencyHz)
                             ),
                             style = MaterialTheme.typography.bodySmall
@@ -469,7 +472,8 @@ fun LiveTunerScreen(
                 isReferenceTonePlaying = isReferenceTonePlaying,
                 onPlay = { if (!isMuted) isReferenceTonePlaying = true },
                 onStop = { isReferenceTonePlaying = false },
-                isMuted = isMuted
+                isMuted = isMuted,
+                enharmonicPreference = enharmonicPreference
             )
 
         }
@@ -480,15 +484,16 @@ fun LiveTunerScreen(
 @Composable
 private fun ChromaticTunerCard(
     detectedFrequencyHz: Double?,
-    isListening: Boolean
+    isListening: Boolean,
+    enharmonicPreference: EnharmonicPreference
 ) {
-    val allTargets = remember {
+    val allTargets = remember(enharmonicPreference) {
         NoteName.entries.flatMap { note ->
             (2..6).map { octave ->
                 val pitch = Pitch(note, octave)
                 TunerTarget(
                     stringNumber = note.semitone * 10 + octave,
-                    roleLabel = pitch.asText(),
+                    roleLabel = pitch.asText(enharmonicPreference),
                     targetPitch = pitch,
                     targetFrequencyHz = TunerTargetMatcher.pitchToFrequencyHz(pitch),
                     requiredLeverState = LeverState.OPEN,
@@ -530,14 +535,14 @@ private fun ChromaticTunerCard(
                     FilterChip(
                         selected = lockedNote == note,
                         onClick = { lockedNote = if (lockedNote == note) null else note },
-                        label = { Text(note.chromaticUiLabel()) }
+                        label = { Text(note.chromaticUiLabel(enharmonicPreference)) }
                     )
                 }
             }
             ChromaticTunerDial(
                 centsDeviation = match?.centsDeviation,
                 noteDisplayName = (lockedNote ?: match?.target?.targetPitch?.note)
-                    ?.chromaticUiLabel() ?: "–",
+                    ?.chromaticUiLabel(enharmonicPreference) ?: "–",
                 subtitleText = match?.let {
                     "Octave ${it.target.targetPitch.octave}  •  ${formatFrequency(it.target.targetFrequencyHz)}"
                 } ?: if (isListening) "Listening…" else "Start tuner to detect pitch",
@@ -666,8 +671,8 @@ private fun ChromaticTunerDial(
     }
 }
 
-private fun NoteName.chromaticUiLabel(): String {
-    return displaySymbol()
+private fun NoteName.chromaticUiLabel(enharmonicPreference: EnharmonicPreference): String {
+    return displaySymbol(enharmonicPreference)
         .replace("#", "♯")
         .replace("b", "♭")
 }
@@ -678,7 +683,8 @@ private fun GuidedTuningCard(
     currentStepIndex: Int,
     onPreviousStep: () -> Unit,
     onNextStep: () -> Unit,
-    tuningMode: KoraTuningMode
+    tuningMode: KoraTuningMode,
+    enharmonicPreference: EnharmonicPreference
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -724,7 +730,7 @@ private fun GuidedTuningCard(
             Text(
                 text = stringResource(
                     R.string.guided_setup_target_pitch_line,
-                    step.selectedPitch.asText()
+                    step.selectedPitch.asText(enharmonicPreference)
                 ),
                 style = MaterialTheme.typography.bodySmall
             )
@@ -783,15 +789,16 @@ private fun SelectionControls(
     instrumentKey: NoteName,
     rootNote: NoteName,
     scaleType: ScaleType,
+    enharmonicPreference: EnharmonicPreference,
     onScaleTypeSelected: (ScaleType) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = stringResource(R.string.instrument_config_section_root_note) + ": ${instrumentKey.symbol}",
+            text = stringResource(R.string.instrument_config_section_root_note) + ": ${instrumentKey.displaySymbol(enharmonicPreference)}",
             style = MaterialTheme.typography.titleMedium
         )
         Text(
-            text = stringResource(R.string.scale_root_note_label) + ": ${rootNote.symbol}",
+            text = stringResource(R.string.scale_root_note_label) + ": ${rootNote.displaySymbol(enharmonicPreference)}",
             style = MaterialTheme.typography.titleMedium
         )
 
@@ -814,7 +821,8 @@ private fun ReferenceToneCard(
     isReferenceTonePlaying: Boolean,
     onPlay: () -> Unit,
     onStop: () -> Unit,
-    isMuted: Boolean
+    isMuted: Boolean,
+    enharmonicPreference: EnharmonicPreference
 ) {
     val leftTargets = targets
         .filter { target -> target.roleLabel.startsWith("L") }
@@ -861,7 +869,7 @@ private fun ReferenceToneCard(
                                 onTargetSelected(target.stringNumber)
                             }
                         },
-                        label = { Text("${target.roleLabel} ${target.targetPitch.asText()}") }
+                        label = { Text("${target.roleLabel} ${target.targetPitch.asText(enharmonicPreference)}") }
                     )
                 }
             }
@@ -880,7 +888,7 @@ private fun ReferenceToneCard(
                                 onTargetSelected(target.stringNumber)
                             }
                         },
-                        label = { Text("${target.roleLabel} ${target.targetPitch.asText()}") }
+                        label = { Text("${target.roleLabel} ${target.targetPitch.asText(enharmonicPreference)}") }
                     )
                 }
             }
@@ -893,7 +901,7 @@ private fun ReferenceToneCard(
                         R.string.live_tuner_reference_tone_selected_line,
                         selectedTarget.roleLabel,
                         selectedTarget.stringNumber,
-                        selectedTarget.targetPitch.asText()
+                        selectedTarget.targetPitch.asText(enharmonicPreference)
                     ),
                     style = MaterialTheme.typography.bodySmall
                 )

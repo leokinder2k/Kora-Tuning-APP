@@ -1259,7 +1259,9 @@ private fun ChordOverview(
                 Text(stringResource(Res.string.overview_chords_action_sound_chord))
             }
             if (selectedMatch.usesDetunedStrings) {
-                val stableChordLabel = suggestedNonDetunedChord?.definition?.let { chordDefinitionLabel(it) } ?: stringResource(Res.string.value_none_found)
+                val stableChordLabel = suggestedNonDetunedChord?.definition?.let {
+                    chordDefinitionLabel(it, enharmonicPreference)
+                } ?: stringResource(Res.string.value_none_found)
                 Text(text = stringResource(Res.string.overview_chords_detuned_warning, stableChordLabel), style = MaterialTheme.typography.bodySmall, color = KoraDetunedColor)
                 if (suggestedNonDetunedChord != null) {
                     OutlinedButton(onClick = { onChordSelected(suggestedNonDetunedChord.definition) }, modifier = Modifier.fillMaxWidth()) {
@@ -1290,7 +1292,10 @@ private fun ChordOverview(
             bestMatches.forEach { match ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(text = chordDefinitionLabel(match.definition), style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text = chordDefinitionLabel(match.definition, enharmonicPreference),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                         Text(text = stringResource(Res.string.overview_chords_match_notes_play_line, match.definition.chordNotes.joinToString(" ") { it.displaySymbol(enharmonicPreference) }, match.playedStringNumbers.size), style = MaterialTheme.typography.bodySmall)
                         Text(
                             text = if (match.usesDetunedStrings) stringResource(Res.string.overview_chords_match_includes_detuned) else stringResource(Res.string.overview_chords_match_no_detuned),
@@ -1622,15 +1627,11 @@ private fun displayPitchLabel(
     includeOctave: Boolean,
     enharmonicPreference: EnharmonicPreference
 ): String {
-    val shift = semitoneShift.coerceIn(-1, 1)
-    val basePitch = effectivePitch.plusSemitones(-shift)
-    val baseSymbol = basePitch.note.symbol
-    val shiftedSymbol = when (shift) {
-        1 -> "${baseSymbol}#"
-        -1 -> if (baseSymbol.endsWith("#")) baseSymbol.dropLast(1) else "${baseSymbol}b"
-        else -> baseSymbol
+    return if (includeOctave) {
+        effectivePitch.asText(enharmonicPreference)
+    } else {
+        effectivePitch.note.displaySymbol(enharmonicPreference)
     }
-    return if (includeOctave) "${shiftedSymbol}${basePitch.octave}" else shiftedSymbol
 }
 
 private const val PLUCK_VISUAL_HOLD_MS = 760L
@@ -1682,7 +1683,10 @@ private fun chordQualityLabel(quality: ChordQuality): String = when (quality) {
 }
 
 @Composable
-private fun chordDefinitionLabel(definition: ChordDefinition): String = "${definition.root.displaySymbol(EnharmonicPreference.SHARPS)} ${chordQualityLabel(definition.quality)}"
+private fun chordDefinitionLabel(
+    definition: ChordDefinition,
+    enharmonicPreference: EnharmonicPreference
+): String = "${definition.root.displaySymbol(enharmonicPreference)} ${chordQualityLabel(definition.quality)}"
 
 @Composable
 private fun metronomeSoundOptionLabel(sound: MetronomeSoundOption): String = when (sound) {

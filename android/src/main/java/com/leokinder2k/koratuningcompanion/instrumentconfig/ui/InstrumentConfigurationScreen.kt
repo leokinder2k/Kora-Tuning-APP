@@ -80,6 +80,7 @@ import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringLayo
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraTuningMode
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.displaySymbol
 import com.leokinder2k.koratuningcompanion.livetuner.model.TunerTargetMatcher
 import com.leokinder2k.koratuningcompanion.livetuner.model.TuningFeedbackClassifier
 import com.leokinder2k.koratuningcompanion.livetuner.model.TuningFeedbackState
@@ -364,7 +365,7 @@ fun InstrumentConfigurationScreen(
                         FilterChip(
                             selected = uiState.rootNote == note,
                             onClick = { onRootNoteSelected(note) },
-                            label = { Text(note.symbol) }
+                            label = { Text(note.displaySymbol(enharmonicPreference)) }
                         )
                     }
                 }
@@ -394,7 +395,7 @@ fun InstrumentConfigurationScreen(
                                 else -> selectedTuningRowIndex = index
                             }
                         },
-                        selectedPitchLabel = selectedPitch?.asText(),
+                        selectedPitchLabel = selectedPitch?.asText(enharmonicPreference),
                         selectedOpenCents = selectedOpenCents,
                         selectedTargetFrequencyHz = selectedTargetFrequencyHz,
                         detectedFrequencyHz = tunerUiState.detectedFrequencyHz,
@@ -402,6 +403,7 @@ fun InstrumentConfigurationScreen(
                         tuningState = tuningState,
                         tunerUiState = tunerUiState,
                         tuningSourceLabel = tuningSourceLabel,
+                        enharmonicPreference = enharmonicPreference,
                         isReferenceTonePlaying = isReferenceTonePlaying || isPlayingAll,
                         isPlayingAll = isPlayingAll,
                         playbackDirection = playbackDirection,
@@ -606,6 +608,7 @@ private fun InstrumentTuningAssistantCard(
     tuningState: TuningFeedbackState?,
     tunerUiState: LiveTunerUiState,
     tuningSourceLabel: String,
+    enharmonicPreference: EnharmonicPreference,
     isReferenceTonePlaying: Boolean,
     isPlayingAll: Boolean,
     playbackDirection: PlaybackDirection,
@@ -800,6 +803,7 @@ private fun InstrumentTuningAssistantCard(
                 rows = leftRows,
                 stringCount = rows.size,
                 selectedRowIndex = selectedRowIndex,
+                enharmonicPreference = enharmonicPreference,
                 onSelectedRowIndexChanged = onSelectedRowIndexChanged
             )
             CompactStringSelectorRow(
@@ -807,6 +811,7 @@ private fun InstrumentTuningAssistantCard(
                 rows = rightRows,
                 stringCount = rows.size,
                 selectedRowIndex = selectedRowIndex,
+                enharmonicPreference = enharmonicPreference,
                 onSelectedRowIndexChanged = onSelectedRowIndexChanged
             )
 
@@ -827,6 +832,7 @@ private fun CompactStringSelectorRow(
     rows: List<InstrumentStringRowUiState>,
     stringCount: Int,
     selectedRowIndex: Int,
+    enharmonicPreference: EnharmonicPreference,
     onSelectedRowIndexChanged: (Int) -> Unit
 ) {
     Row(
@@ -849,6 +855,7 @@ private fun CompactStringSelectorRow(
                     row = row,
                     stringCount = stringCount,
                     selected = row.stringNumber - 1 == selectedRowIndex,
+                    enharmonicPreference = enharmonicPreference,
                     onClick = { onSelectedRowIndexChanged(row.stringNumber - 1) }
                 )
             }
@@ -861,6 +868,7 @@ private fun CompactStringChip(
     row: InstrumentStringRowUiState,
     stringCount: Int,
     selected: Boolean,
+    enharmonicPreference: EnharmonicPreference,
     onClick: () -> Unit
 ) {
     val borderColor = if (selected) {
@@ -882,7 +890,7 @@ private fun CompactStringChip(
         border = BorderStroke(width = 1.dp, color = borderColor)
     ) {
         Text(
-            text = "${KoraStringLayout.roleLabel(stringCount, row.stringNumber)} ${row.openPitchInput.ifBlank { "--" }}",
+            text = "${KoraStringLayout.roleLabel(stringCount, row.stringNumber)} ${Pitch.parse(row.openPitchInput)?.asText(enharmonicPreference) ?: row.openPitchInput.ifBlank { "--" }}",
             style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
         )

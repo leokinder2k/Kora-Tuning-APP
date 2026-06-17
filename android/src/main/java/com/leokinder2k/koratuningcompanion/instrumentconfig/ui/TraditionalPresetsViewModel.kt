@@ -10,6 +10,8 @@ import com.leokinder2k.koratuningcompanion.R
 import com.leokinder2k.koratuningcompanion.instrumentconfig.data.DataStoreInstrumentConfigRepository
 import com.leokinder2k.koratuningcompanion.instrumentconfig.data.InstrumentConfigRepository
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.InstrumentProfile
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringLayout
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.TraditionalPreset
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.TraditionalPresets
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.UserPreset
@@ -22,14 +24,16 @@ data class TraditionalPresetUiModel(
     val id: String,
     val displayName: String,
     val description: String,
-    val openPitchPreview: String,
+    val openPitches: List<Pitch>,
+    val stringCount: Int,
     val isCustom: Boolean
 )
 
 data class TraditionalPresetStringRowUiState(
     val stringNumber: Int,
-    val openPitch: String,
-    val closedPitch: String,
+    val roleLabel: String,
+    val openPitch: Pitch,
+    val closedPitch: Pitch,
     val openIntonationCents: Double,
     val closedIntonationCents: Double
 )
@@ -206,7 +210,8 @@ class TraditionalPresetsViewModel(
                 id = entry.id,
                 displayName = entry.displayName,
                 description = entry.description,
-                openPitchPreview = previewText(entry.profile),
+                openPitches = entry.profile.openPitches,
+                stringCount = entry.profile.stringCount,
                 isCustom = entry.isCustom
             )
         }
@@ -214,8 +219,9 @@ class TraditionalPresetsViewModel(
         val previewRows = resolvedEntry?.profile?.openPitches?.mapIndexed { index, openPitch ->
             TraditionalPresetStringRowUiState(
                 stringNumber = index + 1,
-                openPitch = openPitch.asText(),
-                closedPitch = openPitch.plusSemitones(1).asText(),
+                roleLabel = KoraStringLayout.roleLabel(resolvedEntry.profile.stringCount, index + 1),
+                openPitch = openPitch,
+                closedPitch = openPitch.plusSemitones(1),
                 openIntonationCents = resolvedEntry.profile.openIntonationCents[index],
                 closedIntonationCents = resolvedEntry.profile.closedIntonationCents[index]
             )
@@ -275,16 +281,6 @@ class TraditionalPresetsViewModel(
         )
     }
 
-    private fun previewText(profile: InstrumentProfile): String {
-        val prefix = profile.openPitches.take(PREVIEW_LIMIT)
-            .joinToString(" ") { pitch -> pitch.asText() }
-        return if (profile.openPitches.size > PREVIEW_LIMIT) {
-            "$prefix ..."
-        } else {
-            prefix
-        }
-    }
-
     private data class PresetEntry(
         val id: String,
         val displayName: String,
@@ -295,7 +291,6 @@ class TraditionalPresetsViewModel(
 
     companion object {
         private const val DEFAULT_STRING_COUNT = 21
-        private const val PREVIEW_LIMIT = 5
         private const val MAX_CUSTOM_PRESET_NAME_LENGTH = 64
         private val SUPPORTED_STRING_COUNTS = setOf(19, 21, 22)
 
