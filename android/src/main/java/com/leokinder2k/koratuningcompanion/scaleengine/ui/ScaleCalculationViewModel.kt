@@ -204,7 +204,7 @@ class ScaleCalculationViewModel(
     companion object {
         private val DEFAULT_SCALE_TYPE = ScaleType.MAJOR
         private val DEFAULT_SCALE_ROOT_REFERENCE = ScaleRootReference.LEFT_1
-        private const val DEFAULT_PRESET_BASE_ID = "sauta"
+        private const val DEFAULT_PRESET_BASE_ID = "silaba"
 
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -219,7 +219,7 @@ class ScaleCalculationViewModel(
             }
         }
 
-        private const val DEFAULT_PROFILE_STRING_COUNT = 21
+        private const val DEFAULT_PROFILE_STRING_COUNT = 22
 
         private fun emptyVersatilityAnalysis(instrumentKey: NoteName): VersatilityAnalysis {
             return VersatilityAnalysis(
@@ -243,7 +243,7 @@ class ScaleCalculationViewModel(
                 ?: InstrumentProfile(
                     stringCount = DEFAULT_PROFILE_STRING_COUNT,
                     openPitches = StarterInstrumentProfiles.openPitches(DEFAULT_PROFILE_STRING_COUNT),
-                    rootNote = NoteName.E
+                    rootNote = NoteName.F
                 )
         }
     }

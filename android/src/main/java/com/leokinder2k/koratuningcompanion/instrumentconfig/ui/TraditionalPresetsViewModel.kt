@@ -290,7 +290,7 @@ class TraditionalPresetsViewModel(
     )
 
     companion object {
-        private const val DEFAULT_STRING_COUNT = 21
+        private const val DEFAULT_STRING_COUNT = 22
         private const val MAX_CUSTOM_PRESET_NAME_LENGTH = 64
         private val SUPPORTED_STRING_COUNTS = setOf(19, 21, 22)
 

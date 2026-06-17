@@ -21,12 +21,13 @@ data class TraditionalPreset(
         }
     }
 
-    fun toInstrumentProfile(): InstrumentProfile {
+    fun toInstrumentProfile(rootNote: NoteName = NoteName.F): InstrumentProfile {
         return InstrumentProfile(
             stringCount = stringCount,
             openPitches = openPitches,
             openIntonationCents = openIntonationCents,
-            closedIntonationCents = closedIntonationCents
+            closedIntonationCents = closedIntonationCents,
+            rootNote = rootNote
         )
     }
 }

@@ -8,12 +8,18 @@ object StarterInstrumentProfiles {
     )
 
     private val starter21 = listOf(
-        "E2", "F#2", "G#2", "A2", "B2", "C#3", "D#3",
-        "E3", "F#3", "G#3", "A3", "B3", "C#4", "D#4",
-        "E4", "F#4", "G#4", "A4", "B4", "C#5", "D#5"
+        "F2", "F3", "C3", "D3", "E3", "A3",
+        "G3", "C4", "Bb3", "E4", "D4",
+        "G4", "F4", "Bb4", "A4", "D5", "C5",
+        "F5", "E5", "G5", "A5"
     )
 
-    private val starter22 = starter21 + "E5"
+    private val starter22 = listOf(
+        "F2", "Bb2", "C3", "D3", "E3", "F3",
+        "G3", "A3", "Bb3", "C4", "D4",
+        "E4", "F4", "G4", "A4", "Bb4", "C5",
+        "D5", "E5", "F5", "G5", "A5"
+    )
 
     fun openPitchTexts(stringCount: Int): List<String> = when (stringCount) {
         19 -> starter19

@@ -185,6 +185,28 @@ class TraditionalPresetsTest {
     }
 
     @Test
+    fun silaba22_profileUsesConcertFAsInitialInstrumentKey() {
+        val silaba22 = TraditionalPresets.presetsForStringCount(22)
+            .first { preset -> preset.id == "silaba_22" }
+            .toInstrumentProfile()
+
+        assertEquals(22, silaba22.stringCount)
+        assertEquals(NoteName.F, silaba22.rootNote)
+        assertEquals(
+            listOf("F2", "C3", "D3", "E3", "G3", "A#3", "D4", "F4", "A4", "C5", "E5"),
+            sidePitches(silaba22, KoraStringLayout.leftOrder(22))
+        )
+        assertEquals(
+            listOf("A#2", "F3", "A3", "C4", "E4", "G4", "A#4", "D5", "F5", "G5", "A5"),
+            sidePitches(silaba22, KoraStringLayout.rightOrder(22))
+        )
+        assertEquals(silaba22.openPitches, silaba22.basePitches)
+        assertEquals(-15.0, silaba22.openIntonationCents[4], 0.0)
+        assertEquals(-15.0, silaba22.openIntonationCents[7], 0.0)
+        assertEquals(0.0, silaba22.openIntonationCents[8], 0.0)
+    }
+
+    @Test
     fun presets_encodeMicrotonalIntonationOffsets() {
         val hardino21 = TraditionalPresets.presetsForStringCount(21)
             .first { preset -> preset.id == "hardino_21" }
@@ -221,6 +243,15 @@ class TraditionalPresetsTest {
     ): List<String> {
         return stringNumbers.map { stringNumber ->
             preset.openPitches[stringNumber - 1].asText()
+        }
+    }
+
+    private fun sidePitches(
+        profile: InstrumentProfile,
+        stringNumbers: List<Int>
+    ): List<String> {
+        return stringNumbers.map { stringNumber ->
+            profile.openPitches[stringNumber - 1].asText()
         }
     }
 }

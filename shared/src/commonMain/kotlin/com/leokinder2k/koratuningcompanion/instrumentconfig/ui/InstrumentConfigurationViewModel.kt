@@ -296,7 +296,8 @@ class InstrumentConfigurationViewModel(
     fun loadStarterProfile() {
         val stringCount = _uiState.value.stringCount
         val l01Index = lowestLeftStringIndex(stringCount)
-        val openPitchInputs = StarterInstrumentProfiles.openPitchTexts(stringCount)
+        val preset = defaultPresetFor(stringCount)
+        val openPitchInputs = preset.openPitches.map(Pitch::asText)
         updateLinkedBasePitchInputs(
             currentOpenPitchInputs = _uiState.value.rows.map { it.openPitchInput },
             nextOpenPitchInputs = openPitchInputs,
@@ -305,13 +306,13 @@ class InstrumentConfigurationViewModel(
         val nextState = buildUiState(
             stringCount = stringCount,
             tuningMode = _uiState.value.tuningMode,
-            rootNote = _uiState.value.rootNote,
-            selectedPresetId = MANUAL_PRESET_ID,
+            rootNote = NoteName.F,
+            selectedPresetId = preset.id,
             lowestLeftPitchInput = openPitchInputs.getOrNull(l01Index) ?: DEFAULT_LOWEST_LEFT_PITCH_TEXT,
-            autoCalibrateEnabled = false,
+            autoCalibrateEnabled = true,
             openPitchInputs = openPitchInputs,
-            openIntonationInputs = defaultIntonationInputs(stringCount),
-            closedIntonationInputs = defaultIntonationInputs(stringCount),
+            openIntonationInputs = preset.openIntonationCents.map(Double::toString),
+            closedIntonationInputs = preset.closedIntonationCents.map(Double::toString),
             basePitchInputs = currentBasePitchInputs,
             statusMessage = "Loaded starter profile for $stringCount strings."
         )
@@ -529,11 +530,11 @@ class InstrumentConfigurationViewModel(
     }
 
     companion object {
-        private const val DEFAULT_STRING_COUNT = 21
+        private const val DEFAULT_STRING_COUNT = 22
         private val SUPPORTED_STRING_COUNTS = setOf(19, 21, 22)
         const val MANUAL_PRESET_ID = "manual"
-        private const val DEFAULT_PRESET_BASE_ID = "sauta"
-        private const val DEFAULT_LOWEST_LEFT_PITCH_TEXT = "E2"
+        private const val DEFAULT_PRESET_BASE_ID = "silaba"
+        private const val DEFAULT_LOWEST_LEFT_PITCH_TEXT = "F2"
         private const val DEFAULT_INTONATION_INPUT = "0.0"
 
         private fun resizePitchInputCount(inputs: List<String>, stringCount: Int): List<String> {
@@ -553,6 +554,12 @@ class InstrumentConfigurationViewModel(
 
         private fun defaultIntonationInputs(stringCount: Int): List<String> =
             List(stringCount) { DEFAULT_INTONATION_INPUT }
+
+        private fun defaultPresetFor(stringCount: Int): TraditionalPreset {
+            val presets = TraditionalPresets.presetsForStringCount(stringCount)
+            return presets.firstOrNull { preset -> preset.id == "${DEFAULT_PRESET_BASE_ID}_$stringCount" }
+                ?: presets.first()
+        }
 
         fun parseCentsInput(value: String): Double? {
             val trimmed = value.trim()
@@ -649,20 +656,21 @@ class InstrumentConfigurationViewModel(
 
     private fun buildDefaultUiState(): InstrumentConfigurationUiState {
         val stringCount = DEFAULT_STRING_COUNT
-        val pitchInputs = StarterInstrumentProfiles.openPitchTexts(stringCount)
+        val preset = defaultPresetFor(stringCount)
+        val pitchInputs = preset.openPitches.map(Pitch::asText)
         currentBasePitchInputs = pitchInputs
         currentHomeLeverPosition = HomeLeverPosition.OPEN
         return buildUiState(
             stringCount = stringCount,
             tuningMode = KoraTuningMode.LEVERED,
-            rootNote = NoteName.E,
-            selectedPresetId = MANUAL_PRESET_ID,
+            rootNote = NoteName.F,
+            selectedPresetId = preset.id,
             lowestLeftPitchInput = pitchInputs.getOrNull(lowestLeftStringIndex(stringCount))
                 ?: DEFAULT_LOWEST_LEFT_PITCH_TEXT,
-            autoCalibrateEnabled = false,
+            autoCalibrateEnabled = true,
             openPitchInputs = pitchInputs,
-            openIntonationInputs = defaultIntonationInputs(stringCount),
-            closedIntonationInputs = defaultIntonationInputs(stringCount),
+            openIntonationInputs = preset.openIntonationCents.map(Double::toString),
+            closedIntonationInputs = preset.closedIntonationCents.map(Double::toString),
             basePitchInputs = currentBasePitchInputs,
             statusMessage = null
         )
