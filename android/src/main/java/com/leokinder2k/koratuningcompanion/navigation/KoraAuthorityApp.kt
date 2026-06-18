@@ -49,6 +49,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.style.TextOverflow
@@ -156,13 +157,16 @@ fun KoraAuthorityApp(
                 TopAppBar(
                     title = { Text(stringResource(R.string.app_top_bar_title)) },
                     actions = {
-                        TextButton(onClick = {
-                            enharmonicPreferenceName = if (enharmonicPreference == EnharmonicPreference.SHARPS) {
-                                EnharmonicPreference.FLATS.name
-                            } else {
-                                EnharmonicPreference.SHARPS.name
-                            }
-                        }) {
+                        TextButton(
+                            onClick = {
+                                enharmonicPreferenceName = if (enharmonicPreference == EnharmonicPreference.SHARPS) {
+                                    EnharmonicPreference.FLATS.name
+                                } else {
+                                    EnharmonicPreference.SHARPS.name
+                                }
+                            },
+                            modifier = Modifier.testTag("enharmonic-toggle")
+                        ) {
                             Text(
                                 text = stringResource(
                                     if (enharmonicPreference == EnharmonicPreference.SHARPS) {
