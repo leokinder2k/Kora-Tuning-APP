@@ -21,4 +21,14 @@ class InstrumentTuningAssistantReferenceTest {
             0.0
         )
     }
+
+    @Test
+    fun successHitRequiresPrecisePointOneCentWindow() {
+        assertEquals(false, isInstrumentAssistantSuccessHit(null))
+        assertEquals(true, isInstrumentAssistantSuccessHit(0.0))
+        assertEquals(true, isInstrumentAssistantSuccessHit(0.1))
+        assertEquals(true, isInstrumentAssistantSuccessHit(-0.1))
+        assertEquals(false, isInstrumentAssistantSuccessHit(0.11))
+        assertEquals(false, isInstrumentAssistantSuccessHit(-0.11))
+    }
 }

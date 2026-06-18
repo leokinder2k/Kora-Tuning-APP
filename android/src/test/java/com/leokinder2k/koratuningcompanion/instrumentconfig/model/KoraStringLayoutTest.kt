@@ -127,5 +127,16 @@ class KoraStringLayoutTest {
             right
         )
     }
+
+    @Test
+    fun nextOnSameSide_advancesWithinLeftAndRightOrders() {
+        assertEquals(3, KoraStringLayout.nextOnSameSide(stringCount = 22, stringNumber = 1))
+        assertEquals(4, KoraStringLayout.nextOnSameSide(stringCount = 22, stringNumber = 3))
+        assertEquals(3, KoraStringLayout.nextOnSameSide(stringCount = 21, stringNumber = 1))
+        assertEquals(6, KoraStringLayout.nextOnSameSide(stringCount = 22, stringNumber = 2))
+        assertEquals(8, KoraStringLayout.nextOnSameSide(stringCount = 21, stringNumber = 6))
+        assertEquals(null, KoraStringLayout.nextOnSameSide(stringCount = 22, stringNumber = 19))
+        assertEquals(null, KoraStringLayout.nextOnSameSide(stringCount = 22, stringNumber = 22))
+    }
 }
 

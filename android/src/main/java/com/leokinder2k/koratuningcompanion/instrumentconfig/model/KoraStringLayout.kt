@@ -66,6 +66,15 @@ object KoraStringLayout {
         return if (stringCount > 0) (1..stringCount).toList() else emptyList()
     }
 
+    fun nextOnSameSide(stringCount: Int, stringNumber: Int): Int? {
+        val sideOrder = when (roleFor(stringCount = stringCount, stringNumber = stringNumber).side) {
+            KoraStringSide.LEFT -> leftOrder(stringCount)
+            KoraStringSide.RIGHT -> rightOrder(stringCount)
+        }
+        val currentIndex = sideOrder.indexOf(stringNumber)
+        return sideOrder.getOrNull(currentIndex + 1)
+    }
+
     fun roleFor(stringCount: Int, stringNumber: Int): KoraStringRole {
         val predefined = predefinedLayouts[stringCount]?.roleByStringNumber?.get(stringNumber)
         if (predefined != null) {

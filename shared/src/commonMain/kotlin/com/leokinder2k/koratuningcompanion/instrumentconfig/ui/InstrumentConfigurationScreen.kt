@@ -159,10 +159,16 @@ fun InstrumentConfigurationScreen(
     }
 
     val referenceTonePlayer = remember { ReferenceTonePlayer() }
+    val confirmationTonePlayer = remember { ReferenceTonePlayer(amplitude = 0.18) }
     var isReferenceTonePlaying by remember { mutableStateOf(false) }
     var isPlayingAll by remember { mutableStateOf(false) }
 
-    DisposableEffect(Unit) { onDispose { referenceTonePlayer.release() } }
+    DisposableEffect(Unit) {
+        onDispose {
+            referenceTonePlayer.release()
+            confirmationTonePlayer.release()
+        }
+    }
 
     // Stop all audio when navigating away from this page
     LaunchedEffect(isActive) {
@@ -170,10 +176,12 @@ fun InstrumentConfigurationScreen(
             isPlayingAll = false
             isReferenceTonePlaying = false
             referenceTonePlayer.stop()
+            confirmationTonePlayer.stop()
         }
     }
 
     var selectedTuningRowIndex by rememberSaveable(uiState.stringCount) { mutableStateOf(0) }
+    var confirmedTuningStringNumber by rememberSaveable(uiState.stringCount) { mutableStateOf<Int?>(null) }
     selectedTuningRowIndex = selectedTuningRowIndex.coerceIn(0, (uiState.rows.size - 1).coerceAtLeast(0))
     val selectedRow = uiState.rows.getOrNull(selectedTuningRowIndex)
     val selectedPitch = selectedRow?.openPitchInput?.let(Pitch::parse)
@@ -241,6 +249,48 @@ fun InstrumentConfigurationScreen(
             centsDeviation = deviation,
             inTuneThresholdCents = inTuneThresholdCents
         )
+    }
+    val isPreciseAssistantHit = isInstrumentAssistantSuccessHit(selectedCentsDeviation)
+    LaunchedEffect(selectedTuningRowIndex) {
+        confirmedTuningStringNumber = null
+    }
+    LaunchedEffect(
+        isPreciseAssistantHit,
+        selectedRow?.stringNumber,
+        tunerUiState.isListening,
+        isMuted,
+        isReferenceTonePlaying,
+        isPlayingAll,
+        isActive,
+        uiState.stringCount
+    ) {
+        val row = selectedRow
+        if (!isPreciseAssistantHit) {
+            confirmedTuningStringNumber = null
+            return@LaunchedEffect
+        }
+        if (
+            row == null ||
+            !tunerUiState.isListening ||
+            isMuted ||
+            isReferenceTonePlaying ||
+            isPlayingAll ||
+            !isActive ||
+            confirmedTuningStringNumber == row.stringNumber
+        ) {
+            return@LaunchedEffect
+        }
+
+        confirmedTuningStringNumber = row.stringNumber
+        playAssistantConfirmationTone(confirmationTonePlayer)
+        delay(ASSISTANT_AUTO_ADVANCE_DELAY_MS)
+        KoraStringLayout.nextOnSameSide(
+            stringCount = uiState.stringCount,
+            stringNumber = row.stringNumber
+        )?.let { nextStringNumber ->
+            selectedTuningRowIndex = (nextStringNumber - 1)
+                .coerceIn(0, (uiState.rows.size - 1).coerceAtLeast(0))
+        }
     }
     val selectedPresetName = uiState.presetOptions
         .firstOrNull { option -> option.id == uiState.selectedPresetId }
@@ -1127,6 +1177,23 @@ private fun centsDeviation(
 
 internal fun instrumentAssistantReferenceFrequencyHz(targetFrequencyHz: Double): Double = targetFrequencyHz
 
+internal fun isInstrumentAssistantSuccessHit(centsDeviation: Double?): Boolean {
+    return centsDeviation?.let { deviation ->
+        kotlin.math.abs(deviation) <= ASSISTANT_SUCCESS_THRESHOLD_CENTS
+    } == true
+}
+
+private suspend fun playAssistantConfirmationTone(player: ReferenceTonePlayer) {
+    try {
+        player.play(880.0)
+        delay(70L)
+        player.play(1320.0)
+        delay(90L)
+    } finally {
+        player.stop()
+    }
+}
+
 private fun formatDouble2(value: Double): String {
     val abs = kotlin.math.abs(value)
     val rounded = kotlin.math.round(abs * 100.0)
@@ -1148,6 +1215,8 @@ private fun signed(value: Double): String {
 private const val MIN_INTONATION_CENTS = -1200.0
 private const val MAX_INTONATION_CENTS = 1200.0
 private const val MANUAL_PRESET_ID = "manual"
+private const val ASSISTANT_SUCCESS_THRESHOLD_CENTS = 0.10
+private const val ASSISTANT_AUTO_ADVANCE_DELAY_MS = 180L
 
 private fun tuningStateColor(state: TuningFeedbackState): Color {
     return when (state) {
