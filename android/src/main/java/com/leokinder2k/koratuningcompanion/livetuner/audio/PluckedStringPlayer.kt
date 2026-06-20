@@ -15,8 +15,8 @@ class PluckedStringPlayer(
     private val pluckDurationMs: Int = 650
 ) {
 
-    // Requested: boost kora string output volume by 10x.
     private val extraVolumeFactor = 350.0
+    private val outputGain = 0.5
     private var amplitudeScale = 1.0
 
     fun setVolumeDb(db: Double) {
@@ -126,7 +126,7 @@ class PluckedStringPlayer(
             val tone = (sin(fundamentalAngle) + (0.35 * sin(overtoneAngle))) * 0.74
             val amplitude = baseAmplitude * amplitudeScale * extraVolumeFactor
             val value = tone * amplitude * attackEnvelope * decayEnvelope
-            val clampedValue = value.coerceIn(-1.0, 1.0)
+            val clampedValue = value.coerceIn(-1.0, 1.0) * outputGain
             samples[index] = (clampedValue * Short.MAX_VALUE).toInt().toShort()
         }
         return samples

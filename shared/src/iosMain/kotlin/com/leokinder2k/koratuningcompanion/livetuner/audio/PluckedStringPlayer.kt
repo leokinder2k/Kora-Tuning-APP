@@ -26,6 +26,7 @@ actual class PluckedStringPlayer actual constructor(
     )!!
     private val activePlayers = mutableMapOf<Int, AVAudioPlayerNode>()
     private val extraVolumeFactor = 250.0
+    private val outputGain = 0.5
     private var amplitudeScale = 1.0
 
     init {
@@ -51,7 +52,7 @@ actual class PluckedStringPlayer actual constructor(
             val decay = exp(-6.5 * i.toDouble() / count)
             val f = sin(2.0 * PI * frequencyHz * i / sampleRateHz)
             val o = sin(2.0 * PI * frequencyHz * 2.0 * i / sampleRateHz)
-            ((f + 0.35 * o) * 0.74 * amp * attack * decay).coerceIn(-1.0, 1.0).toFloat()
+            (((f + 0.35 * o) * 0.74 * amp * attack * decay).coerceIn(-1.0, 1.0) * outputGain).toFloat()
         }
 
         val buffer = AVAudioPCMBuffer(pCMFormat = format, frameCapacity = count.toUInt()) ?: return

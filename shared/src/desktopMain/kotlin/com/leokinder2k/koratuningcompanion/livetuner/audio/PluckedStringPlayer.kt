@@ -15,6 +15,7 @@ actual class PluckedStringPlayer actual constructor(
     private val pluckDurationMs: Int
 ) {
     private val extraVolumeFactor = 250.0
+    private val outputGain = 0.5
     private var amplitudeScale = 1.0
 
     actual fun setVolumeDb(db: Double) {
@@ -63,7 +64,7 @@ actual class PluckedStringPlayer actual constructor(
             val tone = (sin(fundamentalAngle) + (0.35 * sin(overtoneAngle))) * 0.74
             val amplitude = baseAmplitude * amplitudeScale * extraVolumeFactor
             val value = tone * amplitude * attackEnvelope * decayEnvelope
-            samples[index] = (value.coerceIn(-1.0, 1.0) * Short.MAX_VALUE).toInt().toShort()
+            samples[index] = (value.coerceIn(-1.0, 1.0) * outputGain * Short.MAX_VALUE).toInt().toShort()
         }
         return samples
     }
