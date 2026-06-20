@@ -130,6 +130,7 @@ private enum class ExerciseChoiceMode { PRESET, RANDOM }
 
 private val StickyDiagramHeight = 360.dp
 private const val KORA_DIAGRAM_PDF_ASSET_NAME = "Kora_x22.pdf"
+private const val DEFAULT_OVERVIEW_TONE_VOLUME_DB = 50f
 
 private data class MetronomeTimeSignature(val numerator: Int, val denominator: Int) {
     val label: String = "$numerator/$denominator"
@@ -186,7 +187,7 @@ fun InstantOverviewScreen(
     var metronomeCurrentBeat by remember { mutableStateOf(0) }
     var metronomeTick by remember { mutableStateOf(0L) }
     var metronomeEnabledBeats by remember { mutableStateOf(setOf(1, 3)) }
-    var toneVolumeDb by rememberSaveable { mutableStateOf(70f) }
+    var toneVolumeDb by rememberSaveable { mutableStateOf(DEFAULT_OVERVIEW_TONE_VOLUME_DB) }
     var showNoteLabels by rememberSaveable { mutableStateOf(true) }
     var selectedChordToneOffsets by remember(selectedChordQuality) {
         mutableStateOf(selectedChordQuality.tones.map { it.semitoneOffset }.toSet())

@@ -21,7 +21,7 @@ class PluckedStringPlayer(
 
     fun setVolumeDb(db: Double) {
         val clampedDb = db.coerceIn(0.0, 100.0)
-        amplitudeScale = 10.0.pow((clampedDb - 70.0) / 20.0).coerceAtLeast(0.15)
+        amplitudeScale = 10.0.pow((clampedDb - 70.0) / 20.0).coerceAtLeast(0.01)
     }
 
     private val activeTracks = mutableMapOf<Int, AudioTrack>()

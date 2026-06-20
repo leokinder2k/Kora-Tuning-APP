@@ -179,6 +179,7 @@ private val StickyDiagramHeight = 360.dp
 private const val KORA_DIAGRAM_PDF_ASSET_NAME = "Kora_x22.pdf"
 private const val KORA_DIAGRAM_PDF_PAGE_INDEX = 0
 private const val KORA_DIAGRAM_PDF_SCALE = 2
+private const val DEFAULT_OVERVIEW_TONE_VOLUME_DB = 50f
 private val KORA_DIAGRAM_BITMAP_LOCK = Any()
 private var cachedKoraDiagramBitmap: Bitmap? = null
 
@@ -247,7 +248,7 @@ fun InstantOverviewScreen(
     var metronomeCurrentBeat by remember { mutableIntStateOf(0) }
     var metronomeTick by remember { mutableLongStateOf(0L) }
     var metronomeEnabledBeats by remember { mutableStateOf(setOf(1, 3)) }
-    var toneVolumeDb by rememberSaveable { mutableFloatStateOf(70f) }
+    var toneVolumeDb by rememberSaveable { mutableFloatStateOf(DEFAULT_OVERVIEW_TONE_VOLUME_DB) }
     var showNoteLabels by rememberSaveable { mutableStateOf(true) }
     var selectedChordToneOffsets by remember(selectedChordQuality) {
         mutableStateOf(selectedChordQuality.tones.map { tone -> tone.semitoneOffset }.toSet())
