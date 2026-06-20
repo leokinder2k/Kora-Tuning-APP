@@ -22,11 +22,11 @@ class YinPitchDetector(
     private val maxFrequencyHz: Double = 1200.0,
     /**
      * RMS noise gate expressed as a linear amplitude ratio (full-scale = 1.0).
-     *   -50 dBFS ≈ 0.0032   -55 dBFS ≈ 0.0018   -60 dBFS ≈ 0.0010
-     * Default 0.003 sits just above typical ambient room noise when the
-     * microphone input gain is set to 60–75 % of its maximum.
+     *   -60 dBFS ≈ 0.0010   -66 dBFS ≈ 0.0005   -72 dBFS ≈ 0.00025
+     * Default 0.00025 keeps true digital silence gated while accepting soft
+     * kora plucks that arrive around the 50–63 dB room level range.
      */
-    private val rmsGate: Double = 0.003,
+    private val rmsGate: Double = 0.00025,
     /**
      * YIN absolute threshold applied to the CMNDF.
      * The first τ at which CMNDF falls below this value is accepted as the

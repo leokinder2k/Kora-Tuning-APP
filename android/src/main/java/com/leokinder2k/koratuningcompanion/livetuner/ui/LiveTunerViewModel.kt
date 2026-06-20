@@ -148,7 +148,7 @@ class LiveTunerViewModel(
                         LiveTunerEngine(
                             frameSource = AudioRecordFrameSource(),
                             pitchDetector = YinPitchDetector(
-                                rmsGate = 0.001,               // ≈ -60 dBFS
+                                rmsGate = 0.00025,             // ≈ -72 dBFS for soft kora plucks
                                 yinThreshold = 0.15,
                                 lowStringMaxHz = 200.0,
                                 lowStringMinConfidence = 0.65,

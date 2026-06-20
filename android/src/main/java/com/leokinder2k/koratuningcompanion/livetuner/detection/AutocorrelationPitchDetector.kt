@@ -10,7 +10,7 @@ import kotlin.math.sqrt
 class AutocorrelationPitchDetector(
     private val minFrequencyHz: Double = 60.0,
     private val maxFrequencyHz: Double = 1200.0,
-    private val rmsGate: Double = 0.008,
+    private val rmsGate: Double = 0.00025,
     private val correlationThreshold: Double = 0.55,
     private val refinementSearchHz: Double = 4.0,
     private val refinementIterations: Int = DEFAULT_REFINEMENT_ITERATIONS

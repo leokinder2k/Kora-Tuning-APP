@@ -49,6 +49,27 @@ class AutocorrelationPitchDetectorTest {
     }
 
     @Test
+    fun detectsSoftKoraLevelSignalAroundMinus63Dbfs() {
+        val sampleRate = 44100
+        val frame = sineFrame(
+            frequencyHz = 220.0,
+            sampleRate = sampleRate,
+            size = 16384,
+            phaseOffsetRadians = 0.37,
+            amplitude = 32.0
+        )
+
+        val result = detector.detect(frame, sampleRate)
+
+        assertNotNull("Expected the fallback detector to hear soft kora-level signals", result.frequencyHz)
+        val centsError = centsDifference(result.frequencyHz!!, 220.0)
+        assertTrue(
+            "Expected <= 0.1 cent error for soft signal but got $centsError",
+            centsError <= 0.1
+        )
+    }
+
+    @Test
     fun prefersFirstStrongLocalPeakForOctaveProneSignal() {
         val sampleRate = 44100
         val frame = compositeFrame(
@@ -74,12 +95,13 @@ class AutocorrelationPitchDetectorTest {
         frequencyHz: Double,
         sampleRate: Int,
         size: Int,
-        phaseOffsetRadians: Double
+        phaseOffsetRadians: Double,
+        amplitude: Double = 22000.0
     ): ShortArray {
         val data = ShortArray(size)
         for (index in 0 until size) {
             val value = sin((2.0 * PI * frequencyHz * index / sampleRate) + phaseOffsetRadians)
-            data[index] = (value * 22000.0).toInt().toShort()
+            data[index] = (value * amplitude).toInt().toShort()
         }
         return data
     }

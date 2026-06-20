@@ -116,6 +116,7 @@ private fun defaultEngineFactory(mode: LiveTunerPerformanceMode): LiveTunerEngin
         LiveTunerPerformanceMode.REALTIME -> LiveTunerEngine(
             frameSource = createAudioFrameSource(),
             pitchDetector = AutocorrelationPitchDetector(
+                rmsGate = 0.00025,
                 correlationThreshold = 0.50,
                 refinementSearchHz = 8.0,
                 refinementIterations = 10
@@ -125,6 +126,7 @@ private fun defaultEngineFactory(mode: LiveTunerPerformanceMode): LiveTunerEngin
         LiveTunerPerformanceMode.PRECISION -> LiveTunerEngine(
             frameSource = createAudioFrameSource(),
             pitchDetector = AutocorrelationPitchDetector(
+                rmsGate = 0.00025,
                 correlationThreshold = 0.55,
                 refinementSearchHz = 4.0,
                 refinementIterations = 22

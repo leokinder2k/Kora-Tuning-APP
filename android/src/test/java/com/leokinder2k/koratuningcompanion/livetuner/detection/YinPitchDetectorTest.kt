@@ -46,11 +46,25 @@ class YinPitchDetectorTest {
 
     @Test
     fun returnsNullForSignalBelowNoiseGate() {
-        // ~0.001 RMS → below -60 dBFS; should be gated out
+        // ~0.00013 RMS → below -77 dBFS; should still be gated out
         val sampleRate = 44100
-        val frame = sineFrame(440.0, sampleRate, 8192, amplitude = 25.0)
+        val frame = sineFrame(440.0, sampleRate, 8192, amplitude = 6.0)
         val result = detector.detect(frame, sampleRate)
         assertNull("Signal below noise gate should not produce a pitch", result.frequencyHz)
+    }
+
+    @Test
+    fun detectsSoftKoraLevelSignalAroundMinus63Dbfs() {
+        val sampleRate = 44100
+        val frame = sineFrame(220.0, sampleRate, 8192, amplitude = 32.0)
+        val result = detector.detect(frame, sampleRate)
+
+        assertNotNull("Soft periodic kora signal should be detected", result.frequencyHz)
+        val centsError = centsDiff(result.frequencyHz!!, 220.0)
+        assertTrue(
+            "Expected soft signal to stay pitch accurate but got ${"%.3f".format(centsError)} cents",
+            centsError <= 1.0
+        )
     }
 
     @Test
