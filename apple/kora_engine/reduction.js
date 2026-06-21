@@ -200,10 +200,68 @@ function buildSliceEvents({ slice, selected, splitMidi, melodyId, bassId }) {
       chordSymbol: note.chordSymbol ?? null,
       direction: note.direction ?? null,
       dynamic: note.dynamic ?? null,
-      sourceEventId: note.eventId ?? null,
+      sourceEventId: note.eventId ?? note.sourceEventId ?? null,
+      voice: note.voice ?? null,
+      partId: note.partId ?? null,
+      trackIndex: note.trackIndex ?? null,
     });
   }
   return out;
+}
+
+function reducedNoteMergeKey(event) {
+  if (event?.type !== "NOTE") return null;
+  if (typeof event.sourceEventId !== "string" || event.sourceEventId.length === 0) return null;
+  return [
+    event.sourceEventId,
+    event.pitchMidi,
+    event.staff ?? "",
+    event.voice ?? "",
+    event.partId ?? "",
+    event.trackIndex ?? "",
+  ].join("|");
+}
+
+function sortReducedEvents(a, b) {
+  const typeA = a.type === "NOTE" ? 0 : 1;
+  const typeB = b.type === "NOTE" ? 0 : 1;
+  return a.tick - b.tick || typeA - typeB || (b.pitchMidi ?? -1) - (a.pitchMidi ?? -1);
+}
+
+function mergeContiguousReducedEvents(events) {
+  const sorted = [...events].sort(sortReducedEvents);
+  const merged = [];
+  const lastIndexByKey = new Map();
+
+  for (const event of sorted) {
+    if (event.type === "REST") {
+      const last = merged[merged.length - 1];
+      if (last?.type === "REST" && last.staff === event.staff && last.tick + last.durationTicks === event.tick) {
+        last.durationTicks += event.durationTicks;
+      } else {
+        merged.push({ ...event });
+      }
+      continue;
+    }
+
+    const key = reducedNoteMergeKey(event);
+    const lastIndex = key ? lastIndexByKey.get(key) : undefined;
+    const last = Number.isInteger(lastIndex) ? merged[lastIndex] : null;
+    if (key && last && last.tick + last.durationTicks === event.tick) {
+      last.durationTicks += event.durationTicks;
+      last.tie = {
+        start: Boolean(last.tie?.start),
+        stop: Boolean(event.tie?.stop),
+      };
+      if (!last.lyrics && event.lyrics) last.lyrics = event.lyrics;
+      if (!last.chordSymbol && event.chordSymbol) last.chordSymbol = event.chordSymbol;
+    } else {
+      merged.push({ ...event });
+      if (key) lastIndexByKey.set(key, merged.length - 1);
+    }
+  }
+
+  return merged.sort(sortReducedEvents);
 }
 
 export function buildSimplifiedTeachingReduction({
@@ -282,7 +340,9 @@ export function buildSimplifiedTeachingReduction({
     }),
   }));
 
-  events.sort((a, b) => a.tick - b.tick || (a.type === "NOTE" ? 0 : 1) - (b.type === "NOTE" ? 0 : 1));
+  const mergedEvents = mergeContiguousReducedEvents(events);
+  events.length = 0;
+  events.push(...mergedEvents);
 
   // Assign deterministic IDs after the final stable sort.
   for (let i = 0; i < events.length; i++) {

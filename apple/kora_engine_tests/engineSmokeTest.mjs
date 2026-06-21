@@ -15,6 +15,7 @@ import {
   createEditorState,
   applyEditorEdit,
   estimateDifficultyFromScore,
+  buildSimplifiedTeachingReduction,
 } from "../kora_engine/index.js";
 
 const SAMPLE_MUSICXML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -48,6 +49,22 @@ const cases = [
   { label: "KORA_21", instrumentType: InstrumentType.KORA_21 },
   { label: "KORA_22", instrumentType: InstrumentType.KORA_22_CHROMATIC },
 ];
+
+const reductionWithHeldNote = buildSimplifiedTeachingReduction({
+  noteEvents: [
+    { eventId: "held", tick: 0, durationTicks: 3840, pitchMidi: 72, melodyHint: true },
+    { eventId: "bass_0", tick: 0, durationTicks: 960, pitchMidi: 48 },
+    { eventId: "bass_1", tick: 960, durationTicks: 960, pitchMidi: 49 },
+    { eventId: "bass_2", tick: 1920, durationTicks: 960, pitchMidi: 50 },
+    { eventId: "bass_3", tick: 2880, durationTicks: 960, pitchMidi: 51 },
+  ],
+  cap: 2,
+  splitMidi: 60,
+  mappingCostForMidi: () => 0,
+});
+const heldReduced = reductionWithHeldNote.events.filter((event) => event.sourceEventId === "held");
+assert.equal(heldReduced.length, 1, "held source note should not be split into crotchets");
+assert.equal(heldReduced[0].durationTicks, 3840, "held source note should preserve its full duration");
 
 function assertBytePrefix(bytes, text, label) {
   const prefix = new TextDecoder().decode(bytes.slice(0, text.length));

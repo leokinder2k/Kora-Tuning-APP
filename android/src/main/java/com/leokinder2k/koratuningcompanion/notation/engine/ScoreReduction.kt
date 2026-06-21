@@ -96,6 +96,59 @@ private fun roleForNote(note: NoteEvent, selected: List<NoteEvent>, melody: Note
     }
 }
 
+private fun reducedNoteMergeKey(note: NoteEvent): String? {
+    val sourceId = note.sourceEventId ?: return null
+    return listOf(
+        sourceId,
+        note.pitchMidi.toString(),
+        note.staff.orEmpty(),
+        note.voice?.toString().orEmpty(),
+        note.partId.orEmpty(),
+        note.trackIndex.toString(),
+    ).joinToString("|")
+}
+
+private fun mergeContiguousReducedNotes(notes: List<NoteEvent>): List<NoteEvent> {
+    val sorted = notes.sortedWith(compareBy({ it.tick }, { -it.pitchMidi }, { it.sourceEventId.orEmpty() }))
+    val merged = mutableListOf<NoteEvent>()
+    val lastIndexByKey = mutableMapOf<String, Int>()
+
+    for (note in sorted) {
+        val key = reducedNoteMergeKey(note)
+        val lastIndex = key?.let { lastIndexByKey[it] }
+        val last = lastIndex?.let { merged[it] }
+        if (key != null && last != null && last.tick + last.durationTicks == note.tick) {
+            merged[lastIndex] = last.copy(
+                durationTicks = last.durationTicks + note.durationTicks,
+                tieStop = note.tieStop,
+                lyric = last.lyric ?: note.lyric,
+                chordSymbol = last.chordSymbol ?: note.chordSymbol,
+            )
+        } else {
+            merged.add(note)
+            if (key != null) lastIndexByKey[key] = merged.lastIndex
+        }
+    }
+
+    return merged.sortedWith(compareBy({ it.tick }, { -it.pitchMidi }))
+}
+
+private fun mergeContiguousRests(rests: List<RestEvent>): List<RestEvent> {
+    val sorted = rests.sortedWith(compareBy({ it.tick }, { it.staff.orEmpty() }))
+    val merged = mutableListOf<RestEvent>()
+
+    for (rest in sorted) {
+        val last = merged.lastOrNull()
+        if (last != null && last.staff == rest.staff && last.tick + last.durationTicks == rest.tick) {
+            merged[merged.lastIndex] = last.copy(durationTicks = last.durationTicks + rest.durationTicks)
+        } else {
+            merged.add(rest)
+        }
+    }
+
+    return merged
+}
+
 /**
  * Build a simplified teaching reduction from note events.
  * Returns note and rest events in the simplified score format.
@@ -150,8 +203,11 @@ fun buildSimplifiedTeachingReduction(
                     tieStop = n.tieStop,
                     lyric = n.lyric,
                     chordSymbol = n.chordSymbol,
-                    sourceEventId = n.eventId,
+                    sourceEventId = n.eventId ?: n.sourceEventId,
                     melodyHint = n.melodyHint,
+                    voice = n.voice,
+                    partId = n.partId,
+                    trackIndex = n.trackIndex,
                 )
             )
         }
@@ -162,6 +218,5 @@ fun buildSimplifiedTeachingReduction(
         }
     }
 
-    outNotes.sortWith(compareBy({ it.tick }, { -it.pitchMidi }))
-    return Pair(outNotes, outRests)
+    return Pair(mergeContiguousReducedNotes(outNotes), mergeContiguousRests(outRests))
 }
