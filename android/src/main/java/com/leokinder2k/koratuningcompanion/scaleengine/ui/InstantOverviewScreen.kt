@@ -798,7 +798,7 @@ fun InstantOverviewScreen(
                     pitchShiftByString = pitchShiftByString,
                     tuningPlanByString = tuningPlanByString,
                     playingStringNumbers = playingStringNumbers,
-                    onStringTouched = toggleRow,
+                    onStringTouched = { row -> playRow(row) },
                     onStringSharpened = sharpenRow,
                     onStringFlattened = flattenRow,
                     onPlayAllStrings = {
@@ -1130,6 +1130,7 @@ private fun DiagramOverview(
     }
     val currentDiagramZoom by rememberUpdatedState(diagramZoom)
     val currentOnDiagramZoomChanged by rememberUpdatedState(onDiagramZoomChanged)
+    val currentIsDiagramLocked by rememberUpdatedState(isDiagramLocked)
     val currentPanOffsetX by rememberUpdatedState(panOffsetX)
     val currentPanOffsetY by rememberUpdatedState(panOffsetY)
 
@@ -1188,7 +1189,7 @@ private fun DiagramOverview(
                                     val pointerCount = pressedChanges.size
                                     val currentPositions = pressedChanges.associate { it.id.value to it.position }
                                     when {
-                                        pointerCount >= 2 -> {
+                                        pointerCount >= 2 && !currentIsDiagramLocked -> {
                                             // Pinch zoom
                                             activeStringByPointer.clear()
                                             val keys = currentPositions.keys.toList()
@@ -1211,7 +1212,7 @@ private fun DiagramOverview(
                                             }
                                             event.changes.forEach { it.consume() }
                                         }
-                                        pointerCount == 1 && currentDiagramZoom > 1f -> {
+                                        pointerCount == 1 && currentDiagramZoom > 1f && !currentIsDiagramLocked -> {
                                             // One-finger pan when zoomed in
                                             val change = pressedChanges.first()
                                             val prevPos = prevPositions[change.id.value]
@@ -1231,6 +1232,8 @@ private fun DiagramOverview(
                                                     tapOffset = change.position,
                                                     diagramSize = diagramSize,
                                                     zoom = currentDiagramZoom,
+                                                    panOffsetX = currentPanOffsetX,
+                                                    panOffsetY = currentPanOffsetY,
                                                     leftRows = left,
                                                     rightRows = right,
                                                     maxDistancePx = maxTapDistancePx
@@ -1826,7 +1829,9 @@ private fun resolveDiagramHit(
     zoom: Float,
     leftRows: List<PegCorrectStringResult>,
     rightRows: List<PegCorrectStringResult>,
-    maxDistancePx: Float
+    maxDistancePx: Float,
+    panOffsetX: Float = 0f,
+    panOffsetY: Float = 0f
 ): PegCorrectStringResult? {
     if (diagramSize.width == 0 || diagramSize.height == 0) {
         return null
@@ -1838,7 +1843,9 @@ private fun resolveDiagramHit(
     val unscaledTap = unscaleTapOffset(
         tapOffset = tapOffset,
         size = size,
-        zoom = zoom
+        zoom = zoom,
+        panOffsetX = panOffsetX,
+        panOffsetY = panOffsetY
     )
     return findTappedString(
         tapOffset = unscaledTap,
@@ -1881,16 +1888,22 @@ private fun distancePointToSegment(
 private fun unscaleTapOffset(
     tapOffset: Offset,
     size: Size,
-    zoom: Float
+    zoom: Float,
+    panOffsetX: Float = 0f,
+    panOffsetY: Float = 0f
 ): Offset {
+    val translatedTap = Offset(
+        x = tapOffset.x - panOffsetX,
+        y = tapOffset.y - panOffsetY
+    )
     if (zoom <= 1f) {
-        return tapOffset
+        return translatedTap
     }
     val centerX = size.width * 0.5f
     val centerY = size.height * 0.5f
     return Offset(
-        x = centerX + ((tapOffset.x - centerX) / zoom),
-        y = centerY + ((tapOffset.y - centerY) / zoom)
+        x = centerX + ((translatedTap.x - centerX) / zoom),
+        y = centerY + ((translatedTap.y - centerY) / zoom)
     )
 }
 

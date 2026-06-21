@@ -471,7 +471,7 @@ fun InstantOverviewScreen(
                     OverviewViewMode.DIAGRAM -> DiagramOverview(
                         rows = rows, pitchShiftByString = pitchShiftByString,
                         enharmonicPreference = enharmonicPreference,
-                        playingStringNumbers = playingStringNumbers, onStringTouched = toggleRow,
+                        playingStringNumbers = playingStringNumbers, onStringTouched = { row -> playRow(row) },
                         onStringSharpened = sharpenRow, onStringFlattened = flattenRow,
                         onPlayAllStrings = { rows.forEach { playRow(it) } },
                         onStopAllStrings = stopAllPlayback, showLeverInfo = showLeverInfo,
@@ -711,6 +711,7 @@ private fun DiagramOverview(
     }
     val currentDiagramZoom by rememberUpdatedState(diagramZoom)
     val currentOnDiagramZoomChanged by rememberUpdatedState(onDiagramZoomChanged)
+    val currentIsDiagramLocked by rememberUpdatedState(isDiagramLocked)
     val currentPanOffsetX by rememberUpdatedState(panOffsetX)
     val currentPanOffsetY by rememberUpdatedState(panOffsetY)
     val textMeasurer = rememberTextMeasurer()
@@ -768,7 +769,7 @@ private fun DiagramOverview(
                                     }
                                     val currentPositions = pressedChanges.associate { it.id.value to it.position }
                                     when {
-                                        pressedChanges.size >= 2 -> {
+                                        pressedChanges.size >= 2 && !currentIsDiagramLocked -> {
                                             activeStringByPointer.clear()
                                             val keys = currentPositions.keys.toList()
                                             if (keys.size >= 2) {
@@ -798,7 +799,7 @@ private fun DiagramOverview(
                                             event.changes.forEach { it.consume() }
                                         }
 
-                                        pressedChanges.size == 1 && currentDiagramZoom > 1f -> {
+                                        pressedChanges.size == 1 && currentDiagramZoom > 1f && !currentIsDiagramLocked -> {
                                             activeStringByPointer.clear()
                                             val change = pressedChanges.first()
                                             val previousPosition = previousPositions[change.id.value]
@@ -820,6 +821,8 @@ private fun DiagramOverview(
                                                     tapOffset = change.position,
                                                     diagramSize = diagramSize,
                                                     zoom = currentDiagramZoom,
+                                                    panOffsetX = currentPanOffsetX,
+                                                    panOffsetY = currentPanOffsetY,
                                                     leftRows = left,
                                                     rightRows = right,
                                                     maxDistancePx = maxTapDistancePx
@@ -1064,10 +1067,10 @@ private fun findTappedString(tapOffset: Offset, segments: List<DiagramStringSegm
     return if (distancePointToSegment(tapOffset, nearest.peg, nearest.bridge) <= maxDistancePx) nearest.row else null
 }
 
-private fun resolveDiagramHit(tapOffset: Offset, diagramSize: IntSize, zoom: Float, leftRows: List<PegCorrectStringResult>, rightRows: List<PegCorrectStringResult>, maxDistancePx: Float): PegCorrectStringResult? {
+private fun resolveDiagramHit(tapOffset: Offset, diagramSize: IntSize, zoom: Float, leftRows: List<PegCorrectStringResult>, rightRows: List<PegCorrectStringResult>, maxDistancePx: Float, panOffsetX: Float = 0f, panOffsetY: Float = 0f): PegCorrectStringResult? {
     if (diagramSize.width == 0 || diagramSize.height == 0) return null
     val size = Size(diagramSize.width.toFloat(), diagramSize.height.toFloat())
-    return findTappedString(unscaleTapOffset(tapOffset, size, zoom), buildDiagramStringSegments(leftRows, rightRows, size), maxDistancePx)
+    return findTappedString(unscaleTapOffset(tapOffset, size, zoom, panOffsetX, panOffsetY), buildDiagramStringSegments(leftRows, rightRows, size), maxDistancePx)
 }
 
 private suspend fun PointerInputScope.consumeAllTouches() {
@@ -1088,10 +1091,11 @@ private fun distancePointToSegment(point: Offset, segmentStart: Offset, segmentE
     return sqrt((point.x - cx) * (point.x - cx) + (point.y - cy) * (point.y - cy))
 }
 
-private fun unscaleTapOffset(tapOffset: Offset, size: Size, zoom: Float): Offset {
-    if (zoom <= 1f) return tapOffset
+private fun unscaleTapOffset(tapOffset: Offset, size: Size, zoom: Float, panOffsetX: Float = 0f, panOffsetY: Float = 0f): Offset {
+    val translatedTap = Offset(tapOffset.x - panOffsetX, tapOffset.y - panOffsetY)
+    if (zoom <= 1f) return translatedTap
     val cx = size.width * 0.5f; val cy = size.height * 0.5f
-    return Offset(cx + (tapOffset.x - cx) / zoom, cy + (tapOffset.y - cy) / zoom)
+    return Offset(cx + (translatedTap.x - cx) / zoom, cy + (translatedTap.y - cy) / zoom)
 }
 
 private fun lerp(start: Float, stop: Float, fraction: Float): Float = start + (stop - start) * fraction

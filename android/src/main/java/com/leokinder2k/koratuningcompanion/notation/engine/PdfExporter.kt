@@ -3,11 +3,13 @@ package com.leokinder2k.koratuningcompanion.notation.engine
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import java.io.ByteArrayOutputStream
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 // ── Page geometry ─────────────────────────────────────────────────────────────
 // Margins generous enough to sit inside typical print-bleed lines (~3 mm = 8.5 pt).
@@ -61,6 +63,54 @@ private val DIGIT_LINE_COLORS = mapOf(
 )
 
 private const val MAX_NOTES_PER_LINE = 8
+
+private enum class NoteDurationShape(
+    val beats: Double,
+    val filled: Boolean,
+    val hasStem: Boolean,
+    val flags: Int,
+) {
+    WHOLE(4.0, filled = false, hasStem = false, flags = 0),
+    HALF(2.0, filled = false, hasStem = true, flags = 0),
+    QUARTER(1.0, filled = true, hasStem = true, flags = 0),
+    EIGHTH(0.5, filled = true, hasStem = true, flags = 1),
+    SIXTEENTH(0.25, filled = true, hasStem = true, flags = 2),
+    THIRTY_SECOND(0.125, filled = true, hasStem = true, flags = 3),
+}
+
+private data class RhythmGlyph(
+    val shape: NoteDurationShape,
+    val dots: Int = 0,
+    val tupletLabel: String? = null,
+)
+
+private data class StemPoint(val x: Float, val y: Float)
+
+private fun rhythmGlyphFor(durationTicks: Int, ppq: Int): RhythmGlyph {
+    val safePpq = ppq.coerceAtLeast(1)
+    val safeDuration = durationTicks.coerceAtLeast(1)
+    val candidates = mutableListOf<Pair<Int, RhythmGlyph>>()
+    val shapes = NoteDurationShape.entries
+
+    for (shape in shapes) {
+        for (dots in 0..2) {
+            var beats = shape.beats
+            var add = shape.beats / 2.0
+            repeat(dots) {
+                beats += add
+                add /= 2.0
+            }
+            candidates += (beats * safePpq).roundToInt() to RhythmGlyph(shape, dots = dots)
+        }
+        if (shape != NoteDurationShape.WHOLE) {
+            val tripletTicks = (shape.beats * safePpq * (2.0 / 3.0)).roundToInt()
+            candidates += tripletTicks to RhythmGlyph(shape, tupletLabel = "3")
+        }
+    }
+
+    return candidates.minByOrNull { (ticks, _) -> abs(ticks - safeDuration) }?.second
+        ?: RhythmGlyph(NoteDurationShape.QUARTER)
+}
 
 // ── Paint factory ─────────────────────────────────────────────────────────────
 private fun mkPaint(
@@ -145,9 +195,68 @@ private fun Canvas.noteHead(nx: Float, ny: Float, filled: Boolean) {
     if (filled) drawOval(r, mkPaint()) else drawOval(r, mkPaint(stroke = true, sw = 1.3f))
 }
 
-private fun Canvas.stem(nx: Float, ny: Float, up: Boolean) {
+private fun Canvas.stem(nx: Float, ny: Float, up: Boolean): StemPoint {
     val sx = if (up) nx + NOTE_R - 0.5f else nx - NOTE_R + 0.5f
-    drawLine(sx, ny, sx, if (up) ny - STEM_LEN else ny + STEM_LEN, mkPaint(stroke = true, sw = 1f))
+    val endY = if (up) ny - STEM_LEN else ny + STEM_LEN
+    drawLine(sx, ny, sx, endY, mkPaint(stroke = true, sw = 1f))
+    return StemPoint(sx, endY)
+}
+
+private fun Canvas.flags(stemEnd: StemPoint, up: Boolean, count: Int) {
+    if (count <= 0) return
+    val p = mkPaint(stroke = true, sw = 1.05f)
+    val xDirection = if (up) 1f else -1f
+    val yDirection = if (up) 1f else -1f
+    repeat(count) { flagIndex ->
+        val y = stemEnd.y + yDirection * flagIndex * LINE_SP * 0.62f
+        val path = Path().apply {
+            moveTo(stemEnd.x, y)
+            cubicTo(
+                stemEnd.x + xDirection * LINE_SP * 0.72f,
+                y + yDirection * LINE_SP * 0.18f,
+                stemEnd.x + xDirection * LINE_SP * 1.08f,
+                y + yDirection * LINE_SP * 0.85f,
+                stemEnd.x + xDirection * LINE_SP * 0.42f,
+                y + yDirection * LINE_SP * 1.35f
+            )
+        }
+        drawPath(path, p)
+    }
+}
+
+private fun Canvas.durationDots(nx: Float, ny: Float, count: Int) {
+    val p = mkPaint()
+    repeat(count) { index ->
+        drawCircle(nx + NOTE_R * 1.75f + index * LINE_SP * 0.55f, ny - NOTE_R * 0.12f, 1.45f, p)
+    }
+}
+
+private fun Canvas.tupletMark(nx: Float, ny: Float, stemEnd: StemPoint?, up: Boolean, label: String) {
+    val y = when {
+        stemEnd == null -> ny - NOTE_R * 1.2f
+        up -> stemEnd.y - LINE_SP * 0.35f
+        else -> stemEnd.y + LINE_SP * 1.10f
+    }
+    drawText(label, nx - 3f, y, mkPaint(size = 7f, bold = true))
+}
+
+private fun Canvas.noteGlyph(nx: Float, ny: Float, isTreble: Boolean, glyph: RhythmGlyph) {
+    noteHead(nx, ny, filled = glyph.shape.filled)
+    val stemUp = !isTreble
+    val stemEnd = if (glyph.shape.hasStem) {
+        stem(nx, ny, up = stemUp)
+    } else {
+        null
+    }
+    if (stemEnd != null) {
+        flags(stemEnd, up = stemUp, count = glyph.shape.flags)
+    }
+    if (glyph.dots > 0) {
+        durationDots(nx, ny, glyph.dots)
+    }
+    glyph.tupletLabel?.let { label ->
+        tupletMark(nx, ny, stemEnd, stemUp, label)
+    }
 }
 
 // ── Kora TAB staff helpers ────────────────────────────────────────────────────
@@ -280,9 +389,12 @@ private fun Canvas.renderSystem(
         }
         showAcc?.let { drawText(it, nx - NOTE_R * 2.8f, ny + 3f, mkPaint(size = 9f)) }
 
-        val beats = n.durationTicks.toFloat() / n.ppq.toFloat()
-        noteHead(nx, ny, beats < 3.5f)
-        if (beats < 1.8f) stem(nx, ny, up = !isTreble)
+        noteGlyph(
+            nx = nx,
+            ny = ny,
+            isTreble = isTreble,
+            glyph = rhythmGlyphFor(n.durationTicks, n.ppq)
+        )
 
         // Kora TAB: number ON the correct digit line
         val lineIndex = DIGIT_LINE_ORDER.indexOf(n.digitLine ?: "")

@@ -202,6 +202,74 @@ function drawCirclePath({ x, y, r }) {
   ].join("\n");
 }
 
+const NoteDurationShapes = Object.freeze([
+  Object.freeze({ name: "whole", beats: 4, filled: false, hasStem: false, flags: 0 }),
+  Object.freeze({ name: "half", beats: 2, filled: false, hasStem: true, flags: 0 }),
+  Object.freeze({ name: "quarter", beats: 1, filled: true, hasStem: true, flags: 0 }),
+  Object.freeze({ name: "eighth", beats: 0.5, filled: true, hasStem: true, flags: 1 }),
+  Object.freeze({ name: "sixteenth", beats: 0.25, filled: true, hasStem: true, flags: 2 }),
+  Object.freeze({ name: "thirtySecond", beats: 0.125, filled: true, hasStem: true, flags: 3 }),
+]);
+
+const PC_TO_DIATONIC = Object.freeze([0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6]);
+
+function modulo(n, d) {
+  return ((n % d) + d) % d;
+}
+
+function diatonicStep(midi) {
+  return (Math.floor(midi / 12) - 1) * 7 + PC_TO_DIATONIC[modulo(midi, 12)];
+}
+
+function staffYForMidi({ midi, staff, upperBase, lowerBase, lineSpacing }) {
+  const isLower = staff === "LOWER";
+  const refMidi = isLower ? 43 : 64; // bass bottom-line G2, treble bottom-line E4.
+  const refY = (isLower ? lowerBase : upperBase) - 4 * lineSpacing;
+  return refY + (diatonicStep(midi) - diatonicStep(refMidi)) * (lineSpacing / 2);
+}
+
+function rhythmGlyphFor(durationTicks, ppq) {
+  const safePpq = Number.isInteger(ppq) && ppq > 0 ? ppq : 960;
+  const safeDuration = Number.isInteger(durationTicks) && durationTicks > 0 ? durationTicks : safePpq;
+  const candidates = [];
+
+  for (const shape of NoteDurationShapes) {
+    for (let dots = 0; dots <= 2; dots++) {
+      let beats = shape.beats;
+      let add = shape.beats / 2;
+      for (let i = 0; i < dots; i++) {
+        beats += add;
+        add /= 2;
+      }
+      candidates.push({
+        ticks: Math.round(beats * safePpq),
+        glyph: { ...shape, dots, tupletLabel: null },
+      });
+    }
+    if (shape.name !== "whole") {
+      candidates.push({
+        ticks: Math.round(shape.beats * safePpq * (2 / 3)),
+        glyph: { ...shape, dots: 0, tupletLabel: "3" },
+      });
+    }
+  }
+
+  candidates.sort((a, b) => Math.abs(a.ticks - safeDuration) - Math.abs(b.ticks - safeDuration));
+  return candidates[0]?.glyph ?? { ...NoteDurationShapes[2], dots: 0, tupletLabel: null };
+}
+
+function drawFlagPath({ stemX, stemEndY, stemUp, index, lineSpacing }) {
+  const xDir = stemUp ? 1 : -1;
+  const yDir = stemUp ? -1 : 1;
+  const y = stemEndY + yDir * index * lineSpacing * 0.62;
+  return [
+    `${fmt(stemX)} ${fmt(y)} m`,
+    `${fmt(stemX + xDir * lineSpacing * 0.72)} ${fmt(y + yDir * lineSpacing * 0.18)} ` +
+      `${fmt(stemX + xDir * lineSpacing * 1.08)} ${fmt(y + yDir * lineSpacing * 0.85)} ` +
+      `${fmt(stemX + xDir * lineSpacing * 0.42)} ${fmt(y + yDir * lineSpacing * 1.35)} c`,
+  ].join("\n");
+}
+
 function computeSystemStringUsage({ mappedEvents, startTick, endTick }) {
   const used = new Set();
   for (const e of mappedEvents ?? []) {
@@ -641,19 +709,16 @@ export function exportLessonToPdfBytes({
         }
       }
 
-      // Staff notes (note heads + stems; rests as filled rectangle markers).
-      // Pitch-to-Y: C5(MIDI 72) maps to middle of upper staff; C3(48) to middle of lower staff.
-      // Each semitone step ≈ lineSpacing/2 vertically.
-      const upperRefMidi = 72;
-      const lowerRefMidi = 48;
-      const upperRefY = upperBase - 2 * lineSpacing;   // C5 at treble middle line
-      const lowerRefY = lowerBase - 2 * lineSpacing;   // C3 at bass middle line
+      // Staff notes (Western duration noteheads, stems, flags, dots, and rests).
+      // Pitch-to-Y uses diatonic staff steps so line/space placement follows standard notation.
+      const upperMidlineY = upperBase - 2 * lineSpacing;
+      const lowerMidlineY = lowerBase - 2 * lineSpacing;
       for (const e of s.staffLayer ?? []) {
         if (!Number.isInteger(e?.tick) || !Number.isInteger(e?.durationTicks) || e.durationTicks <= 0) continue;
         const x = xForSystemTick(e.systemTick);
         if (e.type === "REST") {
           // Quarter rests use a compact filled rectangle on the middle line.
-          const ry = e.staff === "LOWER" ? lowerRefY : upperRefY;
+          const ry = e.staff === "LOWER" ? lowerMidlineY : upperMidlineY;
           lines.push(`${fmt(staffLineColor.r)} ${fmt(staffLineColor.g)} ${fmt(staffLineColor.b)} rg`);
           lines.push(`${fmt(x - 4)} ${fmt(ry - 1)} 8 3 re f`);
           continue;
@@ -663,23 +728,57 @@ export function exportLessonToPdfBytes({
         const role = e.role ?? "MELODY";
         const noteColor = parseHexColor(roleColor(paletteResolved, role));
 
-        const yRef = e.staff === "LOWER" ? lowerRefY : upperRefY;
-        const midiRef = e.staff === "LOWER" ? lowerRefMidi : upperRefMidi;
-        const y = yRef + (e.pitchMidi - midiRef) * 2.0;
+        const staffMidlineY = e.staff === "LOWER" ? lowerMidlineY : upperMidlineY;
+        const y = staffYForMidi({
+          midi: e.pitchMidi,
+          staff: e.staff,
+          upperBase,
+          lowerBase,
+          lineSpacing,
+        });
+
+        const glyph = rhythmGlyphFor(e.durationTicks, score.ppq);
 
         // Note head.
         lines.push(`${fmt(noteColor.r)} ${fmt(noteColor.g)} ${fmt(noteColor.b)} rg`);
+        lines.push(`${fmt(noteColor.r)} ${fmt(noteColor.g)} ${fmt(noteColor.b)} RG`);
+        lines.push("0.9 w");
         lines.push(drawCirclePath({ x, y, r: noteHeadR }));
-        lines.push("f");
+        lines.push(glyph.filled ? "f" : "S");
 
         // Stem: up if note is below staff middle, down otherwise.
-        const stemUp = y <= yRef;
+        const stemUp = y <= staffMidlineY;
         const stemX = stemUp ? x + noteHeadR : x - noteHeadR;
         const stemY1 = y;
         const stemY2 = stemUp ? y + stemLen : y - stemLen;
-        lines.push(`${fmt(noteColor.r)} ${fmt(noteColor.g)} ${fmt(noteColor.b)} RG`);
-        lines.push("0.7 w");
-        lines.push(`${fmt(stemX)} ${fmt(stemY1)} m ${fmt(stemX)} ${fmt(stemY2)} l S`);
+        if (glyph.hasStem) {
+          lines.push(`${fmt(noteColor.r)} ${fmt(noteColor.g)} ${fmt(noteColor.b)} RG`);
+          lines.push("0.7 w");
+          lines.push(`${fmt(stemX)} ${fmt(stemY1)} m ${fmt(stemX)} ${fmt(stemY2)} l S`);
+          for (let flagIndex = 0; flagIndex < glyph.flags; flagIndex++) {
+            lines.push(drawFlagPath({ stemX, stemEndY: stemY2, stemUp, index: flagIndex, lineSpacing }));
+            lines.push("S");
+          }
+        }
+
+        if (glyph.dots > 0) {
+          lines.push(`${fmt(noteColor.r)} ${fmt(noteColor.g)} ${fmt(noteColor.b)} rg`);
+          for (let dot = 0; dot < glyph.dots; dot++) {
+            lines.push(drawCirclePath({ x: x + noteHeadR * 1.9 + dot * lineSpacing * 0.55, y, r: 1.25 }));
+            lines.push("f");
+          }
+        }
+
+        const tupletLabel = glyph.tupletLabel ?? (Number.isInteger(e.tuplet?.actual) ? String(e.tuplet.actual) : null);
+        if (tupletLabel) {
+          const labelY = glyph.hasStem ? (stemUp ? stemY2 + 7 : stemY2 - 12) : y + noteHeadR * 1.7;
+          lines.push("BT");
+          lines.push(`/F2 7 Tf`);
+          lines.push(`${fmt(noteColor.r)} ${fmt(noteColor.g)} ${fmt(noteColor.b)} rg`);
+          lines.push(`1 0 0 1 ${fmt(x - 3)} ${fmt(labelY)} Tm`);
+          lines.push(`${pdfLiteralString(tupletLabel)} Tj`);
+          lines.push("ET");
+        }
       }
 
       // Tab tokens.
