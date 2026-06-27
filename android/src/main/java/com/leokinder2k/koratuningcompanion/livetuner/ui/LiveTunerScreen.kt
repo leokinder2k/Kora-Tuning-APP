@@ -360,7 +360,8 @@ fun LiveTunerScreen(
             ChromaticTunerCard(
                 detectedFrequencyHz = tunerUiState.detectedFrequencyHz,
                 isListening = tunerUiState.isListening,
-                enharmonicPreference = enharmonicPreference
+                enharmonicPreference = enharmonicPreference,
+                isMuted = isMuted
             )
 
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -485,11 +486,12 @@ fun LiveTunerScreen(
 private fun ChromaticTunerCard(
     detectedFrequencyHz: Double?,
     isListening: Boolean,
-    enharmonicPreference: EnharmonicPreference
+    enharmonicPreference: EnharmonicPreference,
+    isMuted: Boolean
 ) {
     val allTargets = remember(enharmonicPreference) {
         NoteName.entries.flatMap { note ->
-            (2..6).map { octave ->
+            CHROMATIC_REFERENCE_OCTAVE_RANGE.map { octave ->
                 val pitch = Pitch(note, octave)
                 TunerTarget(
                     stringNumber = note.semitone * 10 + octave,
@@ -504,6 +506,10 @@ private fun ChromaticTunerCard(
     }
 
     var lockedNote by remember { mutableStateOf<NoteName?>(null) }
+    var referenceNote by remember { mutableStateOf(NoteName.A) }
+    var referenceOctave by rememberSaveable { mutableStateOf(4) }
+    val referenceTonePlayer = remember { ReferenceTonePlayer(amplitude = 0.28) }
+    var isChromaticReferenceTonePlaying by rememberSaveable { mutableStateOf(false) }
     val activeTargets = if (lockedNote != null) {
         allTargets.filter { it.targetPitch.note == lockedNote }
     } else {
@@ -513,6 +519,32 @@ private fun ChromaticTunerCard(
     val match = if (isListening && detectedFrequencyHz != null) {
         TunerTargetMatcher.matchNearestTarget(detectedFrequencyHz, activeTargets)
     } else null
+
+    LaunchedEffect(lockedNote) {
+        lockedNote?.let { referenceNote = it }
+    }
+    LaunchedEffect(match?.target?.targetPitch, lockedNote) {
+        val detectedPitch = match?.target?.targetPitch ?: return@LaunchedEffect
+        if (lockedNote == null) {
+            referenceNote = detectedPitch.note
+            referenceOctave = detectedPitch.octave.coerceIn(CHROMATIC_REFERENCE_OCTAVE_RANGE)
+        }
+    }
+
+    val referencePitch = Pitch(referenceNote, referenceOctave)
+    val referenceFrequencyHz = TunerTargetMatcher.pitchToFrequencyHz(referencePitch)
+
+    LaunchedEffect(isChromaticReferenceTonePlaying, referencePitch, isMuted) {
+        if (isChromaticReferenceTonePlaying && !isMuted) {
+            referenceTonePlayer.play(referenceFrequencyHz)
+        } else {
+            referenceTonePlayer.stop()
+            if (isMuted) isChromaticReferenceTonePlaying = false
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose { referenceTonePlayer.release() }
+    }
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -534,8 +566,20 @@ private fun ChromaticTunerCard(
                 items(NoteName.entries) { note ->
                     FilterChip(
                         selected = lockedNote == note,
-                        onClick = { lockedNote = if (lockedNote == note) null else note },
+                        onClick = {
+                            lockedNote = if (lockedNote == note) null else note
+                            lockedNote?.let { referenceNote = it }
+                        },
                         label = { Text(note.chromaticUiLabel(enharmonicPreference)) }
+                    )
+                }
+            }
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(CHROMATIC_REFERENCE_OCTAVE_RANGE.toList()) { octave ->
+                    FilterChip(
+                        selected = referenceOctave == octave,
+                        onClick = { referenceOctave = octave },
+                        label = { Text("Oct $octave") }
                     )
                 }
             }
@@ -548,6 +592,23 @@ private fun ChromaticTunerCard(
                 } ?: if (isListening) "Listening…" else "Start tuner to detect pitch",
                 isActive = isListening && match != null
             )
+            Text(
+                text = "Reference ${referencePitch.asText(enharmonicPreference)} • ${formatFrequency(referenceFrequencyHz)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (!isChromaticReferenceTonePlaying) {
+                Button(
+                    onClick = { isChromaticReferenceTonePlaying = true },
+                    enabled = !isMuted
+                ) {
+                    Text(stringResource(R.string.live_tuner_reference_tone_action_play))
+                }
+            } else {
+                OutlinedButton(onClick = { isChromaticReferenceTonePlaying = false }) {
+                    Text(stringResource(R.string.live_tuner_reference_tone_action_stop))
+                }
+            }
         }
     }
 }
@@ -1090,4 +1151,5 @@ private fun targetRolePosition(target: TunerTarget): Int {
 private const val REFERENCE_TONE_OCTAVE_MULTIPLIER = 2.0
 private const val PEG_TUNING_IN_TUNE_THRESHOLD_CENTS = 200.0
 private const val LIVE_TUNER_GRADIENT_RANGE_CENTS = 50.0
+private val CHROMATIC_REFERENCE_OCTAVE_RANGE = 2..6
 
