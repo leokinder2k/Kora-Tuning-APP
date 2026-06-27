@@ -240,9 +240,13 @@ private fun Canvas.tupletMark(nx: Float, ny: Float, stemEnd: StemPoint?, up: Boo
     drawText(label, nx - 3f, y, mkPaint(size = 7f, bold = true))
 }
 
-private fun Canvas.noteGlyph(nx: Float, ny: Float, isTreble: Boolean, glyph: RhythmGlyph) {
+private fun staffMiddleLineY(systemTop: Float, isTreble: Boolean): Float {
+    val staffTop = systemTop + if (isTreble) 0f else STAFF_H + GRAND_GAP
+    return staffTop + LINE_SP * 2f
+}
+
+private fun Canvas.noteGlyph(nx: Float, ny: Float, stemUp: Boolean, glyph: RhythmGlyph) {
     noteHead(nx, ny, filled = glyph.shape.filled)
-    val stemUp = !isTreble
     val stemEnd = if (glyph.shape.hasStem) {
         stem(nx, ny, up = stemUp)
     } else {
@@ -392,7 +396,10 @@ private fun Canvas.renderSystem(
         noteGlyph(
             nx = nx,
             ny = ny,
-            isTreble = isTreble,
+            stemUp = shouldStemUpForStaffPosition(
+                noteY = ny,
+                staffMiddleLineY = staffMiddleLineY(systemTop, isTreble)
+            ),
             glyph = rhythmGlyphFor(n.durationTicks, n.ppq)
         )
 

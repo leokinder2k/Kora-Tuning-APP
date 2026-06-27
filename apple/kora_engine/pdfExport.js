@@ -258,6 +258,10 @@ function rhythmGlyphFor(durationTicks, ppq) {
   return candidates[0]?.glyph ?? { ...NoteDurationShapes[2], dots: 0, tupletLabel: null };
 }
 
+export function shouldStemUpForStaffPosition({ noteY, staffMidlineY }) {
+  return Number.isFinite(noteY) && Number.isFinite(staffMidlineY) && noteY < staffMidlineY;
+}
+
 function drawFlagPath({ stemX, stemEndY, stemUp, index, lineSpacing }) {
   const xDir = stemUp ? 1 : -1;
   const yDir = stemUp ? -1 : 1;
@@ -746,8 +750,8 @@ export function exportLessonToPdfBytes({
         lines.push(drawCirclePath({ x, y, r: noteHeadR }));
         lines.push(glyph.filled ? "f" : "S");
 
-        // Stem: up if note is below staff middle, down otherwise.
-        const stemUp = y <= staffMidlineY;
+        // Stem/tail: below the middle line goes up on the right; on or above goes down on the left.
+        const stemUp = shouldStemUpForStaffPosition({ noteY: y, staffMidlineY });
         const stemX = stemUp ? x + noteHeadR : x - noteHeadR;
         const stemY1 = y;
         const stemY2 = stemUp ? y + stemLen : y - stemLen;

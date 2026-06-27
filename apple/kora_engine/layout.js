@@ -139,8 +139,8 @@ function computeStemDirections(systems) {
         token.stemDirection = null;
       } else {
         const mid = stemMidLineMidi(token.staff);
-        // Notes strictly above the middle line get stem down; on or below get stem up.
-        token.stemDirection = token.pitchMidi > mid ? "DOWN" : "UP";
+        // Notes on or above the middle line get stem down; below it get stem up.
+        token.stemDirection = token.pitchMidi >= mid ? "DOWN" : "UP";
       }
     }
   }

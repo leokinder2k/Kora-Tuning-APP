@@ -16,6 +16,7 @@ import {
   applyEditorEdit,
   estimateDifficultyFromScore,
   buildSimplifiedTeachingReduction,
+  shouldStemUpForStaffPosition,
 } from "../kora_engine/index.js";
 
 const SAMPLE_MUSICXML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -65,6 +66,22 @@ const reductionWithHeldNote = buildSimplifiedTeachingReduction({
 const heldReduced = reductionWithHeldNote.events.filter((event) => event.sourceEventId === "held");
 assert.equal(heldReduced.length, 1, "held source note should not be split into crotchets");
 assert.equal(heldReduced[0].durationTicks, 3840, "held source note should preserve its full duration");
+
+assert.equal(
+  shouldStemUpForStaffPosition({ noteY: 9, staffMidlineY: 10 }),
+  true,
+  "PDF coordinates below the staff middle line should use an up stem on the right"
+);
+assert.equal(
+  shouldStemUpForStaffPosition({ noteY: 10, staffMidlineY: 10 }),
+  false,
+  "notes on the staff middle line should use a down stem on the left"
+);
+assert.equal(
+  shouldStemUpForStaffPosition({ noteY: 11, staffMidlineY: 10 }),
+  false,
+  "notes above the staff middle line should use a down stem on the left"
+);
 
 function assertBytePrefix(bytes, text, label) {
   const prefix = new TextDecoder().decode(bytes.slice(0, text.length));
