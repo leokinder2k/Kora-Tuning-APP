@@ -13,6 +13,7 @@ gradlePlayPublisher = "4.0.0"
 jetbrainsCompose = "1.10.1"
 jetbrainsLifecycle = "2.9.6"
 okio = "3.9.0"
+mikrosoundfont = "0.3.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -37,6 +38,7 @@ androidx-compose-material3-adaptive-navigation-suite = { group = "androidx.compo
 jetbrains-lifecycle-viewmodel-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "jetbrainsLifecycle" }
 jetbrains-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "jetbrainsLifecycle" }
 okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
+mikrosoundfont-android = { group = "io.github.lemcoder.mikrosoundfont", name = "soundfont-android", version.ref = "mikrosoundfont" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

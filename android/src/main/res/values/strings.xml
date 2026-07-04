@@ -12,6 +12,8 @@
     <string name="nav_overview_short">O</string>
     <string name="nav_tuner_label">Tuner</string>
     <string name="nav_tuner_short">T</string>
+    <string name="nav_synth_label">Synth</string>
+    <string name="nav_synth_short">Y</string>
     <string name="nav_presets_label">Presets</string>
     <string name="nav_presets_short">P</string>
     <string name="nav_notation_label">Notation</string>

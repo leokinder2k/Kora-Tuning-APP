@@ -81,6 +81,7 @@ import com.leokinder2k.koratuningcompanion.scaleengine.ui.GuidedSetupScreen
 import com.leokinder2k.koratuningcompanion.scaleengine.ui.InstantOverviewScreen
 import com.leokinder2k.koratuningcompanion.scaleengine.ui.ScaleCalculationScreen
 import com.leokinder2k.koratuningcompanion.scaleengine.ui.ScaleCalculationViewModel
+import com.leokinder2k.koratuningcompanion.synth.SynthRoute
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import kotlinx.coroutines.launch
@@ -280,6 +281,9 @@ fun KoraAuthorityApp(
                             onToggleMute = { isMuted = !isMuted }
                         )
                     }
+                    AppDestination.SYNTH -> SynthRoute(
+                        modifier = Modifier.fillMaxSize()
+                    )
                     AppDestination.PRESETS -> TraditionalPresetsRoute(
                         enharmonicPreference = enharmonicPreference
                     )
@@ -485,6 +489,7 @@ private enum class AppDestination(
     GUIDED_SETUP(R.string.nav_guided_label, Icons.Default.Tune),
     INSTANT_OVERVIEW(R.string.nav_overview_label, Icons.Default.GridView),
     LIVE_TUNER(R.string.nav_tuner_label, Icons.Default.GraphicEq),
+    SYNTH(R.string.nav_synth_label, Icons.Default.Piano),
     PRESETS(R.string.nav_presets_label, Icons.Default.LibraryMusic),
     NOTATION(R.string.nav_notation_label, Icons.Default.Piano),
 }

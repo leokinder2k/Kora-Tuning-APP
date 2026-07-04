@@ -38,6 +38,11 @@ This project implements the features defined in `SPEC.md`:
 - 21/22 string support
 - Load preset into active instrument profile
 
+7. Controller Synth
+- USB/Bluetooth MIDI input for class-compliant controllers such as Roland A-49
+- Low-latency built-in grand-style fallback sound
+- Optional SoundFont 2 (`.sf2`) import for free GM/piano banks, plus bass split, pad layer, sustain, chord pads, and touch-velocity keys
+
 ## Tech Stack
 
 - Kotlin + Jetpack Compose (Material 3)
@@ -45,6 +50,7 @@ This project implements the features defined in `SPEC.md`:
 - Kotlin Compose plugin `2.3.10`
 - Gradle wrapper `9.2.1`
 - AndroidX DataStore for local persistence
+- MikroSoundFont/TinySoundFont for optional SoundFont rendering
 
 ## Project Structure
 

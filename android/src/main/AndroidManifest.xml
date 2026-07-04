@@ -5,6 +5,8 @@
     <!-- Declare microphone as optional so Play Store doesn't restrict upgrades on devices
          without a microphone (RECORD_AUDIO implicitly adds this feature requirement). -->
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+    <uses-feature android:name="android.software.midi" android:required="false" />
 
     <application
         android:allowBackup="false"
