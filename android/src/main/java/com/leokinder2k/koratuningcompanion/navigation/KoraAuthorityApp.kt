@@ -41,6 +41,7 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -91,7 +92,8 @@ import kotlinx.coroutines.launch
 fun KoraAuthorityApp(
     modifier: Modifier = Modifier,
     themeMode: String = "SYSTEM",
-    onThemeModeChange: (String) -> Unit = {}
+    onThemeModeChange: (String) -> Unit = {},
+    usbAttachRequest: Int = 0
 ) {
     val appContext = LocalContext.current.applicationContext
     val scaleViewModelFactory = remember(appContext) {
@@ -99,8 +101,9 @@ fun KoraAuthorityApp(
     }
 
     val destinations = AppDestination.entries
+    val synthPage = destinations.indexOf(AppDestination.SYNTH)
     val pagerState = rememberPagerState(
-        initialPage = destinations.indexOf(AppDestination.INSTRUMENT_CONFIG),
+        initialPage = if (usbAttachRequest > 0) synthPage else destinations.indexOf(AppDestination.INSTRUMENT_CONFIG),
         pageCount = { destinations.size }
     )
     val coroutineScope = rememberCoroutineScope()
@@ -117,6 +120,12 @@ fun KoraAuthorityApp(
 
     SideEffect {
         EnharmonicDisplayState.preference = enharmonicPreference
+    }
+
+    LaunchedEffect(usbAttachRequest) {
+        if (usbAttachRequest > 0 && pagerState.currentPage != synthPage) {
+            pagerState.scrollToPage(synthPage)
+        }
     }
 
     NavigationSuiteScaffold(

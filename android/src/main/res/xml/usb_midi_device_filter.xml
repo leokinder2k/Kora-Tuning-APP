@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <usb-device
+        vendor-id="1410"
+        product-id="342" />
+    <usb-device
+        class="1"
+        subclass="3" />
+</resources>

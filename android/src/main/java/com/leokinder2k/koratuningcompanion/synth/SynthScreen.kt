@@ -219,10 +219,11 @@ private fun HeaderPanel(
             if (
                 uiState.connectedMidiDevice == null &&
                 uiState.availableMidiDevices.isEmpty() &&
-                uiState.visibleUsbDevices.isNotEmpty()
+                uiState.visibleUsbDevices.isNotEmpty() &&
+                uiState.visibleUsbDevices.none { it.isSupportedMidi }
             ) {
                 Text(
-                    text = "If this stays red, set A-49 FUNCTION > ADV > [-], unplug, then reconnect.",
+                    text = "A-49 is visible, but no usable MIDI endpoint is exposed. Check Generic USB mode and the OTG/powered hub.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -519,7 +520,7 @@ private fun inputDeviceCount(uiState: SynthUiState): Int {
     val directUsbInput = if (
         uiState.connectedMidiDevice != null &&
         uiState.availableMidiDevices.isEmpty() &&
-        uiState.visibleUsbDevices.any { it.isClassCompliantMidi }
+        uiState.visibleUsbDevices.any { it.isSupportedMidi }
     ) {
         1
     } else {
@@ -531,6 +532,6 @@ private fun inputDeviceCount(uiState: SynthUiState): Int {
 private fun usbStatusLabel(devices: List<UsbDeviceSummary>): String {
     val first = devices.firstOrNull() ?: return "USB: none"
     val id = "%04X:%04X".format(first.vendorId, first.productId)
-    val midiTag = if (first.isClassCompliantMidi) " MIDI" else ""
+    val midiTag = first.midiTag?.let { " $it" }.orEmpty()
     return "USB: ${first.name}$midiTag $id"
 }
