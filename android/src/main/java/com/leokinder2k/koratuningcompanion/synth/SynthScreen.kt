@@ -202,7 +202,7 @@ private fun HeaderPanel(
                 )
                 AssistChip(
                     onClick = {},
-                    label = { Text("${uiState.availableMidiDevices.size} device(s)") }
+                    label = { Text("${inputDeviceCount(uiState)} input(s)") }
                 )
                 AssistChip(
                     onClick = onRefreshMidi,
@@ -216,9 +216,13 @@ private fun HeaderPanel(
                     }
                 )
             }
-            if (uiState.availableMidiDevices.isEmpty() && uiState.visibleUsbDevices.isNotEmpty()) {
+            if (
+                uiState.connectedMidiDevice == null &&
+                uiState.availableMidiDevices.isEmpty() &&
+                uiState.visibleUsbDevices.isNotEmpty()
+            ) {
                 Text(
-                    text = "USB is visible, but Android is not exposing MIDI. On A-49 set FUNCTION > ADV > [-], unplug, then reconnect.",
+                    text = "If this stays red, set A-49 FUNCTION > ADV > [-], unplug, then reconnect.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -511,8 +515,22 @@ private suspend fun PointerInputScope.awaitTouch(
 
 private fun velocityPercent(velocity: Float): String = "${(velocity.coerceIn(0f, 1f) * 100).toInt()}%"
 
+private fun inputDeviceCount(uiState: SynthUiState): Int {
+    val directUsbInput = if (
+        uiState.connectedMidiDevice != null &&
+        uiState.availableMidiDevices.isEmpty() &&
+        uiState.visibleUsbDevices.any { it.isClassCompliantMidi }
+    ) {
+        1
+    } else {
+        0
+    }
+    return uiState.availableMidiDevices.size + directUsbInput
+}
+
 private fun usbStatusLabel(devices: List<UsbDeviceSummary>): String {
     val first = devices.firstOrNull() ?: return "USB: none"
     val id = "%04X:%04X".format(first.vendorId, first.productId)
-    return "USB: ${first.name} $id"
+    val midiTag = if (first.isClassCompliantMidi) " MIDI" else ""
+    return "USB: ${first.name}$midiTag $id"
 }
