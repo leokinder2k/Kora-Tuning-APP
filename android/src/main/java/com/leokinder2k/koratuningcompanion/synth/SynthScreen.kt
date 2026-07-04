@@ -27,8 +27,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Piano
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -58,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlin.math.roundToInt
 
 @Composable
 fun SynthRoute(
@@ -71,13 +76,17 @@ fun SynthRoute(
         onVolumeChange = viewModel::setVolume,
         onBassSplitChange = viewModel::setBassSplit,
         onPadLayerChange = viewModel::setPadLayer,
-        onSustainChange = viewModel::setSustain,
         onSplitNoteChange = viewModel::setSplitNote,
         onOctaveShiftChange = viewModel::setOctaveShift,
         onNoteOn = viewModel::noteOn,
         onNoteOff = viewModel::noteOff,
         onPad = viewModel::playPad,
         onAllNotesOff = viewModel::allNotesOff,
+        onToggleRecording = viewModel::toggleRecording,
+        onToggleLoop = viewModel::toggleLoopPlayback,
+        onMetronomeEnabledChange = viewModel::setMetronomeEnabled,
+        onMetronomeBpmChange = viewModel::setMetronomeBpm,
+        onSaveRecording = viewModel::saveRecording,
         onLoadSoundFont = viewModel::loadSoundFont,
         onUseBuiltInSound = viewModel::useBuiltInSound,
         modifier = modifier
@@ -92,13 +101,17 @@ private fun SynthScreen(
     onVolumeChange: (Float) -> Unit,
     onBassSplitChange: (Boolean) -> Unit,
     onPadLayerChange: (Boolean) -> Unit,
-    onSustainChange: (Boolean) -> Unit,
     onSplitNoteChange: (Int) -> Unit,
     onOctaveShiftChange: (Int) -> Unit,
     onNoteOn: (Int, Float) -> Unit,
     onNoteOff: (Int) -> Unit,
     onPad: (Int, PadQuality) -> Unit,
     onAllNotesOff: () -> Unit,
+    onToggleRecording: () -> Unit,
+    onToggleLoop: () -> Unit,
+    onMetronomeEnabledChange: (Boolean) -> Unit,
+    onMetronomeBpmChange: (Float) -> Unit,
+    onSaveRecording: (android.net.Uri) -> Unit,
     onLoadSoundFont: (android.net.Uri) -> Unit,
     onUseBuiltInSound: () -> Unit,
     modifier: Modifier = Modifier
@@ -115,6 +128,9 @@ private fun SynthScreen(
             onLoadSoundFont(uri)
         }
     }
+    val midiSaver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("audio/midi")) { uri ->
+        if (uri != null) onSaveRecording(uri)
+    }
 
     Column(
         modifier = modifier
@@ -130,10 +146,20 @@ private fun SynthScreen(
             onVolumeChange = onVolumeChange,
             onBassSplitChange = onBassSplitChange,
             onPadLayerChange = onPadLayerChange,
-            onSustainChange = onSustainChange,
             onSplitNoteChange = onSplitNoteChange,
             onOctaveShiftChange = onOctaveShiftChange,
             onAllNotesOff = onAllNotesOff
+        )
+
+        RecorderPanel(
+            uiState = uiState,
+            onToggleRecording = onToggleRecording,
+            onToggleLoop = onToggleLoop,
+            onMetronomeEnabledChange = onMetronomeEnabledChange,
+            onMetronomeBpmChange = onMetronomeBpmChange,
+            onSave = {
+                midiSaver.launch("kora-synth-loop.mid")
+            }
         )
 
         SoundFontPanel(
@@ -205,6 +231,10 @@ private fun HeaderPanel(
                     label = { Text("${inputDeviceCount(uiState)} input(s)") }
                 )
                 AssistChip(
+                    onClick = {},
+                    label = { Text(if (uiState.sustainEnabled) "Pedal on" else "Pedal off") }
+                )
+                AssistChip(
                     onClick = onRefreshMidi,
                     label = {
                         Text(
@@ -239,7 +269,6 @@ private fun ControlPanel(
     onVolumeChange: (Float) -> Unit,
     onBassSplitChange: (Boolean) -> Unit,
     onPadLayerChange: (Boolean) -> Unit,
-    onSustainChange: (Boolean) -> Unit,
     onSplitNoteChange: (Int) -> Unit,
     onOctaveShiftChange: (Int) -> Unit,
     onAllNotesOff: () -> Unit
@@ -268,7 +297,6 @@ private fun ControlPanel(
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ToggleChip("Bass split", uiState.bassSplitEnabled, onBassSplitChange)
                 ToggleChip("Pad layer", uiState.padLayerEnabled, onPadLayerChange)
-                ToggleChip("Sustain", uiState.sustainEnabled, onSustainChange)
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -287,6 +315,93 @@ private fun ControlPanel(
                     Text("Stop")
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RecorderPanel(
+    uiState: SynthUiState,
+    onToggleRecording: () -> Unit,
+    onToggleLoop: () -> Unit,
+    onMetronomeEnabledChange: (Boolean) -> Unit,
+    onMetronomeBpmChange: (Float) -> Unit,
+    onSave: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Recorder", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        uiState.recordingStatus,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                AssistChip(
+                    onClick = {},
+                    label = { Text(recordingLengthLabel(uiState)) }
+                )
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onToggleRecording,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (uiState.isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(
+                        imageVector = if (uiState.isRecording) Icons.Default.Stop else Icons.Default.FiberManualRecord,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (uiState.isRecording) "Stop rec" else "Record")
+                }
+                OutlinedButton(
+                    onClick = onToggleLoop,
+                    enabled = uiState.recordedEventCount > 0 && !uiState.isRecording
+                ) {
+                    Icon(
+                        imageVector = if (uiState.isLooping) Icons.Default.Stop else Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (uiState.isLooping) "Stop loop" else "Loop")
+                }
+                OutlinedButton(
+                    onClick = onSave,
+                    enabled = uiState.recordedEventCount > 0 && !uiState.isRecording
+                ) {
+                    Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Save MIDI")
+                }
+                ToggleChip("Click", uiState.metronomeEnabled, onMetronomeEnabledChange)
+            }
+            LabeledSlider(
+                label = "Tempo",
+                valueText = "${uiState.metronomeBpm} bpm",
+                value = ((uiState.metronomeBpm - MinBpm) / (MaxBpm - MinBpm).toFloat()).coerceIn(0f, 1f),
+                onValueChange = { value ->
+                    onMetronomeBpmChange(MinBpm + value * (MaxBpm - MinBpm))
+                }
+            )
         }
     }
 }
@@ -516,6 +631,12 @@ private suspend fun PointerInputScope.awaitTouch(
 
 private fun velocityPercent(velocity: Float): String = "${(velocity.coerceIn(0f, 1f) * 100).toInt()}%"
 
+private fun recordingLengthLabel(uiState: SynthUiState): String {
+    val seconds = uiState.recordedDurationMs / 1000f
+    val duration = "${(seconds * 10f).roundToInt() / 10f}s"
+    return "${uiState.recordedEventCount} events • $duration"
+}
+
 private fun inputDeviceCount(uiState: SynthUiState): Int {
     val directUsbInput = if (
         uiState.connectedMidiDevice != null &&
@@ -535,3 +656,6 @@ private fun usbStatusLabel(devices: List<UsbDeviceSummary>): String {
     val midiTag = first.midiTag?.let { " $it" }.orEmpty()
     return "USB: ${first.name}$midiTag $id"
 }
+
+private const val MinBpm = 60
+private const val MaxBpm = 200

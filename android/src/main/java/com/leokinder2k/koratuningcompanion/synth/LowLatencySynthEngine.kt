@@ -27,6 +27,11 @@ class LowLatencySynthEngine(context: Context) {
     private val renderBuffer = FloatArray(framesPerRender * ChannelCount)
     private val fallbackVoices = mutableListOf<SynthVoice>()
     private val soundFontHeldChannels = mutableMapOf<Int, MutableSet<Int>>()
+    private var clickSamplesRemaining = 0
+    private var clickTotalSamples = 1
+    private var clickPhase = 0.0
+    private var clickPhaseStep = 0.0
+    private var clickGain = 0.0
 
     @Volatile private var audioTrack: AudioTrack? = null
     @Volatile private var renderThread: Thread? = null
@@ -57,9 +62,10 @@ class LowLatencySynthEngine(context: Context) {
             AudioFormat.CHANNEL_OUT_STEREO,
             AudioFormat.ENCODING_PCM_FLOAT
         )
+        val frameBytes = ChannelCount * FloatBytes
         val bufferSizeBytes = max(
-            if (minBufferBytes > 0) minBufferBytes * 2 else 0,
-            framesPerRender * ChannelCount * FloatBytes * 4
+            if (minBufferBytes > 0) minBufferBytes else 0,
+            framesPerRender * frameBytes
         )
         val trackBuilder = AudioTrack.Builder()
             .setAudioAttributes(
@@ -82,6 +88,10 @@ class LowLatencySynthEngine(context: Context) {
         }
 
         val track = trackBuilder.build()
+        runCatching { track.setBufferSizeInFrames((bufferSizeBytes / frameBytes).coerceAtLeast(framesPerRender)) }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            runCatching { track.setStartThresholdInFrames(framesPerRender) }
+        }
         audioTrack = track
         running = true
         renderThread = thread(start = true, name = "KoraSynthAudio") {
@@ -137,6 +147,17 @@ class LowLatencySynthEngine(context: Context) {
         }
     }
 
+    fun playMetronomeClick(accent: Boolean) {
+        synchronized(lock) {
+            clickTotalSamples = (sampleRate * ClickSeconds).toInt().coerceAtLeast(1)
+            clickSamplesRemaining = clickTotalSamples
+            clickPhase = 0.0
+            val frequency = if (accent) AccentClickHz else NormalClickHz
+            clickPhaseStep = TwoPi * frequency / sampleRate
+            clickGain = if (accent) AccentClickGain else NormalClickGain
+        }
+    }
+
     fun noteOn(note: Int, velocity: Float) {
         val midiNote = note.coerceIn(0, 127)
         val safeVelocity = velocity.coerceIn(0.04f, 1f)
@@ -185,6 +206,7 @@ class LowLatencySynthEngine(context: Context) {
             }
             soundFontHeldChannels.clear()
             fallbackVoices.clear()
+            clickSamplesRemaining = 0
         }
     }
 
@@ -248,6 +270,9 @@ class LowLatencySynthEngine(context: Context) {
             } else {
                 target.fill(0f)
             }
+            synchronized(lock) {
+                mixClick(target, frames)
+            }
             return
         }
 
@@ -266,6 +291,23 @@ class LowLatencySynthEngine(context: Context) {
                 target[offset + 1] = softLimit(right * masterVolume)
             }
             fallbackVoices.removeAll { it.isDone }
+            mixClick(target, frames)
+        }
+    }
+
+    private fun mixClick(target: FloatArray, frames: Int) {
+        if (clickSamplesRemaining <= 0) return
+        for (frame in 0 until frames) {
+            if (clickSamplesRemaining <= 0) break
+            val age = 1.0 - (clickSamplesRemaining / clickTotalSamples.toDouble())
+            val envelope = exp(-age * ClickDecay)
+            val sample = (sin(clickPhase) * envelope * clickGain).toFloat()
+            val offset = frame * ChannelCount
+            target[offset] = softLimit(target[offset] + sample)
+            target[offset + 1] = softLimit(target[offset + 1] + sample)
+            clickPhase += clickPhaseStep
+            if (clickPhase > TwoPi) clickPhase -= TwoPi
+            clickSamplesRemaining -= 1
         }
     }
 
@@ -426,6 +468,12 @@ class LowLatencySynthEngine(context: Context) {
         const val BassChannel = 1
         const val PadChannel = 2
         const val TwoPi = PI * 2.0
+        const val ClickSeconds = 0.035
+        const val ClickDecay = 8.0
+        const val AccentClickHz = 1760.0
+        const val NormalClickHz = 1320.0
+        const val AccentClickGain = 0.24
+        const val NormalClickGain = 0.18
 
         fun preferredSampleRate(context: Context): Int {
             val audioManager = context.getSystemService(AudioManager::class.java)
@@ -441,8 +489,8 @@ class LowLatencySynthEngine(context: Context) {
             return audioManager
                 ?.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER)
                 ?.toIntOrNull()
-                ?.coerceIn(96, 512)
-                ?: 192
+                ?.coerceIn(64, 192)
+                ?: 128
         }
 
         fun softLimit(sample: Float): Float {
