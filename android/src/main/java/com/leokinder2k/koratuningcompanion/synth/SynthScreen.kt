@@ -204,6 +204,24 @@ private fun HeaderPanel(
                     onClick = {},
                     label = { Text("${uiState.availableMidiDevices.size} device(s)") }
                 )
+                AssistChip(
+                    onClick = onRefreshMidi,
+                    label = {
+                        Text(
+                            text = usbStatusLabel(uiState.visibleUsbDevices),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 260.dp)
+                        )
+                    }
+                )
+            }
+            if (uiState.availableMidiDevices.isEmpty() && uiState.visibleUsbDevices.isNotEmpty()) {
+                Text(
+                    text = "USB is visible, but Android is not exposing MIDI. On A-49 set FUNCTION > ADV > [-], unplug, then reconnect.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         }
     }
@@ -492,3 +510,9 @@ private suspend fun PointerInputScope.awaitTouch(
 }
 
 private fun velocityPercent(velocity: Float): String = "${(velocity.coerceIn(0f, 1f) * 100).toInt()}%"
+
+private fun usbStatusLabel(devices: List<UsbDeviceSummary>): String {
+    val first = devices.firstOrNull() ?: return "USB: none"
+    val id = "%04X:%04X".format(first.vendorId, first.productId)
+    return "USB: ${first.name} $id"
+}

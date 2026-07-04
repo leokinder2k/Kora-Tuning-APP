@@ -16,11 +16,13 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
     private val midiInput = MidiControllerInput(
         context = application,
         onEvent = ::handleMidiEvent,
-        onStatus = { status, connectedName ->
+        onStatus = { status, connectedName, midiDevices, usbDevices ->
             _uiState.update {
                 it.copy(
                     midiStatus = status,
-                    connectedMidiDevice = connectedName
+                    connectedMidiDevice = connectedName,
+                    availableMidiDevices = midiDevices,
+                    visibleUsbDevices = usbDevices
                 )
             }
         }
@@ -29,7 +31,8 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(
         SynthUiState(
             midiStatus = "Connect A-49 by USB or Bluetooth MIDI",
-            availableMidiDevices = emptyList()
+            availableMidiDevices = emptyList(),
+            visibleUsbDevices = emptyList()
         )
     )
     val uiState: StateFlow<SynthUiState> = _uiState
@@ -44,14 +47,20 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update {
             it.copy(
                 audioRunning = engine.isRunning,
-                availableMidiDevices = midiInput.availableDevices()
+                availableMidiDevices = midiInput.availableDevices(),
+                visibleUsbDevices = midiInput.usbDevices()
             )
         }
     }
 
     fun refreshMidi() {
         midiInput.refreshAndConnect()
-        _uiState.update { it.copy(availableMidiDevices = midiInput.availableDevices()) }
+        _uiState.update {
+            it.copy(
+                availableMidiDevices = midiInput.availableDevices(),
+                visibleUsbDevices = midiInput.usbDevices()
+            )
+        }
     }
 
     fun setVolume(volume: Float) {
@@ -182,6 +191,7 @@ data class SynthUiState(
     val midiStatus: String,
     val connectedMidiDevice: String? = null,
     val availableMidiDevices: List<MidiDeviceSummary>,
+    val visibleUsbDevices: List<UsbDeviceSummary>,
     val soundFontName: String? = null,
     val soundFontStatus: String = "Built-in low-latency piano",
     val volume: Float = 0.74f,

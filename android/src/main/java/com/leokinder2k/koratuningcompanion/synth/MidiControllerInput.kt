@@ -9,13 +9,17 @@ import android.media.midi.MidiReceiver
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import android.hardware.usb.UsbDevice
+import android.hardware.usb.UsbManager
 
 class MidiControllerInput(
     context: Context,
     private val onEvent: (MidiControlEvent) -> Unit,
-    private val onStatus: (String, String?) -> Unit
+    private val onStatus: (String, String?, List<MidiDeviceSummary>, List<UsbDeviceSummary>) -> Unit
 ) {
-    private val midiManager = context.applicationContext.getSystemService(MidiManager::class.java)
+    private val appContext = context.applicationContext
+    private val midiManager = appContext.getSystemService(MidiManager::class.java)
+    private val usbManager = appContext.getSystemService(UsbManager::class.java)
     private val handlerThread = HandlerThread("KoraMidiInput").apply { start() }
     private val handler = Handler(handlerThread.looper)
     private val receiver = ControllerReceiver()
@@ -28,6 +32,14 @@ class MidiControllerInput(
         return midiManager?.devices
             ?.filter { info -> info.ports.any { it.type == MidiDeviceInfo.PortInfo.TYPE_OUTPUT } }
             ?.map { MidiDeviceSummary(it.id, it.displayName()) }
+            ?: emptyList()
+    }
+
+    fun usbDevices(): List<UsbDeviceSummary> {
+        return usbManager?.deviceList
+            ?.values
+            ?.map { it.summary() }
+            ?.sortedBy { it.name }
             ?: emptyList()
     }
 
@@ -46,7 +58,7 @@ class MidiControllerInput(
         midiDevice?.close()
         outputPort = null
         midiDevice = null
-        onStatus("MIDI disconnected", null)
+        emitStatus("MIDI disconnected", null)
     }
 
     fun close() {
@@ -82,7 +94,7 @@ class MidiControllerInput(
     private fun connectToFirstAvailable() {
         val manager = midiManager
         if (manager == null) {
-            onStatus("MIDI is not available on this device", null)
+            emitStatus("MIDI is not available on this device", null)
             return
         }
         val info = manager.devices.firstOrNull { device ->
@@ -90,20 +102,20 @@ class MidiControllerInput(
         }
         if (info == null) {
             disconnect()
-            onStatus("Connect A-49 by USB or Bluetooth MIDI", null)
+            emitStatus(noMidiStatus(), null)
             return
         }
         if (midiDevice?.info?.id == info.id && outputPort != null) {
-            onStatus("Listening to ${info.displayName()}", info.displayName())
+            emitStatus("Listening to ${info.displayName()}", info.displayName())
             return
         }
         disconnect()
-        onStatus("Opening ${info.displayName()}", null)
+        emitStatus("Opening ${info.displayName()}", null)
         manager.openDevice(
             info,
             { openedDevice ->
                 if (openedDevice == null) {
-                    onStatus("Could not open ${info.displayName()}", null)
+                    emitStatus("Could not open ${info.displayName()}", null)
                     return@openDevice
                 }
                 val portNumber = info.ports
@@ -111,22 +123,35 @@ class MidiControllerInput(
                     ?.portNumber
                 if (portNumber == null) {
                     openedDevice.close()
-                    onStatus("No MIDI output port on ${info.displayName()}", null)
+                    emitStatus("No MIDI output port on ${info.displayName()}", null)
                     return@openDevice
                 }
                 val port = openedDevice.openOutputPort(portNumber)
                 if (port == null) {
                     openedDevice.close()
-                    onStatus("Could not listen to ${info.displayName()}", null)
+                    emitStatus("Could not listen to ${info.displayName()}", null)
                     return@openDevice
                 }
                 midiDevice = openedDevice
                 outputPort = port
                 port.connect(receiver)
-                onStatus("Listening to ${info.displayName()}", info.displayName())
+                emitStatus("Listening to ${info.displayName()}", info.displayName())
             },
             handler
         )
+    }
+
+    private fun emitStatus(status: String, connectedName: String?) {
+        onStatus(status, connectedName, availableDevices(), usbDevices())
+    }
+
+    private fun noMidiStatus(): String {
+        val usb = usbDevices()
+        return if (usb.isEmpty()) {
+            "Connect A-49 by USB OTG or Bluetooth MIDI"
+        } else {
+            "USB seen, but no MIDI. Set A-49 FUNCTION > ADV > [-], then reconnect"
+        }
     }
 
     private inner class ControllerReceiver : MidiReceiver() {
@@ -206,6 +231,13 @@ data class MidiDeviceSummary(
     val name: String
 )
 
+data class UsbDeviceSummary(
+    val vendorId: Int,
+    val productId: Int,
+    val name: String,
+    val deviceClass: Int
+)
+
 sealed interface MidiControlEvent {
     data class NoteOn(val note: Int, val velocity: Float) : MidiControlEvent
     data class NoteOff(val note: Int) : MidiControlEvent
@@ -219,4 +251,18 @@ private fun MidiDeviceInfo.displayName(): String {
         props.getString(MidiDeviceInfo.PROPERTY_PRODUCT),
         props.getString(MidiDeviceInfo.PROPERTY_MANUFACTURER)
     ).firstOrNull { it.isNotBlank() } ?: "MIDI device $id"
+}
+
+private fun UsbDevice.summary(): UsbDeviceSummary {
+    val displayName = listOfNotNull(
+        productName,
+        manufacturerName,
+        deviceName.substringAfterLast('/')
+    ).firstOrNull { it.isNotBlank() } ?: "USB device"
+    return UsbDeviceSummary(
+        vendorId = vendorId,
+        productId = productId,
+        name = displayName,
+        deviceClass = deviceClass
+    )
 }
