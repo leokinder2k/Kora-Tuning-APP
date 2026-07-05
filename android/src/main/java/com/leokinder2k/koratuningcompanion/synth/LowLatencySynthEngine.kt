@@ -116,7 +116,7 @@ class LowLatencySynthEngine(context: Context) {
     fun setMasterVolume(value: Float) {
         masterVolume = value.coerceIn(0f, 1f)
         synchronized(lock) {
-            soundFont?.setVolume(masterVolume)
+            soundFont?.setVolume(soundFontRenderVolume())
         }
     }
 
@@ -213,7 +213,7 @@ class LowLatencySynthEngine(context: Context) {
         val loaded = MikroSoundFont.load(bytes)
         loaded.setOutput(SoundFont.OutputMode.STEREO_INTERLEAVED, sampleRate, 0f)
         loaded.setMaxVoices(96)
-        loaded.setVolume(masterVolume)
+        loaded.setVolume(soundFontRenderVolume())
         configureSoundFontPrograms(loaded)
         synchronized(lock) {
             soundFont = loaded
@@ -264,7 +264,7 @@ class LowLatencySynthEngine(context: Context) {
             }
             if (rendered.size >= target.size) {
                 for (index in target.indices) {
-                    target[index] = softLimit(rendered[index] * SoundFontHeadroom)
+                    target[index] = softLimit(rendered[index])
                 }
             } else {
                 target.fill(0f)
@@ -310,6 +310,10 @@ class LowLatencySynthEngine(context: Context) {
             if (clickPhase > TwoPi) clickPhase -= TwoPi
             clickSamplesRemaining -= 1
         }
+    }
+
+    private fun soundFontRenderVolume(): Float {
+        return masterVolume * SoundFontRenderHeadroom
     }
 
     private fun configureSoundFontPrograms(font: SoundFont) {
@@ -468,8 +472,8 @@ class LowLatencySynthEngine(context: Context) {
         const val PianoChannel = 0
         const val BassChannel = 1
         const val PadChannel = 2
-        const val SoundFontHeadroom = 0.82f
-        const val FallbackVoiceHeadroom = 0.78
+        const val SoundFontRenderHeadroom = 0.68f
+        const val FallbackVoiceHeadroom = 0.62
         const val TwoPi = PI * 2.0
         const val ClickSeconds = 0.045
         const val ClickDecay = 7.0
@@ -478,7 +482,7 @@ class LowLatencySynthEngine(context: Context) {
         const val AccentClickGain = 0.52
         const val NormalClickGain = 0.4
         const val LimiterInputCeiling = 4f
-        const val LimiterOutputCeiling = 0.98f
+        const val LimiterOutputCeiling = 0.95f
 
         fun preferredSampleRate(context: Context): Int {
             val audioManager = context.getSystemService(AudioManager::class.java)
