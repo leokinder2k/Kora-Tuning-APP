@@ -169,9 +169,8 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveRecording(uri: Uri) {
         val bpm = _uiState.value.metronomeBpm
-        val includeClickTrack = _uiState.value.metronomeEnabled
         val bytes = synchronized(recorderLock) {
-            if (recorder.events.isEmpty()) null else recorder.toMidiFile(bpm, includeClickTrack = includeClickTrack)
+            if (recorder.events.isEmpty()) null else recorder.toMidiFile(bpm)
         }
         if (bytes == null) {
             _uiState.update { it.copy(recordingStatus = "Record a loop before saving") }

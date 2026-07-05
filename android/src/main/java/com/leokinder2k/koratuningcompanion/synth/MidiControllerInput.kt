@@ -36,7 +36,7 @@ class MidiControllerInput(
     private val usbManager = appContext.getSystemService(UsbManager::class.java)
     private val handlerThread = HandlerThread("KoraMidiInput").apply { start() }
     private val handler = Handler(handlerThread.looper)
-    private val midiParser = MidiMessageParser()
+    private val midiParser = MidiMessageParser(onEvent)
     private val receiver = ControllerReceiver()
 
     private var deviceCallback: MidiManager.DeviceCallback? = null
@@ -303,64 +303,6 @@ class MidiControllerInput(
         }
     }
 
-    private inner class MidiMessageParser {
-        private var runningStatus = 0
-
-        fun parse(data: ByteArray, offset: Int, count: Int) {
-            var index = offset
-            val end = offset + count
-            while (index < end) {
-                val first = data[index].toInt() and 0xff
-                val status = if (first >= StatusByteStart) {
-                    runningStatus = first
-                    index += 1
-                    first
-                } else {
-                    runningStatus
-                }
-                if (status == 0 || index >= end) break
-                when (status and StatusCommandMask) {
-                    NoteOffStatus -> {
-                        if (index + 1 >= end) return
-                        val note = data[index].toInt() and 0xff
-                        index += 2
-                        onEvent(MidiControlEvent.NoteOff(note))
-                    }
-                    NoteOnStatus -> {
-                        if (index + 1 >= end) return
-                        val note = data[index].toInt() and 0xff
-                        val velocity = data[index + 1].toInt() and 0xff
-                        index += 2
-                        if (velocity == 0) {
-                            onEvent(MidiControlEvent.NoteOff(note))
-                        } else {
-                            onEvent(MidiControlEvent.NoteOn(note, velocity / 127f))
-                        }
-                    }
-                    ControlChangeStatus -> {
-                        if (index + 1 >= end) return
-                        val controller = data[index].toInt() and 0xff
-                        val value = data[index + 1].toInt() and 0xff
-                        index += 2
-                        if (controller == SustainPedalController) {
-                            onEvent(MidiControlEvent.Sustain(value >= SustainOnValue))
-                        }
-                    }
-                    PitchBendStatus -> {
-                        if (index + 1 >= end) return
-                        index += 2
-                    }
-                    ProgramChangeStatus, ChannelPressureStatus -> {
-                        index += 1
-                    }
-                    else -> {
-                        index += 1
-                    }
-                }
-            }
-        }
-    }
-
     private inner class UsbMidiSession(
         val deviceName: String,
         val label: String,
@@ -463,16 +405,6 @@ class MidiControllerInput(
     }
 
     private companion object {
-        const val StatusByteStart = 0x80
-        const val StatusCommandMask = 0xf0
-        const val NoteOffStatus = 0x80
-        const val NoteOnStatus = 0x90
-        const val ControlChangeStatus = 0xb0
-        const val ProgramChangeStatus = 0xc0
-        const val ChannelPressureStatus = 0xd0
-        const val PitchBendStatus = 0xe0
-        const val SustainPedalController = 64
-        const val SustainOnValue = 64
         const val DefaultUsbPacketSize = 64
         const val UsbReadTimeoutMs = 20
         const val UsbReaderJoinMs = 200L
@@ -494,6 +426,106 @@ class MidiControllerInput(
         const val UsbMidiCinChannelPressure = 0xd
         const val UsbMidiCinPitchBend = 0xe
         const val UsbMidiCinSingleByte = 0xf
+    }
+}
+
+internal class MidiMessageParser(
+    private val onEvent: (MidiControlEvent) -> Unit
+) {
+    private val pendingData = IntArray(MaxChannelDataBytes)
+    private var runningStatus = 0
+    private var pendingDataCount = 0
+
+    fun parse(data: ByteArray, offset: Int, count: Int) {
+        var index = offset
+        val end = (offset + count).coerceAtMost(data.size)
+        while (index < end) {
+            val value = data[index].toInt() and 0xff
+            index += 1
+
+            if (value >= StatusByteStart) {
+                handleStatusByte(value)
+                continue
+            }
+
+            val status = runningStatus
+            val needed = channelDataByteCount(status)
+            if (status == 0 || needed == 0) {
+                pendingDataCount = 0
+                continue
+            }
+
+            pendingData[pendingDataCount] = value
+            pendingDataCount += 1
+            if (pendingDataCount >= needed) {
+                dispatchChannelMessage(status, pendingData[0], if (needed > 1) pendingData[1] else 0)
+                pendingDataCount = 0
+            }
+        }
+    }
+
+    private fun handleStatusByte(status: Int) {
+        when {
+            status >= RealTimeStatusStart -> {
+                // Real-time messages such as Active Sensing may arrive between data bytes.
+            }
+            status < SystemStatusStart -> {
+                runningStatus = status
+                pendingDataCount = 0
+            }
+            else -> {
+                runningStatus = 0
+                pendingDataCount = 0
+            }
+        }
+    }
+
+    private fun dispatchChannelMessage(status: Int, data1: Int, data2: Int) {
+        when (status and StatusCommandMask) {
+            NoteOffStatus -> onEvent(MidiControlEvent.NoteOff(data1))
+            NoteOnStatus -> {
+                if (data2 == 0) {
+                    onEvent(MidiControlEvent.NoteOff(data1))
+                } else {
+                    onEvent(MidiControlEvent.NoteOn(data1, data2 / 127f))
+                }
+            }
+            ControlChangeStatus -> {
+                if (data1 == SustainPedalController) {
+                    onEvent(MidiControlEvent.Sustain(data2 >= SustainOnValue))
+                }
+            }
+        }
+    }
+
+    private fun channelDataByteCount(status: Int): Int {
+        return when (status and StatusCommandMask) {
+            ProgramChangeStatus,
+            ChannelPressureStatus -> 1
+            NoteOffStatus,
+            NoteOnStatus,
+            PolyPressureStatus,
+            ControlChangeStatus,
+            PitchBendStatus -> 2
+            else -> 0
+        }
+    }
+
+    private companion object {
+        const val MaxChannelDataBytes = 2
+        const val StatusByteStart = 0x80
+        const val SystemStatusStart = 0xf0
+        const val RealTimeStatusStart = 0xf8
+        const val StatusCommandMask = 0xf0
+        const val NoteOffStatus = 0x80
+        const val NoteOnStatus = 0x90
+        const val PolyPressureStatus = 0xa0
+        const val ControlChangeStatus = 0xb0
+        const val ProgramChangeStatus = 0xc0
+        const val ChannelPressureStatus = 0xd0
+        const val PitchBendStatus = 0xe0
+        const val SustainPedalController = 64
+        const val SustainOnValue = 64
     }
 }
 

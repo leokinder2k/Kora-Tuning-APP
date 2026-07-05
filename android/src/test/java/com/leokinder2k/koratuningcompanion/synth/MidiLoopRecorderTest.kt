@@ -1,12 +1,13 @@
 package com.leokinder2k.koratuningcompanion.synth
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MidiLoopRecorderTest {
     @Test
-    fun exportsRecordedNotesAndMetronomeClickTrack() {
+    fun exportsRecordedNotesWithoutMetronomeClickTrackByDefault() {
         val recorder = MidiLoopRecorder()
 
         recorder.start(nowMs = 1_000)
@@ -16,17 +17,17 @@ class MidiLoopRecorderTest {
         recorder.record(RecordedMidiMessage.Sustain(enabled = false), nowMs = 1_750)
         recorder.stop(nowMs = 3_000, minimumMs = 2_000)
 
-        val midi = recorder.toMidiFile(bpm = 120, includeClickTrack = true)
+        val midi = recorder.toMidiFile(bpm = 120)
 
         assertEquals("MThd", midi.asAscii(0, 4))
         assertEquals(1, midi.readInt16(8))
-        assertEquals(3, midi.readInt16(10))
+        assertEquals(2, midi.readInt16(10))
         assertEquals(480, midi.readInt16(12))
-        assertEquals(3, midi.countAsciiChunk("MTrk"))
+        assertEquals(2, midi.countAsciiChunk("MTrk"))
         assertTrue(midi.containsBytes(0x90, 60, 102))
         assertTrue(midi.containsBytes(0x80, 60, 0))
         assertTrue(midi.containsBytes(0xb0, 64, 127))
-        assertTrue(midi.containsBytes(0x99, 76, 96))
+        assertFalse(midi.containsBytes(0x99, 76, 96))
     }
 
     @Test

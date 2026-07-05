@@ -43,7 +43,7 @@ class MidiLoopRecorder {
         isRecording = false
     }
 
-    fun toMidiFile(bpm: Int, includeClickTrack: Boolean): ByteArray {
+    fun toMidiFile(bpm: Int, includeClickTrack: Boolean = false): ByteArray {
         return MidiLoopFileWriter.write(
             events = events,
             durationMs = durationMs.coerceAtLeast(beatMs(bpm) * BeatsPerBar),
