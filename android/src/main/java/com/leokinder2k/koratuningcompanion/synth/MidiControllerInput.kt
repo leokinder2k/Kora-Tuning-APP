@@ -15,6 +15,7 @@ import android.os.Bundle
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.SystemClock
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbEndpoint
@@ -44,6 +45,10 @@ class MidiControllerInput(
     private var midiDevice: MidiDevice? = null
     private var outputPort: MidiOutputPort? = null
     private var usbSession: UsbMidiSession? = null
+    private var watchdogStarted = false
+    private var connectedInputLabel: String? = null
+    private var expectsContinuousMidiData = false
+    private var lastMidiDataAtMs = 0L
 
     fun availableDevices(): List<MidiDeviceSummary> {
         return midiManager?.devices
@@ -63,6 +68,7 @@ class MidiControllerInput(
     fun startAutoConnect() {
         registerDeviceCallback()
         registerUsbReceiver()
+        startWatchdog()
         connectToFirstAvailable()
     }
 
@@ -73,11 +79,14 @@ class MidiControllerInput(
     fun disconnect() {
         disconnectMidiPort()
         disconnectUsbSession()
+        clearConnectedInput()
         emitStatus("MIDI disconnected", null)
     }
 
     fun close() {
         disconnect()
+        watchdogStarted = false
+        handler.removeCallbacksAndMessages(null)
         deviceCallback?.let { callback ->
             midiManager?.unregisterDeviceCallback(callback)
         }
@@ -149,12 +158,6 @@ class MidiControllerInput(
 
     private fun connectToFirstAvailable() {
         val usbCandidate = usbMidiCandidate()
-        if (usbCandidate?.compatibility == UsbMidiCompatibility.RolandAseries) {
-            disconnectMidiPort()
-            connectToUsbMidiFallback(usbCandidate)
-            return
-        }
-
         val manager = midiManager
         val info = manager?.devices?.firstOrNull { device ->
             device.ports.any { it.type == MidiDeviceInfo.PortInfo.TYPE_OUTPUT }
@@ -166,6 +169,7 @@ class MidiControllerInput(
         }
         disconnectUsbSession()
         if (midiDevice?.info?.id == info.id && outputPort != null) {
+            markConnectedInput(info.displayName(), expectsContinuousData = info.isRolandAseriesDevice())
             emitStatus("Listening to ${info.displayName()}", info.displayName())
             return
         }
@@ -195,6 +199,7 @@ class MidiControllerInput(
                 midiDevice = openedDevice
                 outputPort = port
                 port.connect(receiver)
+                markConnectedInput(info.displayName(), expectsContinuousData = info.isRolandAseriesDevice())
                 emitStatus("Listening to ${info.displayName()}", info.displayName())
             },
             handler
@@ -216,6 +221,7 @@ class MidiControllerInput(
         }
         val active = usbSession
         if (active?.deviceName == candidate.device.deviceName && active.isAlive) {
+            markConnectedInput(active.label, expectsContinuousData = active.compatibility == UsbMidiCompatibility.RolandAseries)
             emitStatus(active.listeningStatus(), active.label)
             return
         }
@@ -246,6 +252,7 @@ class MidiControllerInput(
             endpoint = candidate.inputEndpoint,
             onUnexpectedStop = ::handleUsbSessionStopped
         ).also { it.start() }
+        markConnectedInput(candidate.label, expectsContinuousData = candidate.compatibility == UsbMidiCompatibility.RolandAseries)
         emitStatus(usbSession?.listeningStatus() ?: "Listening to ${candidate.label}", candidate.label)
     }
 
@@ -294,11 +301,64 @@ class MidiControllerInput(
         midiDevice?.close()
         outputPort = null
         midiDevice = null
+        clearConnectedInput()
     }
 
     private fun disconnectUsbSession() {
         usbSession?.stop()
         usbSession = null
+        clearConnectedInput()
+    }
+
+    private fun startWatchdog() {
+        if (watchdogStarted) return
+        watchdogStarted = true
+        handler.postDelayed(::checkMidiHealth, MidiWatchdogIntervalMs)
+    }
+
+    private fun checkMidiHealth() {
+        if (!watchdogStarted) return
+        val label = connectedInputLabel
+        if (label != null && expectsContinuousMidiData) {
+            val now = SystemClock.uptimeMillis()
+            val idleMs = now - lastMidiDataAtMs
+            if (idleMs >= MidiReadIdleReconnectMs) {
+                lastMidiDataAtMs = now
+                emitStatus("No MIDI data from $label. Reconnecting...", null)
+                reconnectCurrentInput()
+            }
+        }
+        handler.postDelayed(::checkMidiHealth, MidiWatchdogIntervalMs)
+    }
+
+    private fun reconnectCurrentInput() {
+        disconnectMidiPort()
+        disconnectUsbSession()
+        connectToFirstAvailable()
+    }
+
+    private fun markConnectedInput(label: String, expectsContinuousData: Boolean) {
+        connectedInputLabel = label
+        expectsContinuousMidiData = expectsContinuousData
+        lastMidiDataAtMs = SystemClock.uptimeMillis()
+    }
+
+    private fun clearConnectedInput() {
+        connectedInputLabel = null
+        expectsContinuousMidiData = false
+        lastMidiDataAtMs = 0L
+    }
+
+    private fun dispatchMidiBytes(data: ByteArray, offset: Int, count: Int) {
+        if (count <= 0) return
+        val start = offset.coerceIn(0, data.size)
+        val end = (start + count).coerceAtMost(data.size)
+        if (end <= start) return
+        val copy = data.copyOfRange(start, end)
+        handler.post {
+            lastMidiDataAtMs = SystemClock.uptimeMillis()
+            midiParser.parse(copy, 0, copy.size)
+        }
     }
 
     private fun emitStatus(status: String, connectedName: String?) {
@@ -318,7 +378,7 @@ class MidiControllerInput(
 
     private inner class ControllerReceiver : MidiReceiver() {
         override fun onSend(data: ByteArray, offset: Int, count: Int, timestamp: Long) {
-            midiParser.parse(data, offset, count)
+            dispatchMidiBytes(data, offset, count)
         }
     }
 
@@ -334,6 +394,7 @@ class MidiControllerInput(
         private val running = AtomicBoolean(false)
         private val stopRequested = AtomicBoolean(false)
         private var readerThread: Thread? = null
+        private var streamMode: UsbMidiStreamMode? = null
 
         val isAlive: Boolean
             get() = running.get() && readerThread?.isAlive == true
@@ -378,7 +439,7 @@ class MidiControllerInput(
             while (running.get()) {
                 val count = connection.bulkTransfer(endpoint, buffer, buffer.size, UsbReadTimeoutMs)
                 if (count > 0) {
-                    handleUsbMidiTransfer(buffer, count)
+                    handleTransfer(buffer, count)
                 }
             }
         }
@@ -396,16 +457,25 @@ class MidiControllerInput(
                     if (completed != request) break
                     val count = byteBuffer.position()
                     if (count > 0) {
-                        handleUsbMidiTransfer(buffer, count)
+                        handleTransfer(buffer, count)
                     }
                 }
             } finally {
                 request.close()
             }
         }
+
+        private fun handleTransfer(buffer: ByteArray, count: Int) {
+            val mode = streamMode ?: detectUsbMidiStreamMode(buffer, count) ?: return
+            streamMode = mode
+            when (mode) {
+                UsbMidiStreamMode.Packetized -> handleUsbMidiPacketTransfer(buffer, count)
+                UsbMidiStreamMode.Raw -> dispatchMidiBytes(buffer, 0, count)
+            }
+        }
     }
 
-    private fun handleUsbMidiTransfer(buffer: ByteArray, count: Int) {
+    private fun handleUsbMidiPacketTransfer(buffer: ByteArray, count: Int) {
         var offset = 0
         while (offset + UsbMidiPacketSize <= count) {
             handleUsbMidiPacket(buffer, offset)
@@ -434,15 +504,53 @@ class MidiControllerInput(
             else -> 0
         }
         if (byteCount > 0) {
-            midiParser.parse(buffer, offset + 1, byteCount)
+            dispatchMidiBytes(buffer, offset + 1, byteCount)
         }
+    }
+
+    private fun detectUsbMidiStreamMode(buffer: ByteArray, count: Int): UsbMidiStreamMode? {
+        if (count <= 0) return null
+        if (buffer[0].toInt() and 0x80 != 0) {
+            return UsbMidiStreamMode.Raw
+        }
+        if (count >= UsbMidiPacketSize && looksLikeUsbMidiPackets(buffer, count)) {
+            return UsbMidiStreamMode.Packetized
+        }
+        if (buffer.take(count.coerceAtMost(UsbRawProbeBytes)).any { byte -> byte.toInt() and 0x80 != 0 }) {
+            return UsbMidiStreamMode.Raw
+        }
+        return null
+    }
+
+    private fun looksLikeUsbMidiPackets(buffer: ByteArray, count: Int): Boolean {
+        var offset = 0
+        var packetCount = 0
+        var midiPacketCount = 0
+        while (offset + UsbMidiPacketSize <= count) {
+            packetCount += 1
+            val header = buffer[offset].toInt() and 0xff
+            val codeIndexNumber = header and UsbMidiCodeIndexMask
+            val status = buffer[offset + 1].toInt() and 0xff
+            if (header < 0x80 && codeIndexNumber in UsbMidiChannelVoiceCinRange && status >= 0x80) {
+                midiPacketCount += 1
+            } else if (header == 0 && buffer[offset + 1] == 0.toByte() && buffer[offset + 2] == 0.toByte() && buffer[offset + 3] == 0.toByte()) {
+                // Empty packet padding in a fixed-size USB transfer.
+            } else if (header < 0x10 && codeIndexNumber == UsbMidiCinSingleByte && status >= RealTimeStatusStart) {
+                midiPacketCount += 1
+            }
+            offset += UsbMidiPacketSize
+        }
+        return packetCount > 0 && midiPacketCount > 0
     }
 
     private companion object {
         const val DefaultUsbPacketSize = 64
         const val UsbReadTimeoutMs = 20
         const val UsbReaderJoinMs = 200L
+        const val MidiWatchdogIntervalMs = 1_000L
+        const val MidiReadIdleReconnectMs = 4_000L
         const val UsbMidiPacketSize = 4
+        const val UsbRawProbeBytes = 16
         const val UsbMidiCodeIndexMask = 0x0f
         const val UsbMidiCinMisc = 0x0
         const val UsbMidiCinCableEvent = 0x1
@@ -460,6 +568,8 @@ class MidiControllerInput(
         const val UsbMidiCinChannelPressure = 0xd
         const val UsbMidiCinPitchBend = 0xe
         const val UsbMidiCinSingleByte = 0xf
+        const val RealTimeStatusStart = 0xf8
+        val UsbMidiChannelVoiceCinRange = UsbMidiCinNoteOff..UsbMidiCinPitchBend
     }
 }
 
@@ -586,6 +696,11 @@ private enum class UsbMidiCompatibility(
     )
 }
 
+private enum class UsbMidiStreamMode {
+    Packetized,
+    Raw
+}
+
 private data class UsbMidiCandidate(
     val device: UsbDevice,
     val midiInterface: UsbInterface,
@@ -622,6 +737,20 @@ private fun MidiDeviceInfo.displayName(): String {
         props.getString(MidiDeviceInfo.PROPERTY_PRODUCT),
         props.getString(MidiDeviceInfo.PROPERTY_MANUFACTURER)
     ).firstOrNull { it.isNotBlank() } ?: "MIDI device $id"
+}
+
+private fun MidiDeviceInfo.isRolandAseriesDevice(): Boolean {
+    val props: Bundle = properties
+    val fields = listOfNotNull(
+        props.getString(MidiDeviceInfo.PROPERTY_NAME),
+        props.getString(MidiDeviceInfo.PROPERTY_PRODUCT),
+        props.getString(MidiDeviceInfo.PROPERTY_MANUFACTURER)
+    )
+    return fields.any { value ->
+        value.contains("A-Series", ignoreCase = true) ||
+            value.contains("A-49", ignoreCase = true) ||
+            value.contains("Roland", ignoreCase = true)
+    }
 }
 
 private fun UsbDevice.summary(): UsbDeviceSummary {
