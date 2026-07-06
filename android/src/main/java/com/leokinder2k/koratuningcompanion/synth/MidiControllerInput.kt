@@ -148,13 +148,20 @@ class MidiControllerInput(
     }
 
     private fun connectToFirstAvailable() {
+        val usbCandidate = usbMidiCandidate()
+        if (usbCandidate?.compatibility == UsbMidiCompatibility.RolandAseries) {
+            disconnectMidiPort()
+            connectToUsbMidiFallback(usbCandidate)
+            return
+        }
+
         val manager = midiManager
         val info = manager?.devices?.firstOrNull { device ->
             device.ports.any { it.type == MidiDeviceInfo.PortInfo.TYPE_OUTPUT }
         }
         if (info == null) {
             disconnectMidiPort()
-            connectToUsbMidiFallback()
+            connectToUsbMidiFallback(usbCandidate)
             return
         }
         disconnectUsbSession()
@@ -194,21 +201,21 @@ class MidiControllerInput(
         )
     }
 
-    private fun connectToUsbMidiFallback() {
+    private fun connectToUsbMidiFallback(preferredCandidate: UsbMidiCandidate? = null) {
         val manager = usbManager
         if (manager == null) {
             disconnectUsbSession()
             emitStatus("USB host MIDI is not available on this device", null)
             return
         }
-        val candidate = usbMidiCandidate()
+        val candidate = preferredCandidate ?: usbMidiCandidate()
         if (candidate == null) {
             disconnectUsbSession()
             emitStatus(noMidiStatus(), null)
             return
         }
         val active = usbSession
-        if (active?.deviceName == candidate.device.deviceName) {
+        if (active?.deviceName == candidate.device.deviceName && active.isAlive) {
             emitStatus(active.listeningStatus(), active.label)
             return
         }
@@ -236,9 +243,21 @@ class MidiControllerInput(
             compatibility = candidate.compatibility,
             connection = connection,
             midiInterface = candidate.midiInterface,
-            endpoint = candidate.inputEndpoint
+            endpoint = candidate.inputEndpoint,
+            onUnexpectedStop = ::handleUsbSessionStopped
         ).also { it.start() }
         emitStatus(usbSession?.listeningStatus() ?: "Listening to ${candidate.label}", candidate.label)
+    }
+
+    private fun handleUsbSessionStopped(endedSession: UsbMidiSession) {
+        handler.post {
+            if (usbSession === endedSession) {
+                val label = endedSession.label
+                usbSession = null
+                emitStatus("$label USB MIDI stopped. Reconnecting...", null)
+                connectToFirstAvailable()
+            }
+        }
     }
 
     private fun requestUsbPermission(device: UsbDevice) {
@@ -309,20 +328,34 @@ class MidiControllerInput(
         val compatibility: UsbMidiCompatibility,
         private val connection: UsbDeviceConnection,
         private val midiInterface: UsbInterface,
-        private val endpoint: UsbEndpoint
+        private val endpoint: UsbEndpoint,
+        private val onUnexpectedStop: (UsbMidiSession) -> Unit
     ) {
         private val running = AtomicBoolean(false)
+        private val stopRequested = AtomicBoolean(false)
         private var readerThread: Thread? = null
+
+        val isAlive: Boolean
+            get() = running.get() && readerThread?.isAlive == true
 
         fun start() {
             if (!running.compareAndSet(false, true)) return
+            stopRequested.set(false)
             readerThread = Thread({
-                val packetSize = endpoint.maxPacketSize.coerceAtLeast(DefaultUsbPacketSize)
-                val buffer = ByteArray(packetSize)
-                if (endpoint.type == UsbConstants.USB_ENDPOINT_XFER_INT) {
-                    readInterruptEndpoint(buffer)
-                } else {
-                    readBulkEndpoint(buffer)
+                try {
+                    val packetSize = endpoint.maxPacketSize.coerceAtLeast(DefaultUsbPacketSize)
+                    val buffer = ByteArray(packetSize)
+                    if (endpoint.type == UsbConstants.USB_ENDPOINT_XFER_INT) {
+                        readInterruptEndpoint(buffer)
+                    } else {
+                        readBulkEndpoint(buffer)
+                    }
+                } finally {
+                    val unexpected = !stopRequested.get()
+                    running.set(false)
+                    if (unexpected) {
+                        onUnexpectedStop(this)
+                    }
                 }
             }, "KoraUsbMidiInput").apply {
                 isDaemon = true
@@ -333,6 +366,7 @@ class MidiControllerInput(
         fun listeningStatus(): String = "Listening to $label (${compatibility.statusSuffix})"
 
         fun stop() {
+            stopRequested.set(true)
             running.set(false)
             runCatching { connection.releaseInterface(midiInterface) }
             runCatching { connection.close() }
