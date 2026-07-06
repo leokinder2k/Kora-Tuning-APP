@@ -11,6 +11,7 @@ import io.github.lemcoder.mikrosoundfont.MikroSoundFont
 import io.github.lemcoder.mikrosoundfont.SoundFont
 import kotlin.concurrent.thread
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.min
@@ -31,6 +32,11 @@ class LowLatencySynthEngine(context: Context) {
     private var clickPhase = 0.0
     private var clickPhaseStep = 0.0
     private var clickGain = 0.0
+    private val outputLimiter = SynthOutputLimiter(
+        peakCeiling = LimiterPeakCeiling,
+        hardCeiling = LimiterHardCeiling,
+        release = LimiterRelease
+    )
 
     @Volatile private var audioTrack: AudioTrack? = null
     @Volatile private var renderThread: Thread? = null
@@ -159,7 +165,7 @@ class LowLatencySynthEngine(context: Context) {
 
     fun noteOn(note: Int, velocity: Float) {
         val midiNote = note.coerceIn(0, 127)
-        val safeVelocity = velocity.coerceIn(0.04f, 1f)
+        val safeVelocity = velocity.coerceIn(MinNoteVelocity, MaxNoteVelocity)
         synchronized(lock) {
             val font = soundFont
             if (font != null) {
@@ -206,6 +212,7 @@ class LowLatencySynthEngine(context: Context) {
             soundFontHeldChannels.clear()
             fallbackVoices.clear()
             clickSamplesRemaining = 0
+            outputLimiter.reset()
         }
     }
 
@@ -234,6 +241,9 @@ class LowLatencySynthEngine(context: Context) {
     }
 
     private fun soundFontNoteOn(font: SoundFont, note: Int, velocity: Float) {
+        soundFontHeldChannels.remove(note)?.forEach { channelIndex ->
+            runCatching { font.channels[channelIndex].noteOff(note) }
+        }
         val channels = mutableSetOf<Int>()
         val mainChannel = if (bassSplitEnabled && note < splitNote) BassChannel else PianoChannel
         runCatching { font.channels[mainChannel].noteOn(note, velocity) }
@@ -247,13 +257,19 @@ class LowLatencySynthEngine(context: Context) {
 
     private fun fallbackNoteOn(note: Int, velocity: Float) {
         val mainKind = if (bassSplitEnabled && note < splitNote) VoiceKind.Bass else VoiceKind.Piano
+        removeFallbackVoice(note, mainKind)
         fallbackVoices += SynthVoice(note = note, velocity = velocity, kind = mainKind, sampleRate = sampleRate)
         if (padLayerEnabled && note >= splitNote) {
+            removeFallbackVoice(note, VoiceKind.Pad)
             fallbackVoices += SynthVoice(note = note, velocity = velocity * 0.55f, kind = VoiceKind.Pad, sampleRate = sampleRate)
         }
         while (fallbackVoices.size > MaxFallbackVoices) {
             fallbackVoices.removeAt(0)
         }
+    }
+
+    private fun removeFallbackVoice(note: Int, kind: VoiceKind) {
+        fallbackVoices.removeAll { voice -> voice.note == note && voice.kind == kind }
     }
 
     private fun render(target: FloatArray, frames: Int) {
@@ -264,13 +280,14 @@ class LowLatencySynthEngine(context: Context) {
             }
             if (rendered.size >= target.size) {
                 for (index in target.indices) {
-                    target[index] = softLimit(rendered[index])
+                    target[index] = rendered[index]
                 }
             } else {
                 target.fill(0f)
             }
             synchronized(lock) {
                 mixClick(target, frames)
+                applyOutputGainAndLimiter(target, frames, requestedGain = 1f)
             }
             return
         }
@@ -288,11 +305,18 @@ class LowLatencySynthEngine(context: Context) {
                     right += sample * voice.rightGain
                 }
                 val offset = frame * ChannelCount
-                target[offset] = softLimit(left * masterVolume * voiceMixGain)
-                target[offset + 1] = softLimit(right * masterVolume * voiceMixGain)
+                target[offset] = left
+                target[offset + 1] = right
             }
             fallbackVoices.removeAll { it.isDone }
+            val hadClick = clickSamplesRemaining > 0
             mixClick(target, frames)
+            val requestedGain = if (hadClick && fallbackVoices.isEmpty()) {
+                masterVolume
+            } else {
+                masterVolume * voiceMixGain
+            }
+            applyOutputGainAndLimiter(target, frames, requestedGain)
         }
     }
 
@@ -304,12 +328,16 @@ class LowLatencySynthEngine(context: Context) {
             val envelope = exp(-age * ClickDecay)
             val sample = (sin(clickPhase) * envelope * clickGain).toFloat()
             val offset = frame * ChannelCount
-            target[offset] = softLimit(target[offset] + sample)
-            target[offset + 1] = softLimit(target[offset + 1] + sample)
+            target[offset] += sample
+            target[offset + 1] += sample
             clickPhase += clickPhaseStep
             if (clickPhase > TwoPi) clickPhase -= TwoPi
             clickSamplesRemaining -= 1
         }
+    }
+
+    private fun applyOutputGainAndLimiter(target: FloatArray, frames: Int, requestedGain: Float) {
+        outputLimiter.applyInterleaved(target, frames * ChannelCount, requestedGain)
     }
 
     private fun soundFontRenderVolume(): Float {
@@ -467,13 +495,15 @@ class LowLatencySynthEngine(context: Context) {
     private companion object {
         const val ChannelCount = 2
         const val FloatBytes = 4
-        const val MaxFallbackVoices = 44
+        const val MaxFallbackVoices = 28
         const val SustainPedalControl = 64
         const val PianoChannel = 0
         const val BassChannel = 1
         const val PadChannel = 2
-        const val SoundFontRenderHeadroom = 0.68f
-        const val FallbackVoiceHeadroom = 0.62
+        const val MinNoteVelocity = 0.04f
+        const val MaxNoteVelocity = 0.78f
+        const val SoundFontRenderHeadroom = 0.55f
+        const val FallbackVoiceHeadroom = 0.5
         const val TwoPi = PI * 2.0
         const val ClickSeconds = 0.045
         const val ClickDecay = 7.0
@@ -481,8 +511,9 @@ class LowLatencySynthEngine(context: Context) {
         const val NormalClickHz = 1320.0
         const val AccentClickGain = 0.52
         const val NormalClickGain = 0.4
-        const val LimiterInputCeiling = 4f
-        const val LimiterOutputCeiling = 0.95f
+        const val LimiterPeakCeiling = 0.72f
+        const val LimiterHardCeiling = 0.88f
+        const val LimiterRelease = 0.06f
 
         fun preferredSampleRate(context: Context): Int {
             val audioManager = context.getSystemService(AudioManager::class.java)
@@ -502,10 +533,41 @@ class LowLatencySynthEngine(context: Context) {
                 ?: 128
         }
 
-        fun softLimit(sample: Float): Float {
-            val x = sample.coerceIn(-LimiterInputCeiling, LimiterInputCeiling)
-            val limited = x / sqrt(1.0 + (x * x).toDouble()).toFloat()
-            return limited.coerceIn(-LimiterOutputCeiling, LimiterOutputCeiling)
+    }
+}
+
+internal class SynthOutputLimiter(
+    private val peakCeiling: Float,
+    private val hardCeiling: Float,
+    private val release: Float
+) {
+    private var gain = 1f
+
+    fun reset() {
+        gain = 1f
+    }
+
+    fun applyInterleaved(target: FloatArray, requestedSampleCount: Int, requestedGain: Float) {
+        val sampleCount = requestedSampleCount.coerceAtMost(target.size).coerceAtLeast(0)
+        var peak = 0f
+        for (index in 0 until sampleCount) {
+            peak = max(peak, abs(target[index]))
+        }
+
+        var desiredGain = requestedGain.coerceAtLeast(0f)
+        if (peak > 0f) {
+            desiredGain = min(desiredGain, peakCeiling / peak)
+        } else {
+            desiredGain = 1f
+        }
+        gain = if (desiredGain < gain) {
+            desiredGain
+        } else {
+            gain + ((desiredGain - gain) * release)
+        }
+
+        for (index in 0 until sampleCount) {
+            target[index] = (target[index] * gain).coerceIn(-hardCeiling, hardCeiling)
         }
     }
 }
