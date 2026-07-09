@@ -714,6 +714,11 @@ private enum class UsbMidiCompatibility(
         readyStatus = "USB MIDI ready",
         statusSuffix = "USB direct",
         summaryTag = "MIDI"
+    ),
+    RolandAseries(
+        readyStatus = "A-49 USB ready",
+        statusSuffix = "Roland direct",
+        summaryTag = "A-49"
     )
 }
 
@@ -790,7 +795,7 @@ private fun UsbDevice.usbDisplayName(): String {
 }
 
 private fun UsbDevice.findUsbMidiInputEndpoint(): UsbMidiEndpointMatch? {
-    return findClassCompliantMidiInputEndpoint()
+    return findClassCompliantMidiInputEndpoint() ?: findRolandAseriesMidiInputEndpoint()
 }
 
 private fun UsbDevice.findClassCompliantMidiInputEndpoint(): UsbMidiEndpointMatch? {
@@ -827,6 +832,27 @@ private fun UsbInterface.findMidiInputEndpoint(): UsbEndpoint? {
     val interrupt = endpoints.firstOrNull { it.type == UsbConstants.USB_ENDPOINT_XFER_INT }
     val bulk = endpoints.firstOrNull { it.type == UsbConstants.USB_ENDPOINT_XFER_BULK }
     return bulk ?: interrupt
+}
+
+private fun UsbDevice.findRolandAseriesMidiInputEndpoint(): UsbMidiEndpointMatch? {
+    if (!isRolandAseriesKeyboard()) return null
+    for (interfaceIndex in 0 until interfaceCount) {
+        val usbInterface = getInterface(interfaceIndex)
+        val endpoint = usbInterface.findMidiInputEndpoint()
+        if (endpoint != null) {
+            return UsbMidiEndpointMatch(
+                midiInterface = usbInterface,
+                inputEndpoint = endpoint,
+                compatibility = UsbMidiCompatibility.RolandAseries
+            )
+        }
+    }
+    return null
+}
+
+private fun UsbDevice.isRolandAseriesKeyboard(): Boolean {
+    return vendorId == MidiControllerInputUsbConstants.RolandVendorId &&
+        productId == MidiControllerInputUsbConstants.RolandAseriesProductId
 }
 
 private fun Intent.usbDeviceExtra(): UsbDevice? {
