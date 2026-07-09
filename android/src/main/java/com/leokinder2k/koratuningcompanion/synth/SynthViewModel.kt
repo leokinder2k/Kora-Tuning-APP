@@ -38,6 +38,17 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
                     visibleUsbDevices = usbDevices
                 )
             }
+        },
+        onDiagnostics = { diagnostics ->
+            _uiState.update {
+                it.copy(
+                    midiByteCount = diagnostics.byteCount,
+                    midiEventCount = diagnostics.eventCount,
+                    midiReconnectCount = diagnostics.reconnectCount,
+                    midiInputMode = diagnostics.mode,
+                    midiIdleMs = diagnostics.idleMs
+                )
+            }
         }
     )
 
@@ -461,6 +472,11 @@ data class SynthUiState(
     val octaveShift: Int = 0,
     val lastNote: String = "--",
     val lastVelocity: Float = 0f,
+    val midiByteCount: Long = 0L,
+    val midiEventCount: Long = 0L,
+    val midiReconnectCount: Int = 0,
+    val midiInputMode: String = "Idle",
+    val midiIdleMs: Long? = null,
     val isRecording: Boolean = false,
     val isLooping: Boolean = false,
     val metronomeEnabled: Boolean = true,

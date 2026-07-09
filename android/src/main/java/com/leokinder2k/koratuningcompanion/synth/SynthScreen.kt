@@ -232,6 +232,24 @@ private fun HeaderPanel(
                 )
                 AssistChip(
                     onClick = {},
+                    label = { Text(uiState.midiInputMode) }
+                )
+                AssistChip(
+                    onClick = {},
+                    label = { Text("MIDI ${uiState.midiEventCount} ev ${uiState.midiByteCount} B") }
+                )
+                AssistChip(
+                    onClick = {},
+                    label = { Text("Idle ${midiIdleLabel(uiState.midiIdleMs)}") }
+                )
+                if (uiState.midiReconnectCount > 0) {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text("Reconn ${uiState.midiReconnectCount}") }
+                    )
+                }
+                AssistChip(
+                    onClick = {},
                     label = { Text(if (uiState.sustainEnabled) "Pedal on" else "Pedal off") }
                 )
                 AssistChip(
@@ -655,6 +673,10 @@ private fun usbStatusLabel(devices: List<UsbDeviceSummary>): String {
     val id = "%04X:%04X".format(first.vendorId, first.productId)
     val midiTag = first.midiTag?.let { " $it" }.orEmpty()
     return "USB: ${first.name}$midiTag $id"
+}
+
+private fun midiIdleLabel(idleMs: Long?): String {
+    return idleMs?.let { "${(it / 1000f * 10f).roundToInt() / 10f}s" } ?: "--"
 }
 
 private const val MinBpm = 60
