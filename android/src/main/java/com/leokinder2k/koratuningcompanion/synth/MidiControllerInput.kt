@@ -392,7 +392,7 @@ class MidiControllerInput(
         return if (usb.isEmpty()) {
             "Connect A-49 by USB OTG or Bluetooth MIDI"
         } else if (usb.any { it.vendorId == MidiControllerInputUsbConstants.RolandVendorId && it.productId == MidiControllerInputUsbConstants.RolandAseriesProductId }) {
-            "A-49 is in Advanced USB mode. Set FUNCTION > ADV > - for Generic, then reconnect"
+            "A-49 Advanced mode. Set FUNCTION > ADV > -"
         } else if (usb.any { it.isSupportedMidi }) {
             "USB MIDI ready. Approve Kora USB access if prompted"
         } else {

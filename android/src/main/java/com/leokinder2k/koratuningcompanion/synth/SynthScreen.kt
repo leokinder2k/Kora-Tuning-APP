@@ -207,7 +207,7 @@ private fun HeaderPanel(
                         uiState.midiStatus,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
@@ -271,7 +271,7 @@ private fun HeaderPanel(
                 uiState.visibleUsbDevices.none { it.isSupportedMidi }
             ) {
                 Text(
-                    text = "A-49 is visible, but no usable MIDI endpoint is exposed. Check Generic USB mode and the OTG/powered hub.",
+                    text = "A-49 is visible, but Advanced USB mode exposes no Android MIDI. Set FUNCTION > ADV > -, then reconnect through OTG or a powered hub.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
