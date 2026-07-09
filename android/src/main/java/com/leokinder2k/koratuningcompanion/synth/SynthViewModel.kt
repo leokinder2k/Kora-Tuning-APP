@@ -434,6 +434,9 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
                 recordEvent(RecordedMidiMessage.Sustain(event.enabled))
                 _uiState.update { it.copy(sustainEnabled = event.enabled) }
             }
+            MidiControlEvent.AllNotesOff -> {
+                allNotesOff()
+            }
         }
     }
 

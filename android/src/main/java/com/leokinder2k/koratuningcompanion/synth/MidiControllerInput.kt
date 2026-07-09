@@ -16,6 +16,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.SystemClock
+import android.util.Log
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbEndpoint
@@ -57,6 +58,8 @@ class MidiControllerInput(
     private val midiEventCount = AtomicLong(0L)
     private val reconnectCount = AtomicInteger(0)
     private val lastDiagnosticsEmitAtMs = AtomicLong(0L)
+    private val lastRolandDirectRefreshByteCount = AtomicLong(-1L)
+    private val lastRolandDirectRefreshAtMs = AtomicLong(0L)
 
     fun availableDevices(): List<MidiDeviceSummary> {
         return midiManager?.devices
@@ -250,11 +253,25 @@ class MidiControllerInput(
             emitStatus("Could not claim ${candidate.label} MIDI interface", null)
             return
         }
-        runCatching { connection.setInterface(candidate.midiInterface) }
+        val requiresExplicitAlternateSetting = candidate.midiInterface.alternateSetting > 0
+        val selectedInterface = runCatching {
+            connection.setInterface(candidate.midiInterface)
+        }.getOrDefault(false)
+        if (!selectedInterface && requiresExplicitAlternateSetting) {
+            runCatching { connection.releaseInterface(candidate.midiInterface) }
+            connection.close()
+            emitStatus("Could not select ${candidate.label} ${candidate.transportDetail}", null)
+            return
+        }
+        Log.d(
+            LogTag,
+            "Opening ${candidate.label} ${candidate.transportDetail} endpoint=${candidate.inputEndpoint.address}"
+        )
         usbSession = UsbMidiSession(
             deviceName = candidate.device.deviceName,
             label = candidate.label,
             compatibility = candidate.compatibility,
+            transportDetail = candidate.transportDetail,
             connection = connection,
             midiInterface = candidate.midiInterface,
             endpoint = candidate.inputEndpoint,
@@ -298,6 +315,7 @@ class MidiControllerInput(
                         midiInterface = midiEndpoint.midiInterface,
                         inputEndpoint = midiEndpoint.inputEndpoint,
                         compatibility = midiEndpoint.compatibility,
+                        transportDetail = midiEndpoint.transportDetail,
                         label = device.usbDisplayName()
                     )
                 }
@@ -328,8 +346,38 @@ class MidiControllerInput(
 
     private fun checkMidiHealth() {
         if (!watchdogStarted) return
+        refreshStalledRolandDirectInput()
         emitDiagnostics(force = false)
         handler.postDelayed(::checkMidiHealth, MidiWatchdogIntervalMs)
+    }
+
+    private fun refreshStalledRolandDirectInput() {
+        val active = usbSession ?: return
+        if (active.compatibility != UsbMidiCompatibility.RolandAseries) return
+        if (!active.usesBulkEndpoint) return
+        val lastDataAt = lastMidiDataAtMs.get()
+        if (lastDataAt <= 0L) return
+        val bytesSeen = midiByteCount.get()
+        if (bytesSeen <= 0L) return
+        val idleMs = SystemClock.uptimeMillis() - lastDataAt
+        if (idleMs < RolandDirectIdleReconnectMs) return
+        val lastRefreshAt = lastRolandDirectRefreshAtMs.get()
+        val alreadyRefreshedThisData = lastRolandDirectRefreshByteCount.get() == bytesSeen
+        val refreshCooldownActive =
+            alreadyRefreshedThisData &&
+                lastRefreshAt > 0L &&
+                SystemClock.uptimeMillis() - lastRefreshAt < RolandDirectRefreshRetryMs
+        if (refreshCooldownActive) return
+
+        onEvent(MidiControlEvent.AllNotesOff)
+        lastRolandDirectRefreshByteCount.set(bytesSeen)
+        lastRolandDirectRefreshAtMs.set(SystemClock.uptimeMillis())
+        usbSession = null
+        reconnectCount.incrementAndGet()
+        emitDiagnostics(force = true)
+        emitStatus("${active.label} Roland USB refreshed", null)
+        active.stop()
+        connectToFirstAvailable()
     }
 
     private fun markConnectedInput(label: String, mode: String) {
@@ -410,6 +458,7 @@ class MidiControllerInput(
         val deviceName: String,
         val label: String,
         val compatibility: UsbMidiCompatibility,
+        val transportDetail: String,
         private val connection: UsbDeviceConnection,
         private val midiInterface: UsbInterface,
         private val endpoint: UsbEndpoint,
@@ -422,6 +471,9 @@ class MidiControllerInput(
 
         val isAlive: Boolean
             get() = running.get() && readerThread?.isAlive == true
+
+        val usesBulkEndpoint: Boolean
+            get() = endpoint.type == UsbConstants.USB_ENDPOINT_XFER_BULK
 
         fun start() {
             if (!running.compareAndSet(false, true)) return
@@ -448,9 +500,9 @@ class MidiControllerInput(
             }
         }
 
-        fun listeningStatus(): String = "Listening to $label (${compatibility.statusSuffix})"
+        fun listeningStatus(): String = "Listening to $label (${compatibility.statusSuffix} $transportDetail)"
 
-        fun transportLabel(): String = "Direct USB ${compatibility.statusSuffix}"
+        fun transportLabel(): String = "Direct USB ${compatibility.statusSuffix} $transportDetail"
 
         fun stop() {
             stopRequested.set(true)
@@ -473,9 +525,9 @@ class MidiControllerInput(
         private fun readInterruptEndpoint(buffer: ByteArray) {
             val request = UsbRequest()
             if (!request.initialize(connection, endpoint)) return
-            val byteBuffer = ByteBuffer.wrap(buffer)
             try {
                 while (running.get()) {
+                    val byteBuffer = ByteBuffer.wrap(buffer)
                     byteBuffer.clear()
                     @Suppress("DEPRECATION")
                     if (!request.queue(byteBuffer, buffer.size)) break
@@ -575,6 +627,9 @@ class MidiControllerInput(
         const val UsbReaderJoinMs = 200L
         const val MidiWatchdogIntervalMs = 1_000L
         const val DiagnosticsThrottleMs = 250L
+        const val RolandDirectIdleReconnectMs = 4_000L
+        const val RolandDirectRefreshRetryMs = 2_000L
+        const val LogTag = "KoraMidiInput"
         const val UsbMidiPacketSize = 4
         const val UsbRawProbeBytes = 16
         const val UsbMidiCodeIndexMask = 0x0f
@@ -702,7 +757,8 @@ internal class MidiMessageParser(
 private data class UsbMidiEndpointMatch(
     val midiInterface: UsbInterface,
     val inputEndpoint: UsbEndpoint,
-    val compatibility: UsbMidiCompatibility
+    val compatibility: UsbMidiCompatibility,
+    val transportDetail: String
 )
 
 private enum class UsbMidiCompatibility(
@@ -732,6 +788,7 @@ private data class UsbMidiCandidate(
     val midiInterface: UsbInterface,
     val inputEndpoint: UsbEndpoint,
     val compatibility: UsbMidiCompatibility,
+    val transportDetail: String,
     val label: String
 )
 
@@ -762,6 +819,7 @@ sealed interface MidiControlEvent {
     data class NoteOn(val note: Int, val velocity: Float) : MidiControlEvent
     data class NoteOff(val note: Int) : MidiControlEvent
     data class Sustain(val enabled: Boolean) : MidiControlEvent
+    data object AllNotesOff : MidiControlEvent
 }
 
 private fun MidiDeviceInfo.displayName(): String {
@@ -812,7 +870,8 @@ private fun UsbDevice.findClassCompliantMidiInputEndpoint(): UsbMidiEndpointMatc
             return UsbMidiEndpointMatch(
                 midiInterface = usbInterface,
                 inputEndpoint = endpoint,
-                compatibility = UsbMidiCompatibility.ClassCompliant
+                compatibility = UsbMidiCompatibility.ClassCompliant,
+                transportDetail = usbInterface.transportDetail(endpoint)
             )
         }
     }
@@ -822,13 +881,7 @@ private fun UsbDevice.findClassCompliantMidiInputEndpoint(): UsbMidiEndpointMatc
 private fun UsbInterface.findMidiInputEndpoint(): UsbEndpoint? {
     val endpoints = (0 until endpointCount)
         .map { endpointIndex -> getEndpoint(endpointIndex) }
-        .filter { endpoint ->
-            endpoint.direction == UsbConstants.USB_DIR_IN &&
-                (
-                    endpoint.type == UsbConstants.USB_ENDPOINT_XFER_BULK ||
-                        endpoint.type == UsbConstants.USB_ENDPOINT_XFER_INT
-                )
-        }
+        .filter(UsbEndpoint::isMidiInputEndpoint)
     val interrupt = endpoints.firstOrNull { it.type == UsbConstants.USB_ENDPOINT_XFER_INT }
     val bulk = endpoints.firstOrNull { it.type == UsbConstants.USB_ENDPOINT_XFER_BULK }
     return bulk ?: interrupt
@@ -836,18 +889,48 @@ private fun UsbInterface.findMidiInputEndpoint(): UsbEndpoint? {
 
 private fun UsbDevice.findRolandAseriesMidiInputEndpoint(): UsbMidiEndpointMatch? {
     if (!isRolandAseriesKeyboard()) return null
+    val matches = mutableListOf<UsbMidiEndpointMatch>()
     for (interfaceIndex in 0 until interfaceCount) {
         val usbInterface = getInterface(interfaceIndex)
-        val endpoint = usbInterface.findMidiInputEndpoint()
-        if (endpoint != null) {
-            return UsbMidiEndpointMatch(
+        for (endpointIndex in 0 until usbInterface.endpointCount) {
+            val endpoint = usbInterface.getEndpoint(endpointIndex)
+            if (!endpoint.isMidiInputEndpoint()) continue
+            matches += UsbMidiEndpointMatch(
                 midiInterface = usbInterface,
                 inputEndpoint = endpoint,
-                compatibility = UsbMidiCompatibility.RolandAseries
+                compatibility = UsbMidiCompatibility.RolandAseries,
+                transportDetail = usbInterface.transportDetail(endpoint)
             )
         }
     }
-    return null
+    return matches.firstOrNull { match ->
+        match.inputEndpoint.type == UsbConstants.USB_ENDPOINT_XFER_INT &&
+            match.midiInterface.alternateSetting == RolandAseriesInterruptAltSetting
+    } ?: matches.firstOrNull { match ->
+        match.inputEndpoint.type == UsbConstants.USB_ENDPOINT_XFER_INT &&
+            match.midiInterface.alternateSetting > 0
+    } ?: matches.firstOrNull { match ->
+        match.inputEndpoint.type == UsbConstants.USB_ENDPOINT_XFER_INT
+    } ?: matches.firstOrNull { match ->
+        match.inputEndpoint.type == UsbConstants.USB_ENDPOINT_XFER_BULK
+    }
+}
+
+private fun UsbEndpoint.isMidiInputEndpoint(): Boolean {
+    return direction == UsbConstants.USB_DIR_IN &&
+        (
+            type == UsbConstants.USB_ENDPOINT_XFER_BULK ||
+                type == UsbConstants.USB_ENDPOINT_XFER_INT
+            )
+}
+
+private fun UsbInterface.transportDetail(endpoint: UsbEndpoint): String {
+    val typeLabel = when (endpoint.type) {
+        UsbConstants.USB_ENDPOINT_XFER_INT -> "int"
+        UsbConstants.USB_ENDPOINT_XFER_BULK -> "bulk"
+        else -> "usb"
+    }
+    return "$typeLabel alt$alternateSetting"
 }
 
 private fun UsbDevice.isRolandAseriesKeyboard(): Boolean {
@@ -863,6 +946,8 @@ private fun Intent.usbDeviceExtra(): UsbDevice? {
         getParcelableExtra(UsbManager.EXTRA_DEVICE)
     }
 }
+
+private const val RolandAseriesInterruptAltSetting = 1
 
 private object MidiControllerInputUsbConstants {
     const val MidiStreamingSubclass = 3
