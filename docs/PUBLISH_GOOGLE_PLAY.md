@@ -21,11 +21,15 @@ You must do these steps yourself (requires your Google account):
 
 1. Place your service account key at:
    - `.local-signing/play-service-account.json`
-2. Build + publish (**requires PowerShell 7 / `pwsh`** — not Windows PowerShell 5.1):
+2. Place release signing variables at:
+   - `.local-signing/release-signing.env`
+3. Build + publish (**requires PowerShell 7 / `pwsh`** — not Windows PowerShell 5.1):
 
 ```powershell
 pwsh -ExecutionPolicy Bypass -File scripts\publish_internal_with_symbols.ps1
 ```
+
+The publish script loads `.local-signing/release-signing.env` before `:app:bundleRelease`, so the uploaded AAB is signed with the configured upload key. A plain `.\gradlew.bat :app:bundleRelease` without those environment variables can produce an unsigned local artifact.
 
 > **Note:** The upload script uses `RSA.ImportFromPem()` which requires .NET 5+.
 > Always use `pwsh` (PowerShell 7+), never `powershell.exe` (5.1 / .NET Framework).

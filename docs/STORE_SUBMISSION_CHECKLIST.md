@@ -27,7 +27,7 @@ This is a practical release checklist for Android, iOS, and desktop store/distri
 - [ ] Upload final phone screenshots from a release build.
 - [ ] Upload tablet screenshots if targeting tablets.
 - [ ] Upload feature graphic if the Play Console requires or recommends it for the listing.
-- [ ] Add publisher-controlled support email or support URL.
+- [ ] Add publisher-controlled support email or support URL. Current in-app support link: `https://github.com/leokinder2k/Kora-Tuning-APP/issues`.
 - [ ] Add public privacy policy URL.
 - [ ] Confirm all store claims are accurate and not overstated.
 
@@ -58,13 +58,28 @@ Verify this against the release artifact before submission:
 
 ### Android Release Build
 
-Run from repo root:
+Run validation from repo root:
 
 ```powershell
 $env:GRADLE_USER_HOME = "$PWD\.gradle_user_home"
 .\gradlew.bat :app:lintDebug :app:testDebugUnitTest :app:assembleDebug --no-daemon
-.\gradlew.bat :app:bundleRelease --no-daemon
 ```
+
+Build a signed release AAB without uploading:
+
+```powershell
+$env:GRADLE_USER_HOME = "$PWD\.gradle_user_home"
+Get-Content .\.local-signing\release-signing.env |
+  Where-Object { $_ -match '^[A-Z0-9_]+=.*$' } |
+  ForEach-Object {
+    $parts = $_ -split '=', 2
+    Set-Item -Path "Env:$($parts[0])" -Value $parts[1]
+  }
+.\gradlew.bat :app:bundleRelease --no-daemon
+jarsigner -verify -verbose -certs "android\build\outputs\bundle\release\app-release.aab"
+```
+
+Expected signing result: `jar verified`. A self-signed upload certificate warning is expected for an Android upload key.
 
 Internal test upload:
 
