@@ -12,6 +12,7 @@
     <string name="nav_overview_short">O</string>
     <string name="nav_tuner_label">Tuner</string>
     <string name="nav_tuner_short">T</string>
+    <string name="nav_lever_harp_label">Harp</string>
     <string name="nav_synth_label">Synth</string>
     <string name="nav_synth_short">Y</string>
     <string name="nav_presets_label">Presets</string>

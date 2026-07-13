@@ -75,6 +75,7 @@ import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPref
 import com.leokinder2k.koratuningcompanion.R
 import com.leokinder2k.koratuningcompanion.instrumentconfig.ui.InstrumentConfigurationRoute
 import com.leokinder2k.koratuningcompanion.instrumentconfig.ui.TraditionalPresetsRoute
+import com.leokinder2k.koratuningcompanion.leverharp.LeverHarpRoute
 import com.leokinder2k.koratuningcompanion.livetuner.ui.LiveTunerRoute
 import com.leokinder2k.koratuningcompanion.notation.ui.KoraNotationRoute
 import com.leokinder2k.koratuningcompanion.scaleengine.ui.GuidedSetupScreen
@@ -281,6 +282,11 @@ fun KoraAuthorityApp(
                             onToggleMute = { isMuted = !isMuted }
                         )
                     }
+                    AppDestination.LEVER_HARP -> LeverHarpRoute(
+                        enharmonicPreference = enharmonicPreference,
+                        isMuted = isMuted,
+                        modifier = Modifier.fillMaxSize()
+                    )
                     AppDestination.SYNTH -> SynthRoute(
                         modifier = Modifier.fillMaxSize()
                     )
@@ -489,6 +495,7 @@ private enum class AppDestination(
     GUIDED_SETUP(R.string.nav_guided_label, Icons.Default.Tune),
     INSTANT_OVERVIEW(R.string.nav_overview_label, Icons.Default.GridView),
     LIVE_TUNER(R.string.nav_tuner_label, Icons.Default.GraphicEq),
+    LEVER_HARP(R.string.nav_lever_harp_label, Icons.Default.Piano),
     SYNTH(R.string.nav_synth_label, Icons.Default.Piano),
     PRESETS(R.string.nav_presets_label, Icons.Default.LibraryMusic),
     NOTATION(R.string.nav_notation_label, Icons.Default.Piano),
