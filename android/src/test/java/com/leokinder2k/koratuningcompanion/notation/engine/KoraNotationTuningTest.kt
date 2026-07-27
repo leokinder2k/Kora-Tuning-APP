@@ -20,6 +20,14 @@ class KoraNotationTuningTest {
             listOf("L1", "L2", "L3"),
             mapNotes("F2", "C3", "D3", tuningMidi = tuningMidi).map { it.stringId }
         )
+        assertEquals(
+            listOf("LT:1", "LT:2", "LT:3"),
+            mapNotes("F2", "C3", "D3", tuningMidi = tuningMidi, role = "BASS").map { it.tabText() }
+        )
+        assertEquals(
+            listOf("LF:1", "LF:2", "RF:1"),
+            mapNotes("E5", "C5", "A5", tuningMidi = tuningMidi, role = "MELODY").map { it.tabText() }
+        )
     }
 
     @Test
@@ -44,11 +52,16 @@ class KoraNotationTuningTest {
             listOf("L1", "L2", "L3"),
             mapNotes("E2", "B2", "C#3", tuningMidi = tuningMidi).map { it.stringId }
         )
+        assertEquals(
+            listOf("LT:1", "LT:2", "LT:3"),
+            mapNotes("E2", "B2", "C#3", tuningMidi = tuningMidi, role = "BASS").map { it.tabText() }
+        )
     }
 
     private fun mapNotes(
         vararg noteNames: String,
         tuningMidi: Map<String, Int>,
+        role: String? = null,
     ): List<MappedEvent> {
         val score = SimplifiedScore(
             noteEvents = noteNames.mapIndexed { index, noteName ->
@@ -57,6 +70,7 @@ class KoraNotationTuningTest {
                     tick = index * 960,
                     durationTicks = 960,
                     pitchMidi = noteNameToMidi(noteName),
+                    role = role,
                 )
             },
             restEvents = emptyList(),
@@ -71,4 +85,6 @@ class KoraNotationTuningTest {
             score = score,
         ).events
     }
+
+    private fun MappedEvent.tabText(): String = "${requireNotNull(digitLine)}:${requireNotNull(renderedNumber)}"
 }

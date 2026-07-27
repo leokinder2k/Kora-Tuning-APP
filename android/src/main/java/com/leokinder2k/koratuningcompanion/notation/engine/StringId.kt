@@ -26,8 +26,8 @@ fun allStringIds(instrumentType: KoraInstrumentType): List<String> {
 }
 
 /**
- * Finger numbering is physical index (1-based).
- * Thumb numbering is reversed: N+1 - physicalIndex.
+ * Thumb numbering starts at the bass end: the lowest string in the thumb zone is 1.
+ * Finger numbering starts at the treble end: the highest string in the finger zone is 1.
  */
 fun renderedNumber(instrumentType: KoraInstrumentType, stringId: String, digitLine: String): Int {
     val (side, displayIndex) = parseStringId(stringId)
@@ -41,5 +41,18 @@ fun renderedNumber(instrumentType: KoraInstrumentType, stringId: String, digitLi
     val usesFingerNumbering = digitLine == "LF" || digitLine == "RF"
     val usesThumbNumbering = digitLine == "LT" || digitLine == "RT"
     require(usesFingerNumbering || usesThumbNumbering) { "Unknown digitLine: $digitLine" }
-    return if (usesFingerNumbering) physicalIndex else n + 1 - physicalIndex
+    return if (usesThumbNumbering) {
+        require(physicalIndex <= MAX_TAB_DIGIT) {
+            "$stringId is outside the six-string thumb zone for $digitLine"
+        }
+        physicalIndex
+    } else {
+        val firstFingerIndex = maxOf(1, n - MAX_TAB_DIGIT + 1)
+        require(physicalIndex >= firstFingerIndex) {
+            "$stringId is outside the six-string finger zone for $digitLine"
+        }
+        n - physicalIndex + 1
+    }
 }
+
+private const val MAX_TAB_DIGIT = 6

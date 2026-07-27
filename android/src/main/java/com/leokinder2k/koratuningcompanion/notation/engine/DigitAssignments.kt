@@ -5,14 +5,28 @@ package com.leokinder2k.koratuningcompanion.notation.engine
 private val DIGIT_LINE_ORDER = listOf("LF", "LT", "RT", "RF")
 
 /**
- * Default: both tab lines on each side can address all strings on that side.
- * LF and LT → all left strings; RF and RT → all right strings.
+ * Kora tab lines use six-string hand zones on each side.
+ *
+ * Thumbs count from the bass end upward:
+ * - LT: first six low-left strings
+ * - RT: first six low-right strings
+ *
+ * Fingers count from the treble end downward:
+ * - LF: first six high-left strings
+ * - RF: first six high-right strings
+ *
+ * The middle strings intentionally overlap between thumb and finger zones.
  */
 fun defaultStringToDigitAssignments(instrumentType: KoraInstrumentType): Map<String, List<String>> {
     val ids = allStringIds(instrumentType)
     val left = ids.filter { it.startsWith('L') }
     val right = ids.filter { it.startsWith('R') }
-    return mapOf("LF" to left, "LT" to left, "RF" to right, "RT" to right)
+    return mapOf(
+        "LF" to left.takeLast(MAX_DIGIT),
+        "LT" to left.take(MAX_DIGIT),
+        "RF" to right.takeLast(MAX_DIGIT),
+        "RT" to right.take(MAX_DIGIT),
+    )
 }
 
 fun validateStringToDigitAssignments(instrumentType: KoraInstrumentType, assignments: Map<String, List<String>>) {
@@ -51,3 +65,5 @@ fun digitLinesForString(assignments: Map<String, List<String>>, stringId: String
         .filter { (_, list) -> stringId in list }
         .map { (line, _) -> line }
 }
+
+private const val MAX_DIGIT = 6
