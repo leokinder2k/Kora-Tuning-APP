@@ -41,6 +41,11 @@ data class NotationResult(
     val keyMode: String,     // "MAJOR" or "MINOR"
 )
 
+data class NotationTuningSelection(
+    val name: String,
+    val stringNoteNames: Map<String, String>,
+)
+
 sealed class NotationUiState {
     object Idle : NotationUiState()
     object Loading : NotationUiState()
@@ -82,6 +87,7 @@ class KoraNotationViewModel(
     private var currentTitle: String = "Untitled"
     private var currentSourceKind: String = "MUSICXML"
     private var currentDifficulty: Double = 0.0
+    private var currentTuning: NotationTuningSelection? = null
     // Populated lazily when audio is first generated; used for pitch preview.
     private var currentKoraAudioBase64: String = ""
 
@@ -118,7 +124,12 @@ class KoraNotationViewModel(
         }
     }
 
-    fun processFile(context: Context, uri: Uri, instrumentType: String) {
+    fun processFile(
+        context: Context,
+        uri: Uri,
+        instrumentType: String,
+        tuning: NotationTuningSelection?,
+    ) {
         viewModelScope.launch {
             _uiState.value = NotationUiState.Loading
             try {
@@ -152,6 +163,7 @@ class KoraNotationViewModel(
                                 put("dataBase64", b64)
                                 put("instrumentType", instrumentType)
                                 put("title", title)
+                                putTuningSelection(tuning)
                             }.toString()
                         }
                         "mxl" -> {
@@ -161,6 +173,7 @@ class KoraNotationViewModel(
                                 put("xmlText", xmlText)
                                 put("instrumentType", instrumentType)
                                 put("title", title)
+                                putTuningSelection(tuning)
                             }.toString()
                         }
                         "pdf" -> {
@@ -170,6 +183,7 @@ class KoraNotationViewModel(
                                 put("xmlText", xmlText)
                                 put("instrumentType", instrumentType)
                                 put("title", title)
+                                putTuningSelection(tuning)
                             }.toString()
                         }
                         else -> {
@@ -179,6 +193,7 @@ class KoraNotationViewModel(
                                 put("xmlText", xmlText)
                                 put("instrumentType", instrumentType)
                                 put("title", title)
+                                putTuningSelection(tuning)
                             }.toString()
                         }
                     }
@@ -190,6 +205,7 @@ class KoraNotationViewModel(
                 currentTitle = result.title
                 currentSourceKind = result.sourceKind
                 currentDifficulty = result.difficulty
+                currentTuning = tuning
                 currentKoraAudioBase64 = ""
                 _transposeOffset.value = 0
                 _originalKeyFifths.value = result.keyFifths
@@ -222,6 +238,7 @@ class KoraNotationViewModel(
                     put("instrumentType", currentInstrumentType)
                     put("title", currentTitle)
                     put("sourceKind", currentSourceKind)
+                    putTuningSelection(currentTuning)
                 }.toString()
                 val resultJson = withContext(Dispatchers.Default) { engine.edit(paramsJson) }
                 val result = parseResult(resultJson)
@@ -249,6 +266,7 @@ class KoraNotationViewModel(
                 val paramsJson = JSONObject().apply {
                     put("score", JSONObject(score))
                     put("instrumentType", currentInstrumentType)
+                    putTuningSelection(currentTuning)
                 }.toString()
                 val resultJson = withContext(Dispatchers.Default) { engine.exportAudio(paramsJson) }
                 val obj = JSONObject(resultJson)
@@ -274,6 +292,7 @@ class KoraNotationViewModel(
                     put("instrumentType", currentInstrumentType)
                     put("title", currentTitle)
                     put("difficulty", currentDifficulty)
+                    putTuningSelection(currentTuning)
                 }.toString()
                 val resultJson = withContext(Dispatchers.Default) { engine.exportPdf(paramsJson) }
                 val obj = JSONObject(resultJson)
@@ -388,6 +407,16 @@ class KoraNotationViewModel(
 }
 
 private class UserVisibleImportException(message: String) : Exception(message)
+
+private fun JSONObject.putTuningSelection(tuning: NotationTuningSelection?) {
+    if (tuning == null) return
+    put("tuningName", tuning.name)
+    put("tuningNoteNames", JSONObject().apply {
+        tuning.stringNoteNames.forEach { (stringId, noteName) ->
+            put(stringId, noteName)
+        }
+    })
+}
 
 private fun InputStream.readBytesLimited(maxBytes: Int): ByteArray {
     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)

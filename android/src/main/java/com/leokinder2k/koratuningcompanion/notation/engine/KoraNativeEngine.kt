@@ -25,7 +25,7 @@ class KoraNativeEngine {
         val instrumentType = KoraInstrumentType.fromString(p.optString("instrumentType", "KORA_21"))
         val title = p.optString("title", "Untitled")
 
-        val tuning = fTuning(instrumentType)
+        val tuning = tuningFromParams(p, instrumentType)
         val tuningMidi = tuningToMidi(tuning)
         val tuningMidiSet = tuningMidi.values.toSet()
 
@@ -51,7 +51,7 @@ class KoraNativeEngine {
         val editObj = p.optJSONObject("edit") ?: JSONObject()
         val editType = editObj.optString("type", "")
 
-        val tuning = fTuning(instrumentType)
+        val tuning = tuningFromParams(p, instrumentType)
         val tuningMidi = tuningToMidi(tuning)
         val tuningMidiSet = tuningMidi.values.toSet()
 
@@ -72,7 +72,7 @@ class KoraNativeEngine {
     suspend fun exportAudio(paramsJson: String): String {
         val p = JSONObject(paramsJson)
         val instrumentType = KoraInstrumentType.fromString(p.optString("instrumentType", "KORA_21"))
-        val tuningMidi = tuningToMidi(fTuning(instrumentType))
+        val tuningMidi = tuningToMidi(tuningFromParams(p, instrumentType))
         val score = scoreFromJson(p.optJSONObject("score"), tuningMidi.values.toSet())
         val mappedEvents = mapSimplifiedScoreToKora(instrumentType, tuningMidi, score).events
         val wavKora = exportKoraPerformanceToWavBytes(score, mappedEvents)
@@ -88,7 +88,7 @@ class KoraNativeEngine {
         val instrumentType = KoraInstrumentType.fromString(p.optString("instrumentType", "KORA_21"))
         val title = p.optString("title", "Untitled")
         val difficulty = p.optDouble("difficulty", 0.0)
-        val tuning = fTuning(instrumentType)
+        val tuning = tuningFromParams(p, instrumentType)
         val tuningMidi = tuningToMidi(tuning)
         val score = scoreFromJson(p.optJSONObject("score"), tuningMidi.values.toSet())
         val mappingResult = mapSimplifiedScoreToKora(instrumentType, tuningMidi, score)
@@ -140,6 +140,25 @@ class KoraNativeEngine {
                 put("tuningName", tuning.name)
             })
         }.toString()
+    }
+
+    private fun tuningFromParams(
+        params: JSONObject,
+        instrumentType: KoraInstrumentType,
+    ): KoraTuning {
+        val tuningNames = params.optJSONObject("tuningNoteNames") ?: return fTuning(instrumentType)
+        val noteNames = buildMap {
+            val keys = tuningNames.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                put(key, tuningNames.optString(key))
+            }
+        }
+        return tuningFromStringNoteNames(
+            instrumentType = instrumentType,
+            name = params.optString("tuningName", "Custom tuning"),
+            stringNoteNames = noteNames,
+        )
     }
 
     private fun currentIsoTimestamp(): String {

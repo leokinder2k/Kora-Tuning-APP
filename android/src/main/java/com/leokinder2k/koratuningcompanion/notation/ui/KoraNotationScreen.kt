@@ -34,6 +34,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leokinder2k.koratuningcompanion.R
 import com.leokinder2k.koratuningcompanion.instrumentconfig.data.DataStoreInstrumentConfigRepository
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.InstrumentProfile
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.KoraStringLayout
+import com.leokinder2k.koratuningcompanion.instrumentconfig.model.displaySymbol
+import com.leokinder2k.koratuningcompanion.notation.engine.allStringIds
 import com.leokinder2k.koratuningcompanion.notation.engine.KoraInstrumentType
 import org.json.JSONArray
 import org.json.JSONObject
@@ -71,6 +76,9 @@ fun KoraNotationScreen(
         else -> "KORA_21"
     }
     var selectedInstrument by rememberSaveable(savedInstrumentType) { mutableStateOf(savedInstrumentType) }
+    val selectedTuning = remember(savedProfile, selectedInstrument) {
+        notationTuningForProfile(savedProfile, selectedInstrument)
+    }
     var selectedFileName by remember { mutableStateOf("") }
 
     val filePicker = rememberLauncherForActivityResult(
@@ -78,7 +86,7 @@ fun KoraNotationScreen(
     ) { uri: Uri? ->
         if (uri != null) {
             selectedFileName = safeDisplayName(context, uri)
-            vm.processFile(context, uri, selectedInstrument)
+            vm.processFile(context, uri, selectedInstrument, selectedTuning)
         }
     }
 
@@ -128,6 +136,12 @@ fun KoraNotationScreen(
                         )
                     }
                 }
+                Text(
+                    text = selectedTuning?.summary
+                        ?: "Using standard F tuning. Save a 21- or 22-string instrument setup to use custom notes.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = onDarkMuted
+                )
 
                 if (selectedFileName.isNotEmpty()) {
                     Text(
@@ -477,6 +491,46 @@ private fun instrumentTypeLabel(instrumentType: String): String {
         KoraInstrumentType.KORA_22_CHROMATIC -> "22-string chromatic kora"
     }
 }
+
+private val NotationTuningSelection.summary: String
+    get() {
+        val l1 = stringNoteNames["L1"] ?: "?"
+        val l2 = stringNoteNames["L2"] ?: "?"
+        val l3 = stringNoteNames["L3"] ?: "?"
+        val firstRight = stringNoteNames["R0"] ?: stringNoteNames["R1"] ?: "?"
+        return "Using saved $name: L1 $l1, L2 $l2, L3 $l3, right bass $firstRight."
+    }
+
+private fun notationTuningForProfile(
+    profile: InstrumentProfile?,
+    selectedInstrument: String,
+): NotationTuningSelection? {
+    if (profile == null) return null
+    val instrumentType = KoraInstrumentType.fromString(selectedInstrument)
+    if (profile.stringCount != instrumentType.stringCount) return null
+
+    val noteNames = profile.openPitches.mapIndexed { index, pitch ->
+        KoraStringLayout.roleLabel(
+            stringCount = profile.stringCount,
+            stringNumber = index + 1,
+        ) to pitch.asText(EnharmonicPreference.SHARPS)
+    }.toMap()
+
+    val expectedStringIds = allStringIds(instrumentType).toSet()
+    if (noteNames.keys != expectedStringIds) return null
+
+    val root = profile.rootNote.displaySymbol(EnharmonicPreference.SHARPS)
+    return NotationTuningSelection(
+        name = "$root tuning",
+        stringNoteNames = noteNames,
+    )
+}
+
+private val KoraInstrumentType.stringCount: Int
+    get() = when (this) {
+        KoraInstrumentType.KORA_21 -> 21
+        KoraInstrumentType.KORA_22_CHROMATIC -> 22
+    }
 
 @Composable
 private fun KoraDiagramCard(

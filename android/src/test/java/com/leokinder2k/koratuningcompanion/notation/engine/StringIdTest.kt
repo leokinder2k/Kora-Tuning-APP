@@ -26,9 +26,9 @@ class StringIdTest {
     fun fTuning_usesOptionalRightBassAsR0() {
         val tuning = fTuning(KoraInstrumentType.KORA_22_CHROMATIC)
 
-        assertEquals("Bb1", tuning.stringNoteNames["R0"])
-        assertEquals("F2", tuning.stringNoteNames["R1"])
-        assertEquals("A4", tuning.stringNoteNames["R10"])
+        assertEquals("A#2", tuning.stringNoteNames["R0"])
+        assertEquals("F3", tuning.stringNoteNames["R1"])
+        assertEquals("A5", tuning.stringNoteNames["R10"])
     }
 
     @Test
