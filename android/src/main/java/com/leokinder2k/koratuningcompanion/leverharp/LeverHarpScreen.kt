@@ -224,7 +224,7 @@ private fun HarpIllustrationCard(
     val latestOnStringSelected by rememberUpdatedState(onStringSelected)
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
@@ -239,7 +239,7 @@ private fun HarpIllustrationCard(
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(430.dp)
+                    .height(560.dp)
                     .onSizeChanged { canvasSize = it }
                     .pointerInput(strings, canvasSize) {
                         detectTapGestures { offset ->
@@ -525,7 +525,7 @@ private fun DrawScope.drawLeverHarpIllustration(
     drawCanvasText(
         text = "E-flat base tuning",
         x = w * 0.54f,
-        y = h * 0.955f,
+        y = h * 0.950f,
         color = colors.onSurfaceVariant,
         textSize = w * 0.038f,
         align = Paint.Align.CENTER,
@@ -543,42 +543,42 @@ private fun DrawScope.drawLeverHarpFrame() {
 
     drawRoundRect(
         brush = Brush.horizontalGradient(listOf(woodDark, woodMid, woodLight)),
-        topLeft = Offset(w * 0.12f, h * 0.86f),
-        size = Size(w * 0.78f, h * 0.060f),
+        topLeft = Offset(w * 0.06f, h * 0.840f),
+        size = Size(w * 0.89f, h * 0.060f),
         cornerRadius = CornerRadius(w * 0.025f, w * 0.025f)
     )
     drawLine(
         color = woodMid,
-        start = Offset(w * 0.22f, h * 0.84f),
-        end = Offset(w * 0.18f, h * 0.20f),
+        start = Offset(w * 0.18f, h * 0.820f),
+        end = Offset(w * 0.135f, h * 0.165f),
         strokeWidth = w * 0.055f,
         cap = StrokeCap.Round
     )
     drawLine(
         color = woodLight.copy(alpha = 0.70f),
-        start = Offset(w * 0.245f, h * 0.82f),
-        end = Offset(w * 0.202f, h * 0.22f),
+        start = Offset(w * 0.208f, h * 0.795f),
+        end = Offset(w * 0.160f, h * 0.185f),
         strokeWidth = w * 0.014f,
         cap = StrokeCap.Round
     )
     drawLine(
         color = woodDark,
-        start = Offset(w * 0.84f, h * 0.16f),
-        end = Offset(w * 0.84f, h * 0.86f),
+        start = Offset(w * 0.885f, h * 0.125f),
+        end = Offset(w * 0.885f, h * 0.830f),
         strokeWidth = w * 0.070f,
         cap = StrokeCap.Round
     )
     drawLine(
         color = woodLight.copy(alpha = 0.55f),
-        start = Offset(w * 0.816f, h * 0.18f),
-        end = Offset(w * 0.816f, h * 0.82f),
+        start = Offset(w * 0.858f, h * 0.145f),
+        end = Offset(w * 0.858f, h * 0.790f),
         strokeWidth = w * 0.014f,
         cap = StrokeCap.Round
     )
 
     val neck = Path().apply {
-        moveTo(w * 0.19f, h * 0.18f)
-        cubicTo(w * 0.34f, h * 0.07f, w * 0.64f, h * 0.08f, w * 0.84f, h * 0.17f)
+        moveTo(w * 0.145f, h * 0.150f)
+        cubicTo(w * 0.315f, h * 0.035f, w * 0.680f, h * 0.045f, w * 0.885f, h * 0.135f)
     }
     drawPath(
         path = neck,
@@ -593,7 +593,7 @@ private fun DrawScope.drawLeverHarpFrame() {
     drawCircle(
         color = gold.copy(alpha = 0.90f),
         radius = w * 0.032f,
-        center = Offset(w * 0.84f, h * 0.16f)
+        center = Offset(w * 0.885f, h * 0.125f)
     )
 }
 
@@ -692,12 +692,12 @@ private fun buildHarpStringPlacements(
     return strings.mapIndexed { index, string ->
         val ratio = index.toFloat() / maxIndex.toFloat()
         val top = Offset(
-            x = lerp(size.width * 0.22f, size.width * 0.78f, ratio),
-            y = size.height * (0.172f - 0.032f * kotlin.math.sin(ratio * Math.PI).toFloat())
+            x = lerp(size.width * 0.165f, size.width * 0.825f, ratio),
+            y = size.height * (0.145f - 0.035f * kotlin.math.sin(ratio * Math.PI).toFloat())
         )
         val bottom = Offset(
-            x = lerp(size.width * 0.215f, size.width * 0.390f, ratio),
-            y = lerp(size.height * 0.835f, size.height * 0.330f, ratio)
+            x = lerp(size.width * 0.165f, size.width * 0.455f, ratio),
+            y = lerp(size.height * 0.810f, size.height * 0.255f, ratio)
         )
         HarpStringPlacement(string = string, top = top, bottom = bottom)
     }
