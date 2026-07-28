@@ -1,6 +1,9 @@
 package com.leokinder2k.koratuningcompanion.leverharp
 
+import android.graphics.Paint
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,12 +30,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.EnharmonicPreference
 import com.leokinder2k.koratuningcompanion.instrumentconfig.model.NoteName
@@ -39,6 +57,9 @@ import com.leokinder2k.koratuningcompanion.instrumentconfig.model.Pitch
 import com.leokinder2k.koratuningcompanion.livetuner.audio.ReferenceTonePlayer
 import com.leokinder2k.koratuningcompanion.livetuner.model.TunerTargetMatcher
 import java.util.Locale
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sqrt
 
 @Composable
 fun LeverHarpRoute(
@@ -48,6 +69,11 @@ fun LeverHarpRoute(
 ) {
     val strings = remember { standardLeverHarpStrings() }
     var order by rememberSaveable { mutableStateOf(TuningOrder.LowToHigh.name) }
+    var selectedKeyName by rememberSaveable {
+        mutableStateOf(LeverKeySettings.first().keyName)
+    }
+    val selectedKey = LeverKeySettings.firstOrNull { it.keyName == selectedKeyName }
+        ?: LeverKeySettings.first()
     val orderedStrings = if (order == TuningOrder.HighToLow.name) {
         strings.reversed()
     } else {
@@ -66,7 +92,12 @@ fun LeverHarpRoute(
             referenceTonePlayer.stop()
             if (isMuted) playingReference = false
         } else {
-            referenceTonePlayer.play(selectedString.frequencyHz)
+            referenceTonePlayer.play(selectedString.frequencyHz(selectedKey))
+        }
+    }
+    LaunchedEffect(selectedKey.keyName) {
+        if (playingReference && !isMuted) {
+            referenceTonePlayer.play(selectedString.frequencyHz(selectedKey))
         }
     }
     DisposableEffect(Unit) {
@@ -83,8 +114,19 @@ fun LeverHarpRoute(
             HeaderCard()
         }
         item {
+            HarpIllustrationCard(
+                strings = strings,
+                selectedKey = selectedKey,
+                selectedString = selectedString,
+                enharmonicPreference = enharmonicPreference,
+                isPlaying = playingReference,
+                onStringSelected = { selectedStringNumber = it }
+            )
+        }
+        item {
             SelectedStringCard(
                 string = selectedString,
+                selectedKey = selectedKey,
                 enharmonicPreference = enharmonicPreference,
                 isMuted = isMuted,
                 isPlaying = playingReference,
@@ -92,7 +134,10 @@ fun LeverHarpRoute(
             )
         }
         item {
-            KeyLeverCard()
+            KeyLeverCard(
+                selectedKey = selectedKey,
+                onSelected = { selectedKeyName = it.keyName }
+            )
         }
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -126,11 +171,12 @@ fun LeverHarpRoute(
             HarpStringRow(
                 string = string,
                 selected = string.highestFirstNumber == selectedString.highestFirstNumber,
+                selectedKey = selectedKey,
                 enharmonicPreference = enharmonicPreference,
                 onClick = {
                     selectedStringNumber = string.highestFirstNumber
                     if (playingReference && !isMuted) {
-                        referenceTonePlayer.play(string.frequencyHz)
+                        referenceTonePlayer.play(string.frequencyHz(selectedKey))
                     }
                 }
             )
@@ -165,13 +211,103 @@ private fun HeaderCard() {
 }
 
 @Composable
+private fun HarpIllustrationCard(
+    strings: List<LeverHarpString>,
+    selectedKey: LeverKeySetting,
+    selectedString: LeverHarpString,
+    enharmonicPreference: EnharmonicPreference,
+    isPlaying: Boolean,
+    onStringSelected: (Int) -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+    val latestOnStringSelected by rememberUpdatedState(onStringSelected)
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Playable E-flat harp",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = "${selectedKey.keyName}: ${selectedKey.leverSummary}.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(430.dp)
+                    .onSizeChanged { canvasSize = it }
+                    .pointerInput(strings, canvasSize) {
+                        detectTapGestures { offset ->
+                            resolveHarpStringHit(
+                                tapOffset = offset,
+                                size = canvasSize,
+                                strings = strings
+                            )?.let { hit ->
+                                latestOnStringSelected(hit.highestFirstNumber)
+                            }
+                        }
+                    }
+            ) {
+                drawLeverHarpIllustration(
+                    strings = strings,
+                    selectedKey = selectedKey,
+                    selectedStringNumber = selectedString.highestFirstNumber,
+                    playingStringNumber = selectedString.highestFirstNumber.takeIf { isPlaying },
+                    enharmonicPreference = enharmonicPreference,
+                    colors = colors
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IllustrationLegendItem(color = Color(0xFFB3261E), text = "C strings")
+                IllustrationLegendItem(color = Color(0xFF1B64B0), text = "F strings")
+                IllustrationLegendItem(color = Color(0xFFD98924), text = "Raised lever")
+            }
+            Text(
+                text = "Selected ${selectedString.nominalName}: down ${selectedString.leverDownPitch.asText(enharmonicPreference)}, current ${selectedString.currentPitch(selectedKey).asText(enharmonicPreference)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun IllustrationLegendItem(color: Color, text: String) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 14.dp, height = 8.dp)
+                .background(color)
+        )
+        Text(text = text, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+@Composable
 private fun SelectedStringCard(
     string: LeverHarpString,
+    selectedKey: LeverKeySetting,
     enharmonicPreference: EnharmonicPreference,
     isMuted: Boolean,
     isPlaying: Boolean,
     onToggleReference: () -> Unit
 ) {
+    val leverDownPitch = string.leverDownPitch.asText(enharmonicPreference)
+    val leverUpPitch = string.leverUpPitch().asText(enharmonicPreference)
+    val currentPitch = string.currentPitch(selectedKey).asText(enharmonicPreference)
+    val currentFrequency = string.frequencyHz(selectedKey)
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -193,8 +329,13 @@ private fun SelectedStringCard(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Levers down: ${string.leverDownPitch.asText(enharmonicPreference)}  ${formatHz(string.frequencyHz)}",
+                        text = "Current: $currentPitch  ${formatHz(currentFrequency)}",
                         style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Down $leverDownPitch  Up $leverUpPitch",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Button(
@@ -209,7 +350,10 @@ private fun SelectedStringCard(
 }
 
 @Composable
-private fun KeyLeverCard() {
+private fun KeyLeverCard(
+    selectedKey: LeverKeySetting,
+    onSelected: (LeverKeySetting) -> Unit
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -220,22 +364,29 @@ private fun KeyLeverCard() {
                 style = MaterialTheme.typography.titleMedium
             )
             LeverKeySettings.forEach { setting ->
-                Row(
+                FilterChip(
+                    selected = setting == selectedKey,
+                    onClick = { onSelected(setting) },
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = setting.keyName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = setting.raisedLevers.ifEmpty { "All down" },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                    label = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = setting.keyName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = setting.leverSummary,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                )
             }
         }
     }
@@ -245,9 +396,13 @@ private fun KeyLeverCard() {
 private fun HarpStringRow(
     string: LeverHarpString,
     selected: Boolean,
+    selectedKey: LeverKeySetting,
     enharmonicPreference: EnharmonicPreference,
     onClick: () -> Unit
 ) {
+    val leverDownPitch = string.leverDownPitch.asText(enharmonicPreference)
+    val currentPitch = string.currentPitch(selectedKey).asText(enharmonicPreference)
+    val currentFrequency = string.frequencyHz(selectedKey)
     Card(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick
@@ -274,12 +429,12 @@ private fun HarpStringRow(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "Tune down: ${string.leverDownPitch.asText(enharmonicPreference)}",
+                    text = "Down $leverDownPitch  Current $currentPitch",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
             Text(
-                text = formatHz(string.frequencyHz),
+                text = formatHz(currentFrequency),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium
             )
@@ -301,7 +456,297 @@ private fun StringColorMarker(letter: String) {
     )
 }
 
-private fun standardLeverHarpStrings(): List<LeverHarpString> {
+private fun DrawScope.drawLeverHarpIllustration(
+    strings: List<LeverHarpString>,
+    selectedKey: LeverKeySetting,
+    selectedStringNumber: Int,
+    playingStringNumber: Int?,
+    enharmonicPreference: EnharmonicPreference,
+    colors: ColorScheme
+) {
+    val w = size.width
+    val h = size.height
+    val placements = buildHarpStringPlacements(strings, size)
+    drawRect(
+        brush = Brush.verticalGradient(
+            listOf(
+                colors.surfaceVariant.copy(alpha = 0.18f),
+                colors.surface.copy(alpha = 0.96f)
+            )
+        )
+    )
+    drawLeverHarpFrame()
+
+    placements.forEachIndexed { index, placement ->
+        val string = placement.string
+        val isSelected = string.highestFirstNumber == selectedStringNumber
+        val isPlaying = string.highestFirstNumber == playingStringNumber
+        val isRaised = string.isRaised(selectedKey)
+        val ratio = index.toFloat() / (placements.lastIndex.coerceAtLeast(1)).toFloat()
+        val baseStroke = w * (0.0022f + (1f - ratio) * 0.0020f)
+        val strokeWidth = when {
+            isPlaying -> baseStroke * 2.3f
+            isSelected -> baseStroke * 1.8f
+            else -> baseStroke
+        }
+        val stringColor = when {
+            isPlaying -> colors.primary
+            isSelected -> colors.tertiary
+            string.nominalLetter == "C" -> Color(0xFFB3261E)
+            string.nominalLetter == "F" -> Color(0xFF1B64B0)
+            isRaised -> Color(0xFFD98924)
+            else -> colors.outline
+        }
+        drawLine(
+            color = stringColor.copy(alpha = if (ratio > 0.82f) 0.70f else 0.92f),
+            start = placement.top,
+            end = placement.bottom,
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round
+        )
+        drawLever(
+            placement = placement,
+            raised = isRaised,
+            selected = isSelected,
+            colors = colors
+        )
+    }
+
+    placements.firstOrNull { it.string.highestFirstNumber == selectedStringNumber }?.let { placement ->
+        val currentPitch = placement.string.currentPitch(selectedKey).asText(enharmonicPreference)
+        val downPitch = placement.string.leverDownPitch.asText(enharmonicPreference)
+        drawSelectedStringBadge(
+            text = "String ${placement.string.highestFirstNumber} ${placement.string.nominalName}  Down $downPitch  Current $currentPitch",
+            anchor = placement.top,
+            colors = colors
+        )
+    }
+
+    drawCanvasText(
+        text = "E-flat base tuning",
+        x = w * 0.54f,
+        y = h * 0.955f,
+        color = colors.onSurfaceVariant,
+        textSize = w * 0.038f,
+        align = Paint.Align.CENTER,
+        bold = true
+    )
+}
+
+private fun DrawScope.drawLeverHarpFrame() {
+    val w = size.width
+    val h = size.height
+    val woodDark = Color(0xFF4B2A12)
+    val woodMid = Color(0xFF8A5828)
+    val woodLight = Color(0xFFC58948)
+    val gold = Color(0xFFCDA45A)
+
+    drawRoundRect(
+        brush = Brush.horizontalGradient(listOf(woodDark, woodMid, woodLight)),
+        topLeft = Offset(w * 0.12f, h * 0.86f),
+        size = Size(w * 0.78f, h * 0.060f),
+        cornerRadius = CornerRadius(w * 0.025f, w * 0.025f)
+    )
+    drawLine(
+        color = woodMid,
+        start = Offset(w * 0.22f, h * 0.84f),
+        end = Offset(w * 0.18f, h * 0.20f),
+        strokeWidth = w * 0.055f,
+        cap = StrokeCap.Round
+    )
+    drawLine(
+        color = woodLight.copy(alpha = 0.70f),
+        start = Offset(w * 0.245f, h * 0.82f),
+        end = Offset(w * 0.202f, h * 0.22f),
+        strokeWidth = w * 0.014f,
+        cap = StrokeCap.Round
+    )
+    drawLine(
+        color = woodDark,
+        start = Offset(w * 0.84f, h * 0.16f),
+        end = Offset(w * 0.84f, h * 0.86f),
+        strokeWidth = w * 0.070f,
+        cap = StrokeCap.Round
+    )
+    drawLine(
+        color = woodLight.copy(alpha = 0.55f),
+        start = Offset(w * 0.816f, h * 0.18f),
+        end = Offset(w * 0.816f, h * 0.82f),
+        strokeWidth = w * 0.014f,
+        cap = StrokeCap.Round
+    )
+
+    val neck = Path().apply {
+        moveTo(w * 0.19f, h * 0.18f)
+        cubicTo(w * 0.34f, h * 0.07f, w * 0.64f, h * 0.08f, w * 0.84f, h * 0.17f)
+    }
+    drawPath(
+        path = neck,
+        color = woodDark,
+        style = Stroke(width = w * 0.075f, cap = StrokeCap.Round)
+    )
+    drawPath(
+        path = neck,
+        color = woodLight.copy(alpha = 0.58f),
+        style = Stroke(width = w * 0.022f, cap = StrokeCap.Round)
+    )
+    drawCircle(
+        color = gold.copy(alpha = 0.90f),
+        radius = w * 0.032f,
+        center = Offset(w * 0.84f, h * 0.16f)
+    )
+}
+
+private fun DrawScope.drawLever(
+    placement: HarpStringPlacement,
+    raised: Boolean,
+    selected: Boolean,
+    colors: ColorScheme
+) {
+    val leverCenter = lerp(placement.top, placement.bottom, 0.075f)
+    val radius = size.width * if (selected) 0.0105f else 0.0080f
+    val color = when {
+        raised -> Color(0xFFD98924)
+        selected -> colors.primary
+        else -> colors.outlineVariant
+    }
+    drawCircle(
+        color = color,
+        radius = radius,
+        center = leverCenter
+    )
+    drawLine(
+        color = color.copy(alpha = 0.86f),
+        start = leverCenter,
+        end = leverCenter + Offset(if (raised) size.width * 0.014f else -size.width * 0.010f, -size.height * 0.016f),
+        strokeWidth = size.width * 0.004f,
+        cap = StrokeCap.Round
+    )
+}
+
+private fun DrawScope.drawSelectedStringBadge(
+    text: String,
+    anchor: Offset,
+    colors: ColorScheme
+) {
+    val textSize = size.width * 0.027f
+    val paddingX = size.width * 0.018f
+    val paddingY = size.width * 0.010f
+    val paint = Paint().apply {
+        color = colors.onPrimaryContainer.toArgb()
+        this.textSize = textSize
+        textAlign = Paint.Align.LEFT
+        isAntiAlias = true
+        isFakeBoldText = true
+    }
+    val badgeWidth = min(paint.measureText(text) + paddingX * 2f, size.width - size.width * 0.06f)
+    val badgeHeight = textSize + paddingY * 2.2f
+    val left = (anchor.x + size.width * 0.024f).coerceIn(size.width * 0.03f, size.width - badgeWidth - size.width * 0.03f)
+    val top = (anchor.y + size.height * 0.030f).coerceIn(size.height * 0.03f, size.height - badgeHeight - size.height * 0.08f)
+    drawRoundRect(
+        color = colors.primaryContainer.copy(alpha = 0.94f),
+        topLeft = Offset(left, top),
+        size = Size(badgeWidth, badgeHeight),
+        cornerRadius = CornerRadius(size.width * 0.015f, size.width * 0.015f)
+    )
+    drawRoundRect(
+        color = colors.primary.copy(alpha = 0.22f),
+        topLeft = Offset(left, top),
+        size = Size(badgeWidth, badgeHeight),
+        cornerRadius = CornerRadius(size.width * 0.015f, size.width * 0.015f),
+        style = Stroke(width = size.width * 0.002f)
+    )
+    drawContext.canvas.nativeCanvas.drawText(
+        text,
+        left + paddingX,
+        top + paddingY + textSize,
+        paint
+    )
+}
+
+private fun DrawScope.drawCanvasText(
+    text: String,
+    x: Float,
+    y: Float,
+    color: Color,
+    textSize: Float,
+    align: Paint.Align,
+    bold: Boolean = false
+) {
+    val paint = Paint().apply {
+        this.color = color.toArgb()
+        this.textSize = textSize
+        textAlign = align
+        isAntiAlias = true
+        isFakeBoldText = bold
+    }
+    drawContext.canvas.nativeCanvas.drawText(text, x, y, paint)
+}
+
+private fun buildHarpStringPlacements(
+    strings: List<LeverHarpString>,
+    size: Size
+): List<HarpStringPlacement> {
+    if (strings.isEmpty()) return emptyList()
+    val maxIndex = strings.lastIndex.coerceAtLeast(1)
+    return strings.mapIndexed { index, string ->
+        val ratio = index.toFloat() / maxIndex.toFloat()
+        val top = Offset(
+            x = lerp(size.width * 0.22f, size.width * 0.78f, ratio),
+            y = size.height * (0.172f - 0.032f * kotlin.math.sin(ratio * Math.PI).toFloat())
+        )
+        val bottom = Offset(
+            x = lerp(size.width * 0.215f, size.width * 0.390f, ratio),
+            y = lerp(size.height * 0.835f, size.height * 0.330f, ratio)
+        )
+        HarpStringPlacement(string = string, top = top, bottom = bottom)
+    }
+}
+
+private fun resolveHarpStringHit(
+    tapOffset: Offset,
+    size: IntSize,
+    strings: List<LeverHarpString>
+): LeverHarpString? {
+    if (size.width <= 0 || size.height <= 0 || strings.isEmpty()) return null
+    val placements = buildHarpStringPlacements(
+        strings = strings,
+        size = Size(size.width.toFloat(), size.height.toFloat())
+    )
+    val threshold = max(18f, min(size.width, size.height) * 0.038f)
+    return placements
+        .map { it to distanceToSegment(tapOffset, it.top, it.bottom) }
+        .minByOrNull { it.second }
+        ?.takeIf { it.second <= threshold }
+        ?.first
+        ?.string
+}
+
+private fun distanceToSegment(point: Offset, start: Offset, end: Offset): Float {
+    val dx = end.x - start.x
+    val dy = end.y - start.y
+    if (dx == 0f && dy == 0f) return distance(point, start)
+    val t = (((point.x - start.x) * dx + (point.y - start.y) * dy) / (dx * dx + dy * dy)).coerceIn(0f, 1f)
+    val projection = Offset(start.x + t * dx, start.y + t * dy)
+    return distance(point, projection)
+}
+
+private fun distance(a: Offset, b: Offset): Float {
+    val dx = a.x - b.x
+    val dy = a.y - b.y
+    return sqrt(dx * dx + dy * dy)
+}
+
+private fun lerp(start: Float, stop: Float, fraction: Float): Float =
+    start + (stop - start) * fraction
+
+private fun lerp(start: Offset, stop: Offset, fraction: Float): Offset =
+    Offset(
+        x = lerp(start.x, stop.x, fraction),
+        y = lerp(start.y, stop.y, fraction)
+    )
+
+internal fun standardLeverHarpStrings(): List<LeverHarpString> {
     val nominalStrings = buildList {
         for (octave in 2..6) {
             for (letter in DiatonicLetters) {
@@ -319,7 +764,7 @@ private fun standardLeverHarpStrings(): List<LeverHarpString> {
             nominalLetter = nominal.letter,
             nominalName = "${nominal.letter}${nominal.octave}",
             leverDownPitch = leverDownPitch,
-            frequencyHz = TunerTargetMatcher.pitchToFrequencyHz(leverDownPitch)
+            leverDownFrequencyHz = TunerTargetMatcher.pitchToFrequencyHz(leverDownPitch)
         )
     }
 }
@@ -345,33 +790,57 @@ private enum class TuningOrder {
     HighToLow
 }
 
-private data class LeverHarpString(
+internal data class LeverHarpString(
     val highestFirstNumber: Int,
     val nominalLetter: String,
     val nominalName: String,
     val leverDownPitch: Pitch,
-    val frequencyHz: Double
-)
+    val leverDownFrequencyHz: Double
+) {
+    fun leverUpPitch(): Pitch = leverDownPitch.plusSemitones(1)
+
+    fun isRaised(setting: LeverKeySetting): Boolean =
+        nominalLetter in setting.raisedLetters
+
+    fun currentPitch(setting: LeverKeySetting): Pitch =
+        if (isRaised(setting)) leverUpPitch() else leverDownPitch
+
+    fun frequencyHz(setting: LeverKeySetting): Double =
+        TunerTargetMatcher.pitchToFrequencyHz(currentPitch(setting))
+}
 
 private data class NominalHarpString(
     val letter: String,
     val octave: Int
 )
 
-private data class LeverKeySetting(
-    val keyName: String,
-    val raisedLevers: String
+private data class HarpStringPlacement(
+    val string: LeverHarpString,
+    val top: Offset,
+    val bottom: Offset
 )
 
-private val DiatonicLetters = listOf("C", "D", "E", "F", "G", "A", "B")
+internal data class LeverKeySetting(
+    val keyName: String,
+    val raisedLetters: Set<String>
+) {
+    val leverSummary: String
+        get() = when {
+            raisedLetters.isEmpty() -> "All down"
+            raisedLetters.size == DiatonicLetters.size -> "All up"
+            else -> "Raise ${DiatonicLetters.filter { it in raisedLetters }.joinToString(", ")}"
+        }
+}
 
-private val LeverKeySettings = listOf(
-    LeverKeySetting("Eb major / C minor", ""),
-    LeverKeySetting("Bb major / G minor", "Raise A"),
-    LeverKeySetting("F major / D minor", "Raise A, E"),
-    LeverKeySetting("C major / A minor", "Raise A, E, B"),
-    LeverKeySetting("G major / E minor", "Raise A, E, B, F"),
-    LeverKeySetting("D major / B minor", "Raise A, E, B, F, C"),
-    LeverKeySetting("A major / F# minor", "Raise A, E, B, F, C, G"),
-    LeverKeySetting("E major / C# minor", "All up")
+internal val DiatonicLetters = listOf("C", "D", "E", "F", "G", "A", "B")
+
+internal val LeverKeySettings = listOf(
+    LeverKeySetting("Eb major / C minor", emptySet()),
+    LeverKeySetting("Bb major / G minor", setOf("A")),
+    LeverKeySetting("F major / D minor", setOf("A", "E")),
+    LeverKeySetting("C major / A minor", setOf("A", "E", "B")),
+    LeverKeySetting("G major / E minor", setOf("A", "E", "B", "F")),
+    LeverKeySetting("D major / B minor", setOf("A", "E", "B", "F", "C")),
+    LeverKeySetting("A major / F# minor", setOf("A", "E", "B", "F", "C", "G")),
+    LeverKeySetting("E major / C# minor", DiatonicLetters.toSet())
 )
