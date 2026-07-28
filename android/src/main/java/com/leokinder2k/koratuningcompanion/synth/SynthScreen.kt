@@ -48,6 +48,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,7 +61,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlin.math.roundToInt
 
@@ -69,6 +73,24 @@ fun SynthRoute(
     modifier: Modifier = Modifier,
     viewModel: SynthViewModel = viewModel()
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, viewModel) {
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            viewModel.start()
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> viewModel.start()
+                Lifecycle.Event.ON_PAUSE -> viewModel.stopAudio()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.stopAudio()
+        }
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     SynthScreen(
         uiState = uiState,
@@ -81,6 +103,7 @@ fun SynthRoute(
         onNoteOn = viewModel::noteOn,
         onNoteOff = viewModel::noteOff,
         onPad = viewModel::playPad,
+        onTestTone = viewModel::playTestTone,
         onAllNotesOff = viewModel::allNotesOff,
         onToggleRecording = viewModel::toggleRecording,
         onToggleLoop = viewModel::toggleLoopPlayback,
@@ -106,6 +129,7 @@ private fun SynthScreen(
     onNoteOn: (Int, Float) -> Unit,
     onNoteOff: (Int) -> Unit,
     onPad: (Int, PadQuality) -> Unit,
+    onTestTone: () -> Unit,
     onAllNotesOff: () -> Unit,
     onToggleRecording: () -> Unit,
     onToggleLoop: () -> Unit,
@@ -139,7 +163,7 @@ private fun SynthScreen(
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        HeaderPanel(uiState = uiState, onRefreshMidi = onRefreshMidi)
+        HeaderPanel(uiState = uiState, onRefreshMidi = onRefreshMidi, onTestTone = onTestTone)
 
         ControlPanel(
             uiState = uiState,
@@ -185,7 +209,8 @@ private fun SynthScreen(
 @Composable
 private fun HeaderPanel(
     uiState: SynthUiState,
-    onRefreshMidi: () -> Unit
+    onRefreshMidi: () -> Unit,
+    onTestTone: () -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -211,6 +236,11 @@ private fun HeaderPanel(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+                OutlinedButton(onClick = onTestTone) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Tone")
+                }
                 OutlinedButton(onClick = onRefreshMidi) {
                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
@@ -221,6 +251,10 @@ private fun HeaderPanel(
                 AssistChip(
                     onClick = onRefreshMidi,
                     label = { Text(uiState.connectedMidiDevice ?: "No MIDI controller") }
+                )
+                AssistChip(
+                    onClick = {},
+                    label = { Text(if (uiState.audioRunning) "Audio on" else "Audio off") }
                 )
                 AssistChip(
                     onClick = {},

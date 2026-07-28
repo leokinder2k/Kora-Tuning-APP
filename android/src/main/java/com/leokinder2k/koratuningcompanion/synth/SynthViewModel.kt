@@ -25,6 +25,7 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
     private var loopJob: Job? = null
     private var recordClickJob: Job? = null
     private var recordingSessionId = 0L
+    @Volatile private var audioAllowed = false
 
     private val midiInput = MidiControllerInput(
         context = application,
@@ -61,12 +62,9 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
     )
     val uiState: StateFlow<SynthUiState> = _uiState
 
-    init {
-        start()
-    }
-
     fun start() {
-        engine.start()
+        audioAllowed = true
+        ensureAudioRunning()
         midiInput.startAutoConnect()
         _uiState.update {
             it.copy(
@@ -75,6 +73,13 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
                 visibleUsbDevices = midiInput.usbDevices()
             )
         }
+    }
+
+    fun stopAudio() {
+        audioAllowed = false
+        engine.panic()
+        engine.stop()
+        _uiState.update { it.copy(audioRunning = false) }
     }
 
     fun refreshMidi() {
@@ -112,11 +117,11 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun noteOn(note: Int, velocity: Float) {
-        start()
+        if (!ensureAudioRunning()) return
         val shifted = note + (_uiState.value.octaveShift * 12)
         engine.noteOn(shifted, velocity)
         recordEvent(RecordedMidiMessage.NoteOn(shifted, velocity))
-        _uiState.update { it.copy(lastNote = midiNoteName(shifted), lastVelocity = velocity) }
+        _uiState.update { it.copy(audioRunning = engine.isRunning, lastNote = midiNoteName(shifted), lastVelocity = velocity) }
     }
 
     fun noteOff(note: Int) {
@@ -126,6 +131,7 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun playPad(rootNote: Int, quality: PadQuality) {
+        if (!ensureAudioRunning()) return
         val shiftedRoot = rootNote + (_uiState.value.octaveShift * 12)
         val notes = quality.notesFrom(shiftedRoot)
         engine.playMomentaryChord(notes, velocity = 0.76f)
@@ -142,7 +148,17 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
                 notes.forEach { note -> recordEvent(RecordedMidiMessage.NoteOff(note)) }
             }
         }
-        _uiState.update { it.copy(lastNote = "${midiNoteName(shiftedRoot)} ${quality.label}", lastVelocity = 0.76f) }
+        _uiState.update {
+            it.copy(
+                audioRunning = engine.isRunning,
+                lastNote = "${midiNoteName(shiftedRoot)} ${quality.label}",
+                lastVelocity = 0.76f
+            )
+        }
+    }
+
+    fun playTestTone() {
+        playPad(rootNote = 60, quality = PadQuality.Major)
     }
 
     fun allNotesOff() {
@@ -339,7 +355,9 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
 
             val dueAt = nowMs() - startedAt
             while (_uiState.value.metronomeEnabled && beatIndex * beatMs <= dueAt && beatIndex * beatMs < durationMs) {
-                engine.playMetronomeClick(accent = beatIndex % MidiLoopRecorder.BeatsPerBar == 0)
+                if (ensureAudioRunning()) {
+                    engine.playMetronomeClick(accent = beatIndex % MidiLoopRecorder.BeatsPerBar == 0)
+                }
                 beatIndex += 1
             }
             while (eventIndex < events.size && events[eventIndex].atMs <= dueAt) {
@@ -353,9 +371,11 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
     private fun playRecordedEvent(message: RecordedMidiMessage) {
         when (message) {
             is RecordedMidiMessage.NoteOn -> {
+                if (!ensureAudioRunning()) return
                 engine.noteOn(message.note, message.velocity)
                 _uiState.update {
                     it.copy(
+                        audioRunning = engine.isRunning,
                         lastNote = midiNoteName(message.note),
                         lastVelocity = message.velocity
                     )
@@ -376,7 +396,9 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
         recordClickJob = viewModelScope.launch {
             var beat = 0
             while (isActive && _uiState.value.isRecording && _uiState.value.metronomeEnabled) {
-                engine.playMetronomeClick(accent = beat % MidiLoopRecorder.BeatsPerBar == 0)
+                if (ensureAudioRunning()) {
+                    engine.playMetronomeClick(accent = beat % MidiLoopRecorder.BeatsPerBar == 0)
+                }
                 beat += 1
                 delay(MidiLoopRecorder.beatMs(_uiState.value.metronomeBpm))
             }
@@ -416,10 +438,12 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
     private fun handleMidiEvent(event: MidiControlEvent) {
         when (event) {
             is MidiControlEvent.NoteOn -> {
+                if (!ensureAudioRunning()) return
                 engine.noteOn(event.note, event.velocity)
                 recordEvent(RecordedMidiMessage.NoteOn(event.note, event.velocity))
                 _uiState.update {
                     it.copy(
+                        audioRunning = engine.isRunning,
                         lastNote = midiNoteName(event.note),
                         lastVelocity = event.velocity
                     )
@@ -438,6 +462,13 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
                 allNotesOff()
             }
         }
+    }
+
+    private fun ensureAudioRunning(): Boolean {
+        if (!audioAllowed) return false
+        engine.start()
+        _uiState.update { it.copy(audioRunning = engine.isRunning) }
+        return engine.isRunning
     }
 
     private fun nowMs(): Long = SystemClock.uptimeMillis()

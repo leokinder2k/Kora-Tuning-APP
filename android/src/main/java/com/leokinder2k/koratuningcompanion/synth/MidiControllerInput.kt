@@ -24,6 +24,7 @@ import android.hardware.usb.UsbInterface
 import android.hardware.usb.UsbManager
 import android.hardware.usb.UsbRequest
 import androidx.core.content.ContextCompat
+import com.leokinder2k.koratuningcompanion.BuildConfig
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -263,10 +264,12 @@ class MidiControllerInput(
             emitStatus("Could not select ${candidate.label} ${candidate.transportDetail}", null)
             return
         }
-        Log.d(
-            LogTag,
-            "Opening ${candidate.label} ${candidate.transportDetail} endpoint=${candidate.inputEndpoint.address}"
-        )
+        if (BuildConfig.DEBUG) {
+            Log.d(
+                LogTag,
+                "Opening ${candidate.label} ${candidate.transportDetail} endpoint=${candidate.inputEndpoint.address}"
+            )
+        }
         usbSession = UsbMidiSession(
             deviceName = candidate.device.deviceName,
             label = candidate.label,

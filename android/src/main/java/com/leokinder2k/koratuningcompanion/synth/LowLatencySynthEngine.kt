@@ -2,11 +2,14 @@ package com.leokinder2k.koratuningcompanion.synth
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
 import android.os.Build
 import android.os.Process
+import android.util.Log
+import com.leokinder2k.koratuningcompanion.BuildConfig
 import io.github.lemcoder.mikrosoundfont.MikroSoundFont
 import io.github.lemcoder.mikrosoundfont.SoundFont
 import kotlin.concurrent.thread
@@ -21,6 +24,16 @@ import kotlin.math.sqrt
 
 class LowLatencySynthEngine(context: Context) {
     private val appContext = context.applicationContext
+    private val audioManager: AudioManager? = appContext.getSystemService(AudioManager::class.java)
+    private val synthAudioAttributes = AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_MEDIA)
+        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+        .build()
+    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { change ->
+        if (change == AudioManager.AUDIOFOCUS_LOSS || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+            panic()
+        }
+    }
     private val lock = Any()
     private val sampleRate = preferredSampleRate(appContext)
     private val framesPerRender = preferredFramesPerBuffer(appContext)
@@ -41,6 +54,7 @@ class LowLatencySynthEngine(context: Context) {
     @Volatile private var audioTrack: AudioTrack? = null
     @Volatile private var renderThread: Thread? = null
     @Volatile private var running = false
+    private var audioFocusRequest: AudioFocusRequest? = null
 
     private var soundFont: SoundFont? = null
 
@@ -58,10 +72,13 @@ class LowLatencySynthEngine(context: Context) {
         private set
 
     val isRunning: Boolean
-        get() = running
+        get() = running &&
+            renderThread?.isAlive == true &&
+            audioTrack?.state == AudioTrack.STATE_INITIALIZED
 
     fun start() {
-        if (running) return
+        if (isRunning) return
+        stop()
         val minBufferBytes = AudioTrack.getMinBufferSize(
             sampleRate,
             AudioFormat.CHANNEL_OUT_STEREO,
@@ -74,10 +91,7 @@ class LowLatencySynthEngine(context: Context) {
         )
         val trackBuilder = AudioTrack.Builder()
             .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build()
+                synthAudioAttributes
             )
             .setAudioFormat(
                 AudioFormat.Builder()
@@ -92,7 +106,19 @@ class LowLatencySynthEngine(context: Context) {
             trackBuilder.setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
         }
 
-        val track = trackBuilder.build()
+        val track = runCatching { trackBuilder.build() }.getOrElse { throwable ->
+            if (BuildConfig.DEBUG) Log.w(LogTag, "AudioTrack build failed", throwable)
+            audioTrack = null
+            running = false
+            return
+        }
+        if (track.state != AudioTrack.STATE_INITIALIZED) {
+            if (BuildConfig.DEBUG) Log.w(LogTag, "AudioTrack failed to initialize")
+            runCatching { track.release() }
+            audioTrack = null
+            running = false
+            return
+        }
         runCatching { track.setBufferSizeInFrames((bufferSizeBytes / frameBytes).coerceAtLeast(framesPerRender)) }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             runCatching { track.setStartThresholdInFrames(framesPerRender) }
@@ -100,23 +126,42 @@ class LowLatencySynthEngine(context: Context) {
         audioTrack = track
         running = true
         renderThread = thread(start = true, name = "KoraSynthAudio") {
-            Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
-            track.play()
-            while (running) {
-                render(renderBuffer, framesPerRender)
-                track.write(renderBuffer, 0, renderBuffer.size, AudioTrack.WRITE_BLOCKING)
+            try {
+                Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
+                track.play()
+                while (running) {
+                    render(renderBuffer, framesPerRender)
+                    val written = track.write(renderBuffer, 0, renderBuffer.size, AudioTrack.WRITE_BLOCKING)
+                    if (written < 0) error("AudioTrack write failed: $written")
+                }
+            } catch (throwable: Throwable) {
+                if (BuildConfig.DEBUG) Log.w(LogTag, "Synth audio thread stopped", throwable)
+            } finally {
+                running = false
+                if (audioTrack === track) audioTrack = null
+                runCatching {
+                    if (track.playState == AudioTrack.PLAYSTATE_PLAYING) {
+                        track.stop()
+                    }
+                }
+                runCatching { track.release() }
             }
-            track.stop()
-            track.release()
         }
     }
 
     fun stop() {
+        val track = audioTrack
         running = false
+        runCatching { track?.pause() }
+        runCatching { track?.flush() }
         renderThread?.join(400)
+        if (renderThread?.isAlive == true) {
+            runCatching { track?.release() }
+        }
         renderThread = null
         audioTrack = null
         panic()
+        abandonAudioFocus()
     }
 
     fun setMasterVolume(value: Float) {
@@ -153,6 +198,8 @@ class LowLatencySynthEngine(context: Context) {
     }
 
     fun playMetronomeClick(accent: Boolean) {
+        start()
+        requestAudioFocus()
         synchronized(lock) {
             clickTotalSamples = (sampleRate * ClickSeconds).toInt().coerceAtLeast(1)
             clickSamplesRemaining = clickTotalSamples
@@ -164,6 +211,8 @@ class LowLatencySynthEngine(context: Context) {
     }
 
     fun noteOn(note: Int, velocity: Float) {
+        start()
+        requestAudioFocus()
         val midiNote = note.coerceIn(0, 127)
         val safeVelocity = velocity.coerceIn(MinNoteVelocity, MaxNoteVelocity)
         synchronized(lock) {
@@ -237,6 +286,38 @@ class LowLatencySynthEngine(context: Context) {
             soundFont = null
             soundFontName = null
             soundFontHeldChannels.clear()
+        }
+    }
+
+    private fun requestAudioFocus() {
+        val manager = audioManager ?: return
+        val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val request = audioFocusRequest ?: AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(synthAudioAttributes)
+                .setOnAudioFocusChangeListener(audioFocusChangeListener)
+                .build()
+                .also { audioFocusRequest = it }
+            manager.requestAudioFocus(request)
+        } else {
+            @Suppress("DEPRECATION")
+            manager.requestAudioFocus(
+                audioFocusChangeListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN
+            )
+        }
+        if (BuildConfig.DEBUG && result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            Log.w(LogTag, "Audio focus not granted: $result")
+        }
+    }
+
+    private fun abandonAudioFocus() {
+        val manager = audioManager ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let { manager.abandonAudioFocusRequest(it) }
+        } else {
+            @Suppress("DEPRECATION")
+            manager.abandonAudioFocus(audioFocusChangeListener)
         }
     }
 
@@ -493,6 +574,7 @@ class LowLatencySynthEngine(context: Context) {
     }
 
     private companion object {
+        const val LogTag = "KoraSynth"
         const val ChannelCount = 2
         const val FloatBytes = 4
         const val MaxFallbackVoices = 28

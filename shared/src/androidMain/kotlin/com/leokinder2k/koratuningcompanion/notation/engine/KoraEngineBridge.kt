@@ -27,6 +27,7 @@ class KoraEngineBridge(context: Context) {
         settings.allowContentAccess = false
         settings.allowFileAccessFromFileURLs = false
         settings.allowUniversalAccessFromFileURLs = false
+        settings.blockNetworkLoads = true
         settings.domStorageEnabled = false
         settings.databaseEnabled = false
         addJavascriptInterface(JsBridge(), "AndroidBridge")
