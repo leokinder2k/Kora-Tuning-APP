@@ -100,6 +100,7 @@ fun SynthRoute(
         onPadLayerChange = viewModel::setPadLayer,
         onSplitNoteChange = viewModel::setSplitNote,
         onOctaveShiftChange = viewModel::setOctaveShift,
+        onLatencyModeChange = viewModel::setLatencyMode,
         onNoteOn = viewModel::noteOn,
         onNoteOff = viewModel::noteOff,
         onPad = viewModel::playPad,
@@ -126,6 +127,7 @@ private fun SynthScreen(
     onPadLayerChange: (Boolean) -> Unit,
     onSplitNoteChange: (Int) -> Unit,
     onOctaveShiftChange: (Int) -> Unit,
+    onLatencyModeChange: (SynthLatencyMode) -> Unit,
     onNoteOn: (Int, Float) -> Unit,
     onNoteOff: (Int) -> Unit,
     onPad: (Int, PadQuality) -> Unit,
@@ -172,6 +174,7 @@ private fun SynthScreen(
             onPadLayerChange = onPadLayerChange,
             onSplitNoteChange = onSplitNoteChange,
             onOctaveShiftChange = onOctaveShiftChange,
+            onLatencyModeChange = onLatencyModeChange,
             onAllNotesOff = onAllNotesOff
         )
 
@@ -323,6 +326,7 @@ private fun ControlPanel(
     onPadLayerChange: (Boolean) -> Unit,
     onSplitNoteChange: (Int) -> Unit,
     onOctaveShiftChange: (Int) -> Unit,
+    onLatencyModeChange: (SynthLatencyMode) -> Unit,
     onAllNotesOff: () -> Unit
 ) {
     Card(
@@ -346,6 +350,10 @@ private fun ControlPanel(
                 value = (uiState.splitNote - 36) / 36f,
                 onValueChange = { onSplitNoteChange(36 + (it * 36).toInt()) }
             )
+            LatencyModeControl(
+                uiState = uiState,
+                onLatencyModeChange = onLatencyModeChange
+            )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ToggleChip("Bass split", uiState.bassSplitEnabled, onBassSplitChange)
                 ToggleChip("Pad layer", uiState.padLayerEnabled, onPadLayerChange)
@@ -368,6 +376,38 @@ private fun ControlPanel(
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LatencyModeControl(
+    uiState: SynthUiState,
+    onLatencyModeChange: (SynthLatencyMode) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Latency", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.weight(1f))
+            Text(
+                "${uiState.audioBufferFrames} frames • ${latencyMsLabel(uiState.estimatedAudioLatencyMs)}",
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SynthLatencyMode.entries.forEach { mode ->
+                FilterChip(
+                    selected = uiState.latencyMode == mode,
+                    onClick = { onLatencyModeChange(mode) },
+                    label = { Text(mode.label) }
+                )
+            }
+        }
+        Text(
+            uiState.latencyMode.detail,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -682,6 +722,8 @@ private suspend fun PointerInputScope.awaitTouch(
 }
 
 private fun velocityPercent(velocity: Float): String = "${(velocity.coerceIn(0f, 1f) * 100).toInt()}%"
+
+private fun latencyMsLabel(value: Float): String = "${(value * 10f).roundToInt() / 10f} ms"
 
 private fun recordingLengthLabel(uiState: SynthUiState): String {
     val seconds = uiState.recordedDurationMs / 1000f

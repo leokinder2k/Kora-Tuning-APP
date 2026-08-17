@@ -36,8 +36,7 @@ class LowLatencySynthEngine(context: Context) {
     }
     private val lock = Any()
     private val sampleRate = preferredSampleRate(appContext)
-    private val framesPerRender = preferredFramesPerBuffer(appContext)
-    private val renderBuffer = FloatArray(framesPerRender * ChannelCount)
+    private val preferredFramesPerRender = preferredFramesPerBuffer(appContext)
     private val fallbackVoices = mutableListOf<SynthVoice>()
     private val soundFontHeldChannels = mutableMapOf<Int, MutableSet<Int>>()
     private var clickSamplesRemaining = 0
@@ -54,6 +53,7 @@ class LowLatencySynthEngine(context: Context) {
     @Volatile private var audioTrack: AudioTrack? = null
     @Volatile private var renderThread: Thread? = null
     @Volatile private var running = false
+    @Volatile private var activeBufferFrames = SynthLatencyMode.Low.renderFramesFor(preferredFramesPerRender)
     private var audioFocusRequest: AudioFocusRequest? = null
 
     private var soundFont: SoundFont? = null
@@ -70,25 +70,36 @@ class LowLatencySynthEngine(context: Context) {
         private set
     var sustainEnabled: Boolean = false
         private set
+    var latencyMode: SynthLatencyMode = SynthLatencyMode.Low
+        private set
 
     val isRunning: Boolean
         get() = running &&
             renderThread?.isAlive == true &&
             audioTrack?.state == AudioTrack.STATE_INITIALIZED
+    val bufferFrames: Int
+        get() = activeBufferFrames
+    val estimatedOutputLatencyMs: Float
+        get() = activeBufferFrames * 1000f / sampleRate
 
     fun start() {
         if (isRunning) return
         stop()
+        val activeFramesPerRender = latencyMode.renderFramesFor(preferredFramesPerRender)
+        val activeRenderBuffer = FloatArray(activeFramesPerRender * ChannelCount)
         val minBufferBytes = AudioTrack.getMinBufferSize(
             sampleRate,
             AudioFormat.CHANNEL_OUT_STEREO,
             AudioFormat.ENCODING_PCM_FLOAT
         )
         val frameBytes = ChannelCount * FloatBytes
-        val bufferSizeBytes = max(
-            if (minBufferBytes > 0) minBufferBytes else 0,
-            framesPerRender * frameBytes
-        )
+        val minBufferFrames = if (minBufferBytes > 0) {
+            (minBufferBytes + frameBytes - 1) / frameBytes
+        } else {
+            0
+        }
+        val targetBufferFrames = latencyMode.bufferFramesFor(minBufferFrames, activeFramesPerRender)
+        val bufferSizeBytes = targetBufferFrames * frameBytes
         val trackBuilder = AudioTrack.Builder()
             .setAudioAttributes(
                 synthAudioAttributes
@@ -119,9 +130,12 @@ class LowLatencySynthEngine(context: Context) {
             running = false
             return
         }
-        runCatching { track.setBufferSizeInFrames((bufferSizeBytes / frameBytes).coerceAtLeast(framesPerRender)) }
+        val appliedBufferFrames = runCatching {
+            track.setBufferSizeInFrames(targetBufferFrames)
+        }.getOrDefault(targetBufferFrames)
+        activeBufferFrames = if (appliedBufferFrames > 0) appliedBufferFrames else targetBufferFrames
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            runCatching { track.setStartThresholdInFrames(framesPerRender) }
+            runCatching { track.setStartThresholdInFrames(activeFramesPerRender.coerceAtMost(activeBufferFrames)) }
         }
         audioTrack = track
         running = true
@@ -130,8 +144,8 @@ class LowLatencySynthEngine(context: Context) {
                 Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
                 track.play()
                 while (running) {
-                    render(renderBuffer, framesPerRender)
-                    val written = track.write(renderBuffer, 0, renderBuffer.size, AudioTrack.WRITE_BLOCKING)
+                    render(activeRenderBuffer, activeFramesPerRender)
+                    val written = track.write(activeRenderBuffer, 0, activeRenderBuffer.size, AudioTrack.WRITE_BLOCKING)
                     if (written < 0) error("AudioTrack write failed: $written")
                 }
             } catch (throwable: Throwable) {
@@ -162,6 +176,15 @@ class LowLatencySynthEngine(context: Context) {
         audioTrack = null
         panic()
         abandonAudioFocus()
+    }
+
+    fun setLatencyMode(mode: SynthLatencyMode) {
+        if (latencyMode == mode) return
+        val shouldRestart = isRunning
+        stop()
+        latencyMode = mode
+        activeBufferFrames = mode.renderFramesFor(preferredFramesPerRender)
+        if (shouldRestart) start()
     }
 
     fun setMasterVolume(value: Float) {
@@ -615,6 +638,51 @@ class LowLatencySynthEngine(context: Context) {
                 ?: 128
         }
 
+    }
+}
+
+enum class SynthLatencyMode(
+    val label: String,
+    val detail: String,
+    private val fixedRenderFrames: Int?,
+    private val preferredMultiplier: Int,
+    private val bufferPeriods: Int
+) {
+    Minimum(
+        label = "Min",
+        detail = "Smallest buffer; use if the tablet is clean and close to the controller.",
+        fixedRenderFrames = 64,
+        preferredMultiplier = 1,
+        bufferPeriods = 1
+    ),
+    Low(
+        label = "Low",
+        detail = "Current low-lag setting.",
+        fixedRenderFrames = null,
+        preferredMultiplier = 1,
+        bufferPeriods = 1
+    ),
+    Balanced(
+        label = "Balanced",
+        detail = "More buffer for fewer pops.",
+        fixedRenderFrames = null,
+        preferredMultiplier = 2,
+        bufferPeriods = 2
+    ),
+    Stable(
+        label = "Stable",
+        detail = "Largest buffer for difficult hubs, speakers, or busy tablets.",
+        fixedRenderFrames = null,
+        preferredMultiplier = 4,
+        bufferPeriods = 3
+    );
+
+    fun renderFramesFor(preferredFrames: Int): Int {
+        return (fixedRenderFrames ?: (preferredFrames * preferredMultiplier)).coerceIn(64, 768)
+    }
+
+    fun bufferFramesFor(minBufferFrames: Int, renderFrames: Int): Int {
+        return max(minBufferFrames, renderFrames * bufferPeriods).coerceAtLeast(renderFrames)
     }
 }
 

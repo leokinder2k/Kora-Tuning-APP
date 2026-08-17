@@ -67,10 +67,11 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
         ensureAudioRunning()
         midiInput.startAutoConnect()
         _uiState.update {
-            it.copy(
-                audioRunning = engine.isRunning,
-                availableMidiDevices = midiInput.availableDevices(),
-                visibleUsbDevices = midiInput.usbDevices()
+            audioState(
+                it.copy(
+                    availableMidiDevices = midiInput.availableDevices(),
+                    visibleUsbDevices = midiInput.usbDevices()
+                )
             )
         }
     }
@@ -79,7 +80,7 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
         audioAllowed = false
         engine.panic()
         engine.stop()
-        _uiState.update { it.copy(audioRunning = false) }
+        _uiState.update { audioState(it.copy(audioRunning = false)) }
     }
 
     fun refreshMidi() {
@@ -114,6 +115,14 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setOctaveShift(shift: Int) {
         _uiState.update { it.copy(octaveShift = shift.coerceIn(-2, 2)) }
+    }
+
+    fun setLatencyMode(mode: SynthLatencyMode) {
+        engine.setLatencyMode(mode)
+        if (audioAllowed) {
+            ensureAudioRunning()
+        }
+        _uiState.update { audioState(it) }
     }
 
     fun noteOn(note: Int, velocity: Float) {
@@ -467,8 +476,17 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
     private fun ensureAudioRunning(): Boolean {
         if (!audioAllowed) return false
         engine.start()
-        _uiState.update { it.copy(audioRunning = engine.isRunning) }
+        _uiState.update { audioState(it) }
         return engine.isRunning
+    }
+
+    private fun audioState(state: SynthUiState): SynthUiState {
+        return state.copy(
+            audioRunning = engine.isRunning,
+            latencyMode = engine.latencyMode,
+            audioBufferFrames = engine.bufferFrames,
+            estimatedAudioLatencyMs = engine.estimatedOutputLatencyMs
+        )
     }
 
     private fun nowMs(): Long = SystemClock.uptimeMillis()
@@ -511,6 +529,9 @@ data class SynthUiState(
     val midiReconnectCount: Int = 0,
     val midiInputMode: String = "Idle",
     val midiIdleMs: Long? = null,
+    val latencyMode: SynthLatencyMode = SynthLatencyMode.Low,
+    val audioBufferFrames: Int = 0,
+    val estimatedAudioLatencyMs: Float = 0f,
     val isRecording: Boolean = false,
     val isLooping: Boolean = false,
     val metronomeEnabled: Boolean = true,
