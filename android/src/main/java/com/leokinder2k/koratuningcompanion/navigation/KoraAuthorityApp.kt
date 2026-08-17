@@ -18,6 +18,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
@@ -26,6 +28,7 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,6 +42,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -92,21 +96,35 @@ import kotlinx.coroutines.launch
 fun KoraAuthorityApp(
     modifier: Modifier = Modifier,
     themeMode: String = "SYSTEM",
-    onThemeModeChange: (String) -> Unit = {}
+    onThemeModeChange: (String) -> Unit = {},
+    navigationTabOrder: String = "",
+    visibleNavigationTabs: String = "",
+    onNavigationTabsChange: (visibleTabNames: List<String>, tabOrderNames: List<String>) -> Unit = { _, _ -> }
 ) {
     val appContext = LocalContext.current.applicationContext
     val scaleViewModelFactory = remember(appContext) {
         ScaleCalculationViewModel.factory(appContext)
     }
 
-    val destinations = AppDestination.entries
+    val destinationOrder = remember(navigationTabOrder) {
+        parseDestinationOrder(navigationTabOrder)
+    }
+    val destinations = remember(destinationOrder, visibleNavigationTabs) {
+        destinationOrder.visibleDestinations(visibleNavigationTabs)
+    }
     val pagerState = rememberPagerState(
-        initialPage = destinations.indexOf(AppDestination.INSTRUMENT_CONFIG),
+        initialPage = destinations.indexOf(AppDestination.INSTRUMENT_CONFIG).takeIf { it >= 0 } ?: 0,
         pageCount = { destinations.size }
     )
     val coroutineScope = rememberCoroutineScope()
-    val selectedPage by remember {
-        derivedStateOf { pagerState.currentPage }
+    val selectedPage by remember(destinations) {
+        derivedStateOf { pagerState.currentPage.coerceIn(0, destinations.lastIndex) }
+    }
+    val selectedDestination by remember(destinations) {
+        derivedStateOf { destinations[selectedPage] }
+    }
+    var selectedDestinationName by rememberSaveable {
+        mutableStateOf(AppDestination.INSTRUMENT_CONFIG.name)
     }
 
     var isMuted by rememberSaveable { mutableStateOf(false) }
@@ -118,6 +136,26 @@ fun KoraAuthorityApp(
 
     SideEffect {
         EnharmonicDisplayState.preference = enharmonicPreference
+    }
+
+    LaunchedEffect(destinations) {
+        val targetPage = destinations.indexOfFirst { it.name == selectedDestinationName }
+        if (targetPage >= 0) {
+            if (pagerState.currentPage != targetPage) {
+                pagerState.scrollToPage(targetPage)
+            }
+        } else {
+            val fallbackPage = pagerState.currentPage.coerceIn(0, destinations.lastIndex)
+            selectedDestinationName = destinations[fallbackPage].name
+            if (pagerState.currentPage != fallbackPage) {
+                pagerState.scrollToPage(fallbackPage)
+            }
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        selectedDestinationName = destinations.getOrNull(pagerState.currentPage)?.name
+            ?: selectedDestinationName
     }
 
     NavigationSuiteScaffold(
@@ -139,9 +177,10 @@ fun KoraAuthorityApp(
                             overflow = TextOverflow.Ellipsis
                         )
                     },
-                    selected = index == selectedPage,
+                    selected = destination == selectedDestination,
                     onClick = {
                         if (index != selectedPage) {
+                            selectedDestinationName = destination.name
                             coroutineScope.launch {
                                 pagerState.animateScrollToPage(index)
                             }
@@ -316,6 +355,25 @@ fun KoraAuthorityApp(
                     AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
                 }
             },
+            tabOrder = destinationOrder,
+            visibleDestinations = destinations,
+            onTabVisibilityChange = { destination, isVisible ->
+                val visible = if (isVisible) {
+                    (destinations + destination).distinct().orderedBy(destinationOrder)
+                } else {
+                    destinations.filterNot { it == destination }
+                }
+                if (visible.isNotEmpty()) {
+                    onNavigationTabsChange(visible.map { it.name }, destinationOrder.map { it.name })
+                }
+            },
+            onMoveTab = { destination, delta ->
+                val updatedOrder = destinationOrder.moveBy(destination, delta)
+                onNavigationTabsChange(
+                    destinations.orderedBy(updatedOrder).map { it.name },
+                    updatedOrder.map { it.name }
+                )
+            },
             onDismiss = { showSettings = false }
         )
     }
@@ -345,6 +403,10 @@ private fun SettingsDialog(
     onThemeModeChange: (String) -> Unit,
     currentLocaleTag: String,
     onLocaleChange: (String) -> Unit,
+    tabOrder: List<AppDestination>,
+    visibleDestinations: List<AppDestination>,
+    onTabVisibilityChange: (AppDestination, Boolean) -> Unit,
+    onMoveTab: (AppDestination, Int) -> Unit,
     onDismiss: () -> Unit
 ) {
     val themeOptions = listOf(
@@ -429,6 +491,70 @@ private fun SettingsDialog(
                         Text(label)
                     }
                 }
+
+                Spacer(Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(R.string.settings_tabs_label),
+                    style = MaterialTheme.typography.labelLarge
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.settings_tabs_summary),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (visibleDestinations.size == 1) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.settings_tabs_keep_one),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                tabOrder.forEachIndexed { index, destination ->
+                    val isVisible = destination in visibleDestinations
+                    val isOnlyVisibleTab = isVisible && visibleDestinations.size == 1
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("settings-tab-${destination.name}")
+                            .padding(vertical = 2.dp)
+                    ) {
+                        Checkbox(
+                            checked = isVisible,
+                            enabled = !isOnlyVisibleTab,
+                            onCheckedChange = { checked ->
+                                onTabVisibilityChange(destination, checked)
+                            }
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(destination.labelRes),
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            enabled = index > 0,
+                            onClick = { onMoveTab(destination, -1) }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowUp,
+                                contentDescription = stringResource(R.string.settings_tabs_move_up)
+                            )
+                        }
+                        IconButton(
+                            enabled = index < tabOrder.lastIndex,
+                            onClick = { onMoveTab(destination, 1) }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = stringResource(R.string.settings_tabs_move_down)
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -443,6 +569,31 @@ private fun getCurrentLocaleTag(): String {
     val locales = AppCompatDelegate.getApplicationLocales()
     val firstLocaleTag = locales[0]?.toLanguageTag().orEmpty()
     return firstLocaleTag.ifEmpty { "system" }
+}
+
+private fun parseDestinationOrder(savedNames: String): List<AppDestination> {
+    return NavigationTabSettings
+        .parseOrder(savedNames, AppDestination.entries.map { it.name })
+        .mapNotNull { name -> AppDestination.entries.firstOrNull { it.name == name } }
+}
+
+private fun List<AppDestination>.visibleDestinations(savedNames: String): List<AppDestination> {
+    val destinationsByName = associateBy { it.name }
+    return NavigationTabSettings
+        .parseVisible(map { it.name }, savedNames)
+        .mapNotNull(destinationsByName::get)
+}
+
+private fun List<AppDestination>.orderedBy(order: List<AppDestination>): List<AppDestination> {
+    val destinationSet = toSet()
+    return order.filter { it in destinationSet }
+}
+
+private fun List<AppDestination>.moveBy(destination: AppDestination, delta: Int): List<AppDestination> {
+    val destinationsByName = associateBy { it.name }
+    return NavigationTabSettings
+        .moveBy(map { it.name }, destination.name, delta)
+        .mapNotNull(destinationsByName::get)
 }
 
 @Composable

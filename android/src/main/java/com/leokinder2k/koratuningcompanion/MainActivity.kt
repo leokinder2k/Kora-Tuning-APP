@@ -21,6 +21,8 @@ class MainActivity : AppCompatActivity() {
         setContent {
             val repo = remember { AppSettingsRepository(applicationContext) }
             val themeMode by repo.themeModeFlow.collectAsStateWithLifecycle(initialValue = "SYSTEM")
+            val navigationTabOrder by repo.navigationTabOrderFlow.collectAsStateWithLifecycle(initialValue = "")
+            val visibleNavigationTabs by repo.visibleNavigationTabsFlow.collectAsStateWithLifecycle(initialValue = "")
             val scope = rememberCoroutineScope()
             val darkTheme = when (themeMode) {
                 "LIGHT" -> false
@@ -30,7 +32,12 @@ class MainActivity : AppCompatActivity() {
             KoraTuningSystemTheme(darkTheme = darkTheme) {
                 KoraAuthorityApp(
                     themeMode = themeMode,
-                    onThemeModeChange = { mode -> scope.launch { repo.setThemeMode(mode) } }
+                    onThemeModeChange = { mode -> scope.launch { repo.setThemeMode(mode) } },
+                    navigationTabOrder = navigationTabOrder,
+                    visibleNavigationTabs = visibleNavigationTabs,
+                    onNavigationTabsChange = { visibleTabs, tabOrder ->
+                        scope.launch { repo.setNavigationTabs(visibleTabs, tabOrder) }
+                    }
                 )
             }
         }

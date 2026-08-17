@@ -471,6 +471,11 @@
     <string name="settings_theme_system">Follow system</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
+    <string name="settings_tabs_label">Bottom tabs</string>
+    <string name="settings_tabs_summary">Choose which screens appear and the order used for swiping.</string>
+    <string name="settings_tabs_keep_one">At least one screen must stay visible.</string>
+    <string name="settings_tabs_move_up">Move tab up</string>
+    <string name="settings_tabs_move_down">Move tab down</string>
 
     <!-- Language picker -->
     <string name="settings_language_label">App language</string>
