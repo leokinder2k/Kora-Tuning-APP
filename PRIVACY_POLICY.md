@@ -59,8 +59,6 @@ If the app’s data practices change, this policy will be updated.
 
 ## Contact
 
-If you have questions, open an issue here:
+For support or privacy questions, open an issue here:
 
 - https://github.com/leokinder2k/Kora-Tuning-APP/issues
-
-Before commercial launch, the app store listing should also provide a current support contact controlled by the app publisher.

@@ -21,7 +21,7 @@ This checklist is an engineering readiness aid, not legal advice. Have a qualifi
 
 - Publish `PRIVACY_POLICY.md` at a public, stable, non-PDF URL controlled by the publisher.
 - Update the in-app About -> Privacy Policy URL so it points to the same public policy URL used in stores.
-- Provide a current support/contact URL or email controlled by the publisher in each store listing.
+- Provide a current support/contact URL or email controlled by the publisher in each store listing. The app now exposes the GitHub Issues support link from About; replace it with a publisher support page/email if needed for commercial support operations.
 - Complete Google Play Data safety declarations to match the final release artifact, not only the source code assumption.
 - Complete Apple App Privacy details if the iOS app is submitted.
 - Verify final age rating, target audience, and content rating declarations in Google Play Console and App Store Connect.
@@ -29,8 +29,7 @@ This checklist is an engineering readiness aid, not legal advice. Have a qualifi
 
 ## Should Fix Soon
 
-- Replace GitHub Issues as the primary public support route with a publisher-controlled support email or support page.
-- Add a short in-app support/contact entry near the privacy policy link.
+- Replace GitHub Issues as the primary public support route with a publisher-controlled support email or support page if GitHub Issues is not the desired commercial support channel.
 - Keep a dated privacy-impact checklist for future changes to microphone behavior, notation imports, exports, analytics, crash reporting, or network access.
 - Keep a third-party notices file for open-source licenses and bundled asset/source acknowledgements.
 - Version the privacy policy when data practices change.

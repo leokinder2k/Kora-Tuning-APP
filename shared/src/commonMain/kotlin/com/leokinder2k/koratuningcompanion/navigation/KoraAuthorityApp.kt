@@ -281,8 +281,10 @@ fun KoraAuthorityApp(
 
     if (showAbout) {
         val privacyPolicyUrl = stringResource(Res.string.about_privacy_policy_url)
+        val supportUrl = stringResource(Res.string.about_support_url)
         AboutDialog(
             onPrivacyPolicy = { openUrl(privacyPolicyUrl) },
+            onSupport = { openUrl(supportUrl) },
             onDismiss = { showAbout = false }
         )
     }
@@ -389,6 +391,7 @@ private fun SettingsDialog(
 @Composable
 private fun AboutDialog(
     onPrivacyPolicy: () -> Unit,
+    onSupport: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -419,6 +422,15 @@ private fun AboutDialog(
                     modifier = Modifier
                         .semantics { role = Role.Button }
                         .clickable { onPrivacyPolicy() }
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(Res.string.about_support),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .semantics { role = Role.Button }
+                        .clickable { onSupport() }
                 )
             }
         },

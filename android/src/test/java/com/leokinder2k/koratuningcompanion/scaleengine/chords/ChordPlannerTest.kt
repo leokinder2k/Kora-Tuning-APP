@@ -107,7 +107,11 @@ class ChordPlannerTest {
         val openPitch = Pitch(note = note, octave = 4)
         return PegCorrectStringResult(
             stringNumber = stringNumber,
-            role = ScaleStringRole(side = side, positionFromLow = position),
+            role = ScaleStringRole(
+                side = side,
+                positionFromLow = position,
+                displayLabel = "${side.shortLabel}$position"
+            ),
             originalOpenPitch = openPitch,
             originalClosedPitch = openPitch.plusSemitones(1),
             retunedOpenPitch = openPitch,

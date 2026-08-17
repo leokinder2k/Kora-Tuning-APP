@@ -323,14 +323,17 @@ fun KoraAuthorityApp(
     if (showAbout) {
         val appContext = LocalContext.current
         val privacyPolicyUrl = stringResource(R.string.about_privacy_policy_url)
+        val supportUrl = stringResource(R.string.about_support_url)
+        fun openExternalUrl(url: String) {
+            val intent = Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse(url)
+            )
+            appContext.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
         AboutDialog(
-            onPrivacyPolicy = {
-                val intent = Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse(privacyPolicyUrl)
-                )
-                appContext.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            },
+            onPrivacyPolicy = { openExternalUrl(privacyPolicyUrl) },
+            onSupport = { openExternalUrl(supportUrl) },
             onDismiss = { showAbout = false }
         )
     }
@@ -445,6 +448,7 @@ private fun getCurrentLocaleTag(): String {
 @Composable
 private fun AboutDialog(
     onPrivacyPolicy: () -> Unit,
+    onSupport: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -475,6 +479,15 @@ private fun AboutDialog(
                     modifier = Modifier
                         .semantics { role = Role.Button }
                         .clickable { onPrivacyPolicy() }
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.about_support),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .semantics { role = Role.Button }
+                        .clickable { onSupport() }
                 )
             }
         },

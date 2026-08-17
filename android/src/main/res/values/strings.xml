@@ -482,6 +482,8 @@
     <string name="about_version">Version %1$s</string>
     <string name="about_privacy_policy">Privacy Policy</string>
     <string name="about_privacy_policy_url" translatable="false">https://github.com/leokinder2k/Kora-Tuning-APP/blob/main/PRIVACY_POLICY.md</string>
+    <string name="about_support">Support</string>
+    <string name="about_support_url" translatable="false">https://github.com/leokinder2k/Kora-Tuning-APP/issues</string>
 
     <!-- Diagram lock toggle -->
     <string name="overview_diagram_locked">Locked</string>
