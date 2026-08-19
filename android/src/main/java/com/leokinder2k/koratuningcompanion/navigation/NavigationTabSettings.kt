@@ -22,6 +22,34 @@ internal object NavigationTabSettings {
         return orderNames.filter { it in visibleNames }.ifEmpty { orderNames.take(1) }
     }
 
+    fun visibleAfterToggle(
+        orderNames: List<String>,
+        currentVisibleNames: List<String>,
+        toggledName: String,
+        isVisible: Boolean
+    ): List<String> {
+        val currentVisible = currentVisibleNames.filter { it in orderNames }.distinct()
+        val updated = if (isVisible) {
+            currentVisible + toggledName
+        } else {
+            currentVisible.filterNot { it == toggledName }
+        }
+        return orderBy(updated, orderNames).ifEmpty { currentVisible }
+    }
+
+    fun orderBy(visibleNames: List<String>, orderNames: List<String>): List<String> {
+        val visibleSet = visibleNames.toSet()
+        return orderNames.filter { it in visibleSet }
+    }
+
+    fun selectedAfterVisibilityChange(selectedName: String, visibleNames: List<String>): String {
+        return if (selectedName in visibleNames) {
+            selectedName
+        } else {
+            visibleNames.firstOrNull() ?: selectedName
+        }
+    }
+
     fun moveBy(orderNames: List<String>, name: String, delta: Int): List<String> {
         val currentIndex = orderNames.indexOf(name)
         if (currentIndex < 0) {

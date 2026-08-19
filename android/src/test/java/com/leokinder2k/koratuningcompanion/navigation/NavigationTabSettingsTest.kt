@@ -27,6 +27,48 @@ class NavigationTabSettingsTest {
     }
 
     @Test
+    fun visibleAfterToggleAddsTabInNavigationOrder() {
+        val visible = NavigationTabSettings.visibleAfterToggle(
+            orderNames = defaults,
+            currentVisibleNames = listOf("SETUP", "PRESETS"),
+            toggledName = "SYNTH",
+            isVisible = true
+        )
+
+        assertEquals(listOf("SETUP", "SYNTH", "PRESETS"), visible)
+    }
+
+    @Test
+    fun visibleAfterToggleKeepsLastVisibleTab() {
+        val visible = NavigationTabSettings.visibleAfterToggle(
+            orderNames = defaults,
+            currentVisibleNames = listOf("SYNTH"),
+            toggledName = "SYNTH",
+            isVisible = false
+        )
+
+        assertEquals(listOf("SYNTH"), visible)
+    }
+
+    @Test
+    fun selectedAfterVisibilityChangeFallsBackToFirstVisibleTab() {
+        assertEquals(
+            "SCALE",
+            NavigationTabSettings.selectedAfterVisibilityChange(
+                selectedName = "SYNTH",
+                visibleNames = listOf("SCALE", "PRESETS")
+            )
+        )
+        assertEquals(
+            "SYNTH",
+            NavigationTabSettings.selectedAfterVisibilityChange(
+                selectedName = "SYNTH",
+                visibleNames = listOf("SYNTH", "PRESETS")
+            )
+        )
+    }
+
+    @Test
     fun moveByReordersAndClampsAtEdges() {
         assertEquals(
             listOf("SETUP", "SYNTH", "SCALE", "PRESETS"),

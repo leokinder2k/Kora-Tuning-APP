@@ -134,14 +134,15 @@ fun KoraAuthorityApp(
     var showAbout by remember { mutableStateOf(false) }
     val enharmonicPreference = EnharmonicPreference.valueOf(enharmonicPreferenceName)
 
-    fun commitNavigationTabs(visible: List<AppDestination>, order: List<AppDestination>) {
-        if (visible.isEmpty()) {
+    fun commitNavigationTabs(visibleNames: List<String>, orderNames: List<String>) {
+        if (visibleNames.isEmpty()) {
             return
         }
-        if (visible.none { it.name == selectedDestinationName }) {
-            selectedDestinationName = visible.first().name
-        }
-        onNavigationTabsChange(visible.map { it.name }, order.map { it.name })
+        selectedDestinationName = NavigationTabSettings.selectedAfterVisibilityChange(
+            selectedName = selectedDestinationName,
+            visibleNames = visibleNames
+        )
+        onNavigationTabsChange(visibleNames, orderNames)
     }
 
     LaunchedEffect(destinations) {
@@ -369,18 +370,22 @@ fun KoraAuthorityApp(
             tabOrder = destinationOrder,
             visibleDestinations = destinations,
             onTabVisibilityChange = { destination, isVisible ->
-                val visible = if (isVisible) {
-                    (destinations + destination).distinct().orderedBy(destinationOrder)
-                } else {
-                    destinations.filterNot { it == destination }
-                }
-                if (visible.isNotEmpty()) {
-                    commitNavigationTabs(visible, destinationOrder)
-                }
+                commitNavigationTabs(
+                    visibleNames = NavigationTabSettings.visibleAfterToggle(
+                        orderNames = destinationOrder.map { it.name },
+                        currentVisibleNames = destinations.map { it.name },
+                        toggledName = destination.name,
+                        isVisible = isVisible
+                    ),
+                    orderNames = destinationOrder.map { it.name }
+                )
             },
             onMoveTab = { destination, delta ->
                 val updatedOrder = destinationOrder.moveBy(destination, delta)
-                commitNavigationTabs(destinations.orderedBy(updatedOrder), updatedOrder)
+                commitNavigationTabs(
+                    visibleNames = destinations.orderedBy(updatedOrder).map { it.name },
+                    orderNames = updatedOrder.map { it.name }
+                )
             },
             onDismiss = { showSettings = false }
         )
@@ -391,18 +396,22 @@ fun KoraAuthorityApp(
             tabOrder = destinationOrder,
             visibleDestinations = destinations,
             onTabVisibilityChange = { destination, isVisible ->
-                val visible = if (isVisible) {
-                    (destinations + destination).distinct().orderedBy(destinationOrder)
-                } else {
-                    destinations.filterNot { it == destination }
-                }
-                if (visible.isNotEmpty()) {
-                    commitNavigationTabs(visible, destinationOrder)
-                }
+                commitNavigationTabs(
+                    visibleNames = NavigationTabSettings.visibleAfterToggle(
+                        orderNames = destinationOrder.map { it.name },
+                        currentVisibleNames = destinations.map { it.name },
+                        toggledName = destination.name,
+                        isVisible = isVisible
+                    ),
+                    orderNames = destinationOrder.map { it.name }
+                )
             },
             onMoveTab = { destination, delta ->
                 val updatedOrder = destinationOrder.moveBy(destination, delta)
-                commitNavigationTabs(destinations.orderedBy(updatedOrder), updatedOrder)
+                commitNavigationTabs(
+                    visibleNames = destinations.orderedBy(updatedOrder).map { it.name },
+                    orderNames = updatedOrder.map { it.name }
+                )
             },
             onDismiss = { showTabSettings = false }
         )
