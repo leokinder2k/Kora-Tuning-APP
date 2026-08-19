@@ -111,6 +111,7 @@ fun KoraAuthorityApp(
     }
     val destinations = remember(destinationOrder, visibleNavigationTabs) {
         destinationOrder.visibleDestinations(visibleNavigationTabs)
+            .ifEmpty { listOf(AppDestination.INSTRUMENT_CONFIG) }
     }
     val pagerState = rememberPagerState(
         initialPage = destinations.indexOf(AppDestination.INSTRUMENT_CONFIG).takeIf { it >= 0 } ?: 0,
@@ -135,6 +136,16 @@ fun KoraAuthorityApp(
     var showAbout by remember { mutableStateOf(false) }
     val enharmonicPreference = EnharmonicPreference.valueOf(enharmonicPreferenceName)
 
+    fun commitNavigationTabs(visible: List<AppDestination>, order: List<AppDestination>) {
+        if (visible.isEmpty()) {
+            return
+        }
+        if (visible.none { it.name == selectedDestinationName }) {
+            selectedDestinationName = visible.first().name
+        }
+        onNavigationTabsChange(visible.map { it.name }, order.map { it.name })
+    }
+
     SideEffect {
         EnharmonicDisplayState.preference = enharmonicPreference
     }
@@ -154,7 +165,7 @@ fun KoraAuthorityApp(
         }
     }
 
-    LaunchedEffect(pagerState.currentPage) {
+    LaunchedEffect(pagerState.currentPage, destinations) {
         selectedDestinationName = destinations.getOrNull(pagerState.currentPage)?.name
             ?: selectedDestinationName
     }
@@ -263,17 +274,18 @@ fun KoraAuthorityApp(
             HorizontalPager(
                 state = pagerState,
                 beyondViewportPageCount = 1,
-                key = { page -> destinations[page].name },
+                key = { page -> destinations.getOrNull(page)?.name ?: "stale-page-$page" },
                 modifier = Modifier
                     .widthIn(max = 840.dp)
                     .fillMaxHeight()
             ) { page ->
-                when (destinations[page]) {
+                val destination = destinations.getOrNull(page) ?: selectedDestination
+                when (destination) {
                     AppDestination.INSTRUMENT_CONFIG -> InstrumentConfigurationRoute(
                         enharmonicPreference = enharmonicPreference,
                         isMuted = isMuted,
                         onToggleMute = { isMuted = !isMuted },
-                        isActive = page == selectedPage
+                        isActive = destination == selectedDestination
                     )
                     AppDestination.SCALE_ENGINE -> {
                         val scaleViewModel: ScaleCalculationViewModel = viewModel(
@@ -369,15 +381,12 @@ fun KoraAuthorityApp(
                     destinations.filterNot { it == destination }
                 }
                 if (visible.isNotEmpty()) {
-                    onNavigationTabsChange(visible.map { it.name }, destinationOrder.map { it.name })
+                    commitNavigationTabs(visible, destinationOrder)
                 }
             },
             onMoveTab = { destination, delta ->
                 val updatedOrder = destinationOrder.moveBy(destination, delta)
-                onNavigationTabsChange(
-                    destinations.orderedBy(updatedOrder).map { it.name },
-                    updatedOrder.map { it.name }
-                )
+                commitNavigationTabs(destinations.orderedBy(updatedOrder), updatedOrder)
             },
             onDismiss = { showSettings = false }
         )
@@ -394,15 +403,12 @@ fun KoraAuthorityApp(
                     destinations.filterNot { it == destination }
                 }
                 if (visible.isNotEmpty()) {
-                    onNavigationTabsChange(visible.map { it.name }, destinationOrder.map { it.name })
+                    commitNavigationTabs(visible, destinationOrder)
                 }
             },
             onMoveTab = { destination, delta ->
                 val updatedOrder = destinationOrder.moveBy(destination, delta)
-                onNavigationTabsChange(
-                    destinations.orderedBy(updatedOrder).map { it.name },
-                    updatedOrder.map { it.name }
-                )
+                commitNavigationTabs(destinations.orderedBy(updatedOrder), updatedOrder)
             },
             onDismiss = { showTabSettings = false }
         )
