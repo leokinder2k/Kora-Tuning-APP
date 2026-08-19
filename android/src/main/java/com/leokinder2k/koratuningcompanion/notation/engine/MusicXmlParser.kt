@@ -292,12 +292,17 @@ fun importMusicXmlToSimplifiedScore(
     // Merge all note events from all parts; pick melody part
     val allNotes = parts.flatMap { it.noteEvents }
     val melodyPartId = pickMelodyPart(parts.map { it.partId to it.noteEvents })
-    val notesWithHint = allNotes.map { n -> n.copy(melodyHint = n.partId == melodyPartId) }
+    val notesWithHint = quantizeNoteEventsRhythm(
+        allNotes.map { n -> n.copy(melodyHint = n.partId == melodyPartId) },
+        ppq
+    )
 
     // Score reduction
-    val (reducedNotes, reducedRests) = buildSimplifiedTeachingReduction(
+    val (reducedNotesRaw, reducedRestsRaw) = buildSimplifiedTeachingReduction(
         notesWithHint, reductionCap, splitMidi, tuningMidi
     )
+    val reducedNotes = quantizeNoteEventsRhythm(reducedNotesRaw, ppq)
+    val reducedRests = quantizeRestEventsRhythm(reducedRestsRaw, ppq)
 
     val endTick = (reducedNotes.map { it.tick + it.durationTicks } +
                    reducedRests.map { it.tick + it.durationTicks }).maxOrNull() ?: 0

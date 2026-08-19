@@ -131,6 +131,7 @@ fun KoraAuthorityApp(
     var enharmonicPreferenceName by rememberSaveable { mutableStateOf(EnharmonicPreference.SHARPS.name) }
     var showOverflowMenu by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var showTabSettings by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     val enharmonicPreference = EnharmonicPreference.valueOf(enharmonicPreferenceName)
 
@@ -236,6 +237,10 @@ fun KoraAuthorityApp(
                             expanded = showOverflowMenu,
                             onDismissRequest = { showOverflowMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.menu_customize_tabs)) },
+                                onClick = { showOverflowMenu = false; showTabSettings = true }
+                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.menu_settings)) },
                                 onClick = { showOverflowMenu = false; showSettings = true }
@@ -378,6 +383,31 @@ fun KoraAuthorityApp(
         )
     }
 
+    if (showTabSettings) {
+        TabSettingsDialog(
+            tabOrder = destinationOrder,
+            visibleDestinations = destinations,
+            onTabVisibilityChange = { destination, isVisible ->
+                val visible = if (isVisible) {
+                    (destinations + destination).distinct().orderedBy(destinationOrder)
+                } else {
+                    destinations.filterNot { it == destination }
+                }
+                if (visible.isNotEmpty()) {
+                    onNavigationTabsChange(visible.map { it.name }, destinationOrder.map { it.name })
+                }
+            },
+            onMoveTab = { destination, delta ->
+                val updatedOrder = destinationOrder.moveBy(destination, delta)
+                onNavigationTabsChange(
+                    destinations.orderedBy(updatedOrder).map { it.name },
+                    updatedOrder.map { it.name }
+                )
+            },
+            onDismiss = { showTabSettings = false }
+        )
+    }
+
     if (showAbout) {
         val appContext = LocalContext.current
         val privacyPolicyUrl = stringResource(R.string.about_privacy_policy_url)
@@ -436,6 +466,15 @@ private fun SettingsDialog(
                     .heightIn(max = 420.dp)
                     .verticalScroll(rememberScrollState())
             ) {
+                TabSettingsContent(
+                    tabOrder = tabOrder,
+                    visibleDestinations = visibleDestinations,
+                    onTabVisibilityChange = onTabVisibilityChange,
+                    onMoveTab = onMoveTab
+                )
+
+                Spacer(Modifier.height(16.dp))
+
                 // Theme section
                 Text(
                     text = stringResource(R.string.settings_theme_label),
@@ -492,69 +531,6 @@ private fun SettingsDialog(
                     }
                 }
 
-                Spacer(Modifier.height(16.dp))
-
-                Text(
-                    text = stringResource(R.string.settings_tabs_label),
-                    style = MaterialTheme.typography.labelLarge
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.settings_tabs_summary),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (visibleDestinations.size == 1) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.settings_tabs_keep_one),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                tabOrder.forEachIndexed { index, destination ->
-                    val isVisible = destination in visibleDestinations
-                    val isOnlyVisibleTab = isVisible && visibleDestinations.size == 1
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("settings-tab-${destination.name}")
-                            .padding(vertical = 2.dp)
-                    ) {
-                        Checkbox(
-                            checked = isVisible,
-                            enabled = !isOnlyVisibleTab,
-                            onCheckedChange = { checked ->
-                                onTabVisibilityChange(destination, checked)
-                            }
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(destination.labelRes),
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(
-                            enabled = index > 0,
-                            onClick = { onMoveTab(destination, -1) }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowUp,
-                                contentDescription = stringResource(R.string.settings_tabs_move_up)
-                            )
-                        }
-                        IconButton(
-                            enabled = index < tabOrder.lastIndex,
-                            onClick = { onMoveTab(destination, 1) }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = stringResource(R.string.settings_tabs_move_down)
-                            )
-                        }
-                    }
-                }
             }
         },
         confirmButton = {
@@ -563,6 +539,110 @@ private fun SettingsDialog(
             }
         }
     )
+}
+
+@Composable
+private fun TabSettingsDialog(
+    tabOrder: List<AppDestination>,
+    visibleDestinations: List<AppDestination>,
+    onTabVisibilityChange: (AppDestination, Boolean) -> Unit,
+    onMoveTab: (AppDestination, Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_tabs_title)) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                TabSettingsContent(
+                    tabOrder = tabOrder,
+                    visibleDestinations = visibleDestinations,
+                    onTabVisibilityChange = onTabVisibilityChange,
+                    onMoveTab = onMoveTab
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(android.R.string.ok))
+            }
+        }
+    )
+}
+
+@Composable
+private fun TabSettingsContent(
+    tabOrder: List<AppDestination>,
+    visibleDestinations: List<AppDestination>,
+    onTabVisibilityChange: (AppDestination, Boolean) -> Unit,
+    onMoveTab: (AppDestination, Int) -> Unit
+) {
+    Text(
+        text = stringResource(R.string.settings_tabs_label),
+        style = MaterialTheme.typography.labelLarge
+    )
+    Spacer(Modifier.height(4.dp))
+    Text(
+        text = stringResource(R.string.settings_tabs_summary),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    if (visibleDestinations.size == 1) {
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.settings_tabs_keep_one),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    Spacer(Modifier.height(8.dp))
+    tabOrder.forEachIndexed { index, destination ->
+        val isVisible = destination in visibleDestinations
+        val isOnlyVisibleTab = isVisible && visibleDestinations.size == 1
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("settings-tab-${destination.name}")
+                .padding(vertical = 2.dp)
+        ) {
+            Checkbox(
+                checked = isVisible,
+                enabled = !isOnlyVisibleTab,
+                onCheckedChange = { checked ->
+                    onTabVisibilityChange(destination, checked)
+                }
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = stringResource(destination.labelRes),
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(
+                enabled = index > 0,
+                onClick = { onMoveTab(destination, -1) }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowUp,
+                    contentDescription = stringResource(R.string.settings_tabs_move_up)
+                )
+            }
+            IconButton(
+                enabled = index < tabOrder.lastIndex,
+                onClick = { onMoveTab(destination, 1) }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = stringResource(R.string.settings_tabs_move_down)
+                )
+            }
+        }
+    }
 }
 
 private fun getCurrentLocaleTag(): String {

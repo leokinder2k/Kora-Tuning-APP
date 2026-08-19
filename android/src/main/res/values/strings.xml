@@ -462,6 +462,7 @@
 
     <!-- Top bar / overflow menu -->
     <string name="app_top_bar_title">Kora Tuning</string>
+    <string name="menu_customize_tabs">Customize tabs</string>
     <string name="menu_settings">Settings</string>
     <string name="menu_about">About</string>
 
@@ -471,6 +472,7 @@
     <string name="settings_theme_system">Follow system</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
+    <string name="settings_tabs_title">Customize tabs</string>
     <string name="settings_tabs_label">Bottom tabs</string>
     <string name="settings_tabs_summary">Choose which screens appear and the order used for swiping.</string>
     <string name="settings_tabs_keep_one">At least one screen must stay visible.</string>

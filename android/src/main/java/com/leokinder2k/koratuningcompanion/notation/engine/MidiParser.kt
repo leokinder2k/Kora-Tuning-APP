@@ -230,12 +230,17 @@ fun importMidiToSimplifiedScore(
     val melodyPartId = pickMelodyPart(parts)
     val melodyTrackIndex = trackIds.firstOrNull { "TRACK_$it" == melodyPartId }
 
-    val notesWithHint = allNotes.map { n -> n.copy(melodyHint = n.trackIndex == melodyTrackIndex) }
+    val notesWithHint = quantizeNoteEventsRhythm(
+        allNotes.map { n -> n.copy(melodyHint = n.trackIndex == melodyTrackIndex) },
+        ppq
+    )
 
     // Reduction
-    val (reducedNotes, reducedRests) = buildSimplifiedTeachingReduction(
+    val (reducedNotesRaw, reducedRestsRaw) = buildSimplifiedTeachingReduction(
         notesWithHint, reductionCap, splitMidi, tuningMidi
     )
+    val reducedNotes = quantizeNoteEventsRhythm(reducedNotesRaw, ppq)
+    val reducedRests = quantizeRestEventsRhythm(reducedRestsRaw, ppq)
 
     val endTick = (reducedNotes.map { it.tick + it.durationTicks } +
                    reducedRests.map { it.tick + it.durationTicks }).maxOrNull() ?: 0

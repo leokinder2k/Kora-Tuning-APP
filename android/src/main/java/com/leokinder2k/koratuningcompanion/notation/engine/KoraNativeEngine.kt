@@ -114,24 +114,25 @@ class KoraNativeEngine {
         title: String,
         sourceKind: String,
     ): String {
-        val mappingResult = mapSimplifiedScoreToKora(instrumentType, tuningMidi, score)
+        val quantizedScore = quantizeScoreRhythm(score)
+        val mappingResult = mapSimplifiedScoreToKora(instrumentType, tuningMidi, quantizedScore)
         val retunePlan = mappingResult.retunePlan
         val mappedEvents = mappingResult.events
 
         // WAV and PDF are generated on demand via exportAudio / exportPdf to avoid
         // OOM crashes on tablets when processing long pieces.
-        val midiKora = exportKoraPerformanceToMidiBytes(score, mappedEvents)
-        val midiSimpl = exportSimplifiedScoreToMidiBytes(score)
+        val midiKora = exportKoraPerformanceToMidiBytes(quantizedScore, mappedEvents)
+        val midiSimpl = exportSimplifiedScoreToMidiBytes(quantizedScore)
         val difficulty = estimateDifficulty(mappedEvents)
 
         return JSONObject().apply {
             put("koraMidiBase64", Base64.encodeToString(midiKora, Base64.NO_WRAP))
             put("simplifiedMidiBase64", Base64.encodeToString(midiSimpl, Base64.NO_WRAP))
-            put("ppq", score.ppq)
-            put("tempoMap", tempoMapToJson(score.tempoMap))
+            put("ppq", quantizedScore.ppq)
+            put("tempoMap", tempoMapToJson(quantizedScore.tempoMap))
             put("timeline", JSONObject())
             put("retunePlan", retunePlanToJson(retunePlan))
-            put("score", scoreToJson(score))
+            put("score", scoreToJson(quantizedScore))
             put("metadata", JSONObject().apply {
                 put("title", title)
                 put("instrumentType", instrumentType.name)
@@ -317,7 +318,7 @@ class KoraNativeEngine {
             }
         }
 
-        return SimplifiedScore(
+        return quantizeScoreRhythm(SimplifiedScore(
             ppq = ppq,
             noteEvents = noteEvents,
             restEvents = restEvents,
@@ -325,6 +326,6 @@ class KoraNativeEngine {
             keySignatures = keySigs,
             tempoMap = tempoMap,
             timeSignatures = listOf(TimeSignatureInfo(0, 4, 4)),
-        )
+        ))
     }
 }
