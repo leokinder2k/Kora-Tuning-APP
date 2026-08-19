@@ -34,13 +34,14 @@ class MidiControllerInput(
     context: Context,
     private val onEvent: (MidiControlEvent) -> Unit,
     private val onStatus: (String, String?, List<MidiDeviceSummary>, List<UsbDeviceSummary>) -> Unit,
-    private val onDiagnostics: (MidiInputDiagnostics) -> Unit
-) {
+    private val onDiagnostics: (MidiInputDiagnostics) -> Unit,
+    private val midiManager: MidiManager? = context.applicationContext.getSystemService(MidiManager::class.java),
+    private val usbManager: UsbManager? = context.applicationContext.getSystemService(UsbManager::class.java),
+    handlerThread: HandlerThread = HandlerThread("KoraMidiInput").apply { start() }
+) : SynthMidiInput {
     private val appContext = context.applicationContext
     private val usbPermissionAction = "${appContext.packageName}.USB_MIDI_PERMISSION"
-    private val midiManager = appContext.getSystemService(MidiManager::class.java)
-    private val usbManager = appContext.getSystemService(UsbManager::class.java)
-    private val handlerThread = HandlerThread("KoraMidiInput").apply { start() }
+    private val handlerThread = handlerThread
     private val handler = Handler(handlerThread.looper)
     private val midiParser = MidiMessageParser(::handleParsedEvent)
     private val parserLock = Any()
@@ -62,14 +63,14 @@ class MidiControllerInput(
     private val lastRolandDirectRefreshByteCount = AtomicLong(-1L)
     private val lastRolandDirectRefreshAtMs = AtomicLong(0L)
 
-    fun availableDevices(): List<MidiDeviceSummary> {
+    override fun availableDevices(): List<MidiDeviceSummary> {
         return midiManager?.devices
             ?.filter { info -> info.ports.any { it.type == MidiDeviceInfo.PortInfo.TYPE_OUTPUT } }
             ?.map { MidiDeviceSummary(it.id, it.displayName()) }
             ?: emptyList()
     }
 
-    fun usbDevices(): List<UsbDeviceSummary> {
+    override fun usbDevices(): List<UsbDeviceSummary> {
         return usbManager?.deviceList
             ?.values
             ?.map { it.summary() }
@@ -77,14 +78,14 @@ class MidiControllerInput(
             ?: emptyList()
     }
 
-    fun startAutoConnect() {
+    override fun startAutoConnect() {
         registerDeviceCallback()
         registerUsbReceiver()
         startWatchdog()
         connectToFirstAvailable()
     }
 
-    fun refreshAndConnect() {
+    override fun refreshAndConnect() {
         connectToFirstAvailable()
     }
 
@@ -95,7 +96,7 @@ class MidiControllerInput(
         emitStatus("MIDI disconnected", null)
     }
 
-    fun close() {
+    override fun close() {
         disconnect()
         watchdogStarted = false
         handler.removeCallbacksAndMessages(null)

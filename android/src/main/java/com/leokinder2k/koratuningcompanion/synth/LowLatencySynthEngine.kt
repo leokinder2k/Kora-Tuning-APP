@@ -22,9 +22,12 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-class LowLatencySynthEngine(context: Context) {
-    private val appContext = context.applicationContext
-    private val audioManager: AudioManager? = appContext.getSystemService(AudioManager::class.java)
+class LowLatencySynthEngine(
+    context: Context,
+    private val audioManager: AudioManager? = context.applicationContext.getSystemService(AudioManager::class.java),
+    private val sampleRate: Int = preferredSampleRate(audioManager),
+    preferredFramesPerRender: Int = preferredFramesPerBuffer(audioManager)
+) : SynthAudioEngine {
     private val synthAudioAttributes = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_MEDIA)
         .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
@@ -35,8 +38,7 @@ class LowLatencySynthEngine(context: Context) {
         }
     }
     private val lock = Any()
-    private val sampleRate = preferredSampleRate(appContext)
-    private val preferredFramesPerRender = preferredFramesPerBuffer(appContext)
+    private val preferredFramesPerRender = preferredFramesPerRender
     private val fallbackVoices = mutableListOf<SynthVoice>()
     private val soundFontHeldChannels = mutableMapOf<Int, MutableSet<Int>>()
     private var clickSamplesRemaining = 0
@@ -60,29 +62,29 @@ class LowLatencySynthEngine(context: Context) {
 
     var soundFontName: String? = null
         private set
-    var masterVolume: Float = 0.74f
+    override var masterVolume: Float = 0.74f
         private set
     var bassSplitEnabled: Boolean = false
         private set
     var padLayerEnabled: Boolean = false
         private set
-    var splitNote: Int = 48
+    override var splitNote: Int = 48
         private set
     var sustainEnabled: Boolean = false
         private set
-    var latencyMode: SynthLatencyMode = SynthLatencyMode.Low
+    override var latencyMode: SynthLatencyMode = SynthLatencyMode.Low
         private set
 
-    val isRunning: Boolean
+    override val isRunning: Boolean
         get() = running &&
             renderThread?.isAlive == true &&
             audioTrack?.state == AudioTrack.STATE_INITIALIZED
-    val bufferFrames: Int
+    override val bufferFrames: Int
         get() = activeBufferFrames
-    val estimatedOutputLatencyMs: Float
+    override val estimatedOutputLatencyMs: Float
         get() = activeBufferFrames * 1000f / sampleRate
 
-    fun start() {
+    override fun start() {
         if (isRunning) return
         stop()
         val activeFramesPerRender = latencyMode.renderFramesFor(preferredFramesPerRender)
@@ -163,7 +165,7 @@ class LowLatencySynthEngine(context: Context) {
         }
     }
 
-    fun stop() {
+    override fun stop() {
         val track = audioTrack
         running = false
         runCatching { track?.pause() }
@@ -178,7 +180,7 @@ class LowLatencySynthEngine(context: Context) {
         abandonAudioFocus()
     }
 
-    fun setLatencyMode(mode: SynthLatencyMode) {
+    override fun setLatencyMode(mode: SynthLatencyMode) {
         if (latencyMode == mode) return
         val shouldRestart = isRunning
         stop()
@@ -187,26 +189,26 @@ class LowLatencySynthEngine(context: Context) {
         if (shouldRestart) start()
     }
 
-    fun setMasterVolume(value: Float) {
+    override fun setMasterVolume(value: Float) {
         masterVolume = value.coerceIn(0f, 1f)
         synchronized(lock) {
             soundFont?.setVolume(soundFontRenderVolume())
         }
     }
 
-    fun setBassSplitEnabled(enabled: Boolean) {
+    override fun setBassSplitEnabled(enabled: Boolean) {
         bassSplitEnabled = enabled
     }
 
-    fun setPadLayerEnabled(enabled: Boolean) {
+    override fun setPadLayerEnabled(enabled: Boolean) {
         padLayerEnabled = enabled
     }
 
-    fun setSplitNote(note: Int) {
+    override fun setSplitNote(note: Int) {
         splitNote = note.coerceIn(24, 84)
     }
 
-    fun setSustain(enabled: Boolean) {
+    override fun setSustain(enabled: Boolean) {
         sustainEnabled = enabled
         synchronized(lock) {
             soundFont?.channels?.take(3)?.forEach { channel ->
@@ -220,7 +222,7 @@ class LowLatencySynthEngine(context: Context) {
         }
     }
 
-    fun playMetronomeClick(accent: Boolean) {
+    override fun playMetronomeClick(accent: Boolean) {
         start()
         requestAudioFocus()
         synchronized(lock) {
@@ -233,7 +235,7 @@ class LowLatencySynthEngine(context: Context) {
         }
     }
 
-    fun noteOn(note: Int, velocity: Float) {
+    override fun noteOn(note: Int, velocity: Float) {
         start()
         requestAudioFocus()
         val midiNote = note.coerceIn(0, 127)
@@ -248,7 +250,7 @@ class LowLatencySynthEngine(context: Context) {
         }
     }
 
-    fun noteOff(note: Int) {
+    override fun noteOff(note: Int) {
         val midiNote = note.coerceIn(0, 127)
         synchronized(lock) {
             val font = soundFont
@@ -267,7 +269,7 @@ class LowLatencySynthEngine(context: Context) {
         }
     }
 
-    fun playMomentaryChord(notes: List<Int>, velocity: Float = 0.72f) {
+    override fun playMomentaryChord(notes: List<Int>, velocity: Float) {
         notes.forEach { noteOn(it, velocity) }
         thread(start = true, name = "KoraSynthChordRelease") {
             Thread.sleep(900)
@@ -275,7 +277,7 @@ class LowLatencySynthEngine(context: Context) {
         }
     }
 
-    fun panic() {
+    override fun panic() {
         synchronized(lock) {
             soundFont?.noteOffAll()
             soundFont?.channels?.take(3)?.forEach { channel ->
@@ -288,7 +290,7 @@ class LowLatencySynthEngine(context: Context) {
         }
     }
 
-    fun loadSoundFont(displayName: String, bytes: ByteArray): Result<String> = runCatching {
+    override fun loadSoundFont(displayName: String, bytes: ByteArray): Result<String> = runCatching {
         val loaded = MikroSoundFont.load(bytes)
         loaded.setOutput(SoundFont.OutputMode.STEREO_INTERLEAVED, sampleRate, 0f)
         loaded.setMaxVoices(96)
@@ -303,7 +305,7 @@ class LowLatencySynthEngine(context: Context) {
         displayName
     }
 
-    fun useBuiltInSound() {
+    override fun useBuiltInSound() {
         synchronized(lock) {
             soundFont?.noteOffAll()
             soundFont = null
@@ -620,8 +622,7 @@ class LowLatencySynthEngine(context: Context) {
         const val LimiterHardCeiling = 0.88f
         const val LimiterRelease = 0.06f
 
-        fun preferredSampleRate(context: Context): Int {
-            val audioManager = context.getSystemService(AudioManager::class.java)
+        fun preferredSampleRate(audioManager: AudioManager?): Int {
             return audioManager
                 ?.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)
                 ?.toIntOrNull()
@@ -629,8 +630,7 @@ class LowLatencySynthEngine(context: Context) {
                 ?: 48_000
         }
 
-        fun preferredFramesPerBuffer(context: Context): Int {
-            val audioManager = context.getSystemService(AudioManager::class.java)
+        fun preferredFramesPerBuffer(audioManager: AudioManager?): Int {
             return audioManager
                 ?.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER)
                 ?.toIntOrNull()

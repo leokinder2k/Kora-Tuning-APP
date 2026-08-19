@@ -18,8 +18,11 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.coroutines.coroutineContext
 
-class SynthViewModel(application: Application) : AndroidViewModel(application) {
-    private val engine = LowLatencySynthEngine(application)
+class SynthViewModel @JvmOverloads constructor(
+    application: Application,
+    private val engine: SynthAudioEngine = LowLatencySynthEngine(application),
+    midiInputFactory: SynthMidiInputFactory = AndroidSynthMidiInputFactory()
+) : AndroidViewModel(application) {
     private val recorder = MidiLoopRecorder()
     private val recorderLock = Any()
     private var loopJob: Job? = null
@@ -27,7 +30,16 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
     private var recordingSessionId = 0L
     @Volatile private var audioAllowed = false
 
-    private val midiInput = MidiControllerInput(
+    private val _uiState = MutableStateFlow(
+        SynthUiState(
+            midiStatus = "Connect A-49 by USB or Bluetooth MIDI",
+            availableMidiDevices = emptyList(),
+            visibleUsbDevices = emptyList()
+        )
+    )
+    val uiState: StateFlow<SynthUiState> = _uiState
+
+    private val midiInput = midiInputFactory.create(
         context = application,
         onEvent = ::handleMidiEvent,
         onStatus = { status, connectedName, midiDevices, usbDevices ->
@@ -52,15 +64,6 @@ class SynthViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     )
-
-    private val _uiState = MutableStateFlow(
-        SynthUiState(
-            midiStatus = "Connect A-49 by USB or Bluetooth MIDI",
-            availableMidiDevices = emptyList(),
-            visibleUsbDevices = emptyList()
-        )
-    )
-    val uiState: StateFlow<SynthUiState> = _uiState
 
     fun start() {
         audioAllowed = true
