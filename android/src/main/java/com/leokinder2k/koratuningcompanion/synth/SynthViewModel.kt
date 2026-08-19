@@ -130,21 +130,20 @@ class SynthViewModel @JvmOverloads constructor(
 
     fun noteOn(note: Int, velocity: Float) {
         if (!ensureAudioRunning()) return
-        val shifted = note + (_uiState.value.octaveShift * 12)
-        engine.noteOn(shifted, velocity)
+        val shifted = shiftedNote(note)
+        playEngineNote(shifted, velocity)
         recordEvent(RecordedMidiMessage.NoteOn(shifted, velocity))
-        _uiState.update { it.copy(audioRunning = engine.isRunning, lastNote = midiNoteName(shifted), lastVelocity = velocity) }
     }
 
     fun noteOff(note: Int) {
-        val shifted = note + (_uiState.value.octaveShift * 12)
-        engine.noteOff(shifted)
+        val shifted = shiftedNote(note)
+        stopEngineNote(shifted)
         recordEvent(RecordedMidiMessage.NoteOff(shifted))
     }
 
     fun playPad(rootNote: Int, quality: PadQuality) {
         if (!ensureAudioRunning()) return
-        val shiftedRoot = rootNote + (_uiState.value.octaveShift * 12)
+        val shiftedRoot = shiftedNote(rootNote)
         val notes = quality.notesFrom(shiftedRoot)
         engine.playMomentaryChord(notes, velocity = 0.76f)
         val recordingSession = synchronized(recorderLock) {
@@ -175,8 +174,7 @@ class SynthViewModel @JvmOverloads constructor(
 
     fun allNotesOff() {
         engine.panic()
-        engine.setSustain(false)
-        _uiState.update { it.copy(sustainEnabled = false) }
+        setSustainEnabled(false)
     }
 
     fun toggleRecording() {
@@ -384,20 +382,10 @@ class SynthViewModel @JvmOverloads constructor(
         when (message) {
             is RecordedMidiMessage.NoteOn -> {
                 if (!ensureAudioRunning()) return
-                engine.noteOn(message.note, message.velocity)
-                _uiState.update {
-                    it.copy(
-                        audioRunning = engine.isRunning,
-                        lastNote = midiNoteName(message.note),
-                        lastVelocity = message.velocity
-                    )
-                }
+                playEngineNote(message.note, message.velocity)
             }
-            is RecordedMidiMessage.NoteOff -> engine.noteOff(message.note)
-            is RecordedMidiMessage.Sustain -> {
-                engine.setSustain(message.enabled)
-                _uiState.update { it.copy(sustainEnabled = message.enabled) }
-            }
+            is RecordedMidiMessage.NoteOff -> stopEngineNote(message.note)
+            is RecordedMidiMessage.Sustain -> setSustainEnabled(message.enabled)
         }
     }
 
@@ -451,24 +439,16 @@ class SynthViewModel @JvmOverloads constructor(
         when (event) {
             is MidiControlEvent.NoteOn -> {
                 if (!ensureAudioRunning()) return
-                engine.noteOn(event.note, event.velocity)
+                playEngineNote(event.note, event.velocity)
                 recordEvent(RecordedMidiMessage.NoteOn(event.note, event.velocity))
-                _uiState.update {
-                    it.copy(
-                        audioRunning = engine.isRunning,
-                        lastNote = midiNoteName(event.note),
-                        lastVelocity = event.velocity
-                    )
-                }
             }
             is MidiControlEvent.NoteOff -> {
-                engine.noteOff(event.note)
+                stopEngineNote(event.note)
                 recordEvent(RecordedMidiMessage.NoteOff(event.note))
             }
             is MidiControlEvent.Sustain -> {
-                engine.setSustain(event.enabled)
+                setSustainEnabled(event.enabled)
                 recordEvent(RecordedMidiMessage.Sustain(event.enabled))
-                _uiState.update { it.copy(sustainEnabled = event.enabled) }
             }
             MidiControlEvent.AllNotesOff -> {
                 allNotesOff()
@@ -490,6 +470,30 @@ class SynthViewModel @JvmOverloads constructor(
             audioBufferFrames = engine.bufferFrames,
             estimatedAudioLatencyMs = engine.estimatedOutputLatencyMs
         )
+    }
+
+    private fun shiftedNote(note: Int): Int {
+        return note + (_uiState.value.octaveShift * 12)
+    }
+
+    private fun playEngineNote(note: Int, velocity: Float) {
+        engine.noteOn(note, velocity)
+        _uiState.update {
+            it.copy(
+                audioRunning = engine.isRunning,
+                lastNote = midiNoteName(note),
+                lastVelocity = velocity
+            )
+        }
+    }
+
+    private fun stopEngineNote(note: Int) {
+        engine.noteOff(note)
+    }
+
+    private fun setSustainEnabled(enabled: Boolean) {
+        engine.setSustain(enabled)
+        _uiState.update { it.copy(sustainEnabled = enabled) }
     }
 
     private fun nowMs(): Long = SystemClock.uptimeMillis()
